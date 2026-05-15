@@ -1,0 +1,107 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\Permission;
+use App\Models\Role;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Schema;
+
+class RolePermissionSeeder extends Seeder
+{
+    public function run(): void
+    {
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        $guard = 'web';
+
+        $definitions = [
+            ['name' => 'admin.dashboard', 'module_name' => 'admin', 'description' => 'Access admin dashboard'],
+            ['name' => 'users.view', 'module_name' => 'users', 'description' => 'List users'],
+            ['name' => 'users.create', 'module_name' => 'users', 'description' => 'Create users'],
+            ['name' => 'users.edit', 'module_name' => 'users', 'description' => 'Edit users'],
+            ['name' => 'users.delete', 'module_name' => 'users', 'description' => 'Delete users'],
+            ['name' => 'roles.view', 'module_name' => 'roles', 'description' => 'List roles'],
+            ['name' => 'roles.create', 'module_name' => 'roles', 'description' => 'Create roles'],
+            ['name' => 'roles.edit', 'module_name' => 'roles', 'description' => 'Edit roles'],
+            ['name' => 'roles.delete', 'module_name' => 'roles', 'description' => 'Delete roles'],
+            ['name' => 'orders.approve', 'module_name' => 'orders', 'description' => 'Approve orders'],
+            ['name' => 'category.create', 'module_name' => 'categories', 'description' => 'Create categories'],
+            ['name' => 'parts.view', 'module_name' => 'parts', 'description' => 'List parts'],
+            ['name' => 'parts.create', 'module_name' => 'parts', 'description' => 'Create parts'],
+            ['name' => 'parts.edit', 'module_name' => 'parts', 'description' => 'Edit parts'],
+            ['name' => 'parts.delete', 'module_name' => 'parts', 'description' => 'Delete parts'],
+            ['name' => 'models.view', 'module_name' => 'models', 'description' => 'List models'],
+            ['name' => 'models.create', 'module_name' => 'models', 'description' => 'Create models'],
+            ['name' => 'models.edit', 'module_name' => 'models', 'description' => 'Edit models'],
+            ['name' => 'models.delete', 'module_name' => 'models', 'description' => 'Delete models'],
+            ['name' => 'appliance.create', 'module_name' => 'appliances', 'description' => 'Create truck appliances'],
+            ['name' => 'appliance.edit', 'module_name' => 'appliances', 'description' => 'Edit truck appliances'],
+            ['name' => 'appliance.delete', 'module_name' => 'appliances', 'description' => 'Delete truck appliances'],
+            ['name' => 'trucks.view', 'module_name' => 'trucks', 'description' => 'List trucks'],
+            ['name' => 'trucks.create', 'module_name' => 'trucks', 'description' => 'Create trucks'],
+            ['name' => 'trucks.edit', 'module_name' => 'trucks', 'description' => 'Edit trucks'],
+            ['name' => 'trucks.delete', 'module_name' => 'trucks', 'description' => 'Delete trucks'],
+        ];
+
+        foreach ($definitions as $def) {
+            Permission::firstOrCreate(
+                ['name' => $def['name'], 'guard_name' => $guard],
+                [
+                    'module_name' => $def['module_name'],
+                    'slug' => $def['name'],
+                    'description' => $def['description'],
+                ]
+            );
+        }
+
+        /*
+        | Replace all roles so lowercase names (admin, user, …) are not merged with
+        | legacy PascalCase rows under MySQL's default case-insensitive unique index on `name`.
+        */
+        Schema::disableForeignKeyConstraints();
+        try {
+            Role::query()->delete();
+        } finally {
+            Schema::enableForeignKeyConstraints();
+        }
+
+        /*
+        | Ben's Appliances–style roles (lowercase, as in legacy Manage UI).
+        | Adjust permission lists when you add Trucks, Parts, Kits, etc.
+        */
+        $roles = [
+            'admin' => Permission::pluck('name')->all(),
+            'technician' => [
+                'admin.dashboard',
+                'users.view',
+                'parts.view',
+                'models.view',
+                'appliance.edit',
+                'trucks.view', 'trucks.edit',
+            ],
+            'kit_assigner' => [
+                'admin.dashboard',
+                'orders.approve',
+                'parts.view',
+                'models.view',
+                'appliance.create', 'appliance.edit',
+                'trucks.view', 'trucks.create', 'trucks.edit',
+            ],
+            'user' => [],
+        ];
+
+        foreach ($roles as $roleName => $permissionNames) {
+            $role = Role::create([
+                'name' => $roleName,
+                'guard_name' => $guard,
+                'description' => 'Seeded '.$roleName.' role',
+            ]);
+
+            $role->syncPermissions(Arr::wrap($permissionNames));
+        }
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+    }
+}

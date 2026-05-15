@@ -1,0 +1,26 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class UpdateTruckRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()?->can('trucks.edit') ?? false;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'name' => ['required', 'string', 'max:255'],
+            'units_on_truck' => ['required', 'integer', 'min:0'],
+            'cost_of_truck' => ['required', 'numeric', 'min:0'],
+            'arrival_date' => ['required', 'date'],
+            'status' => ['required', Rule::in(['active', 'inactive'])],
+            'notes' => ['nullable', 'string', 'max:5000'],
+        ];
+    }
+}
