@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreModelRequest;
 use App\Http\Requests\UpdateModelRequest;
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Model;
 use Illuminate\Http\Request;
@@ -66,6 +67,8 @@ class ModelController extends Controller
         $data['created_by'] = $request->user()->id;
         $data['updated_by'] = $request->user()->id;
 
+        $this->syncBrand($data['brand'] ?? null, $request->user()->id);
+
         Model::create($data);
 
         return redirect()->route('admin.models.index')->with('success', __('Model created successfully.'));
@@ -78,6 +81,8 @@ class ModelController extends Controller
         $data = $request->validated();
         $data['msrp'] = $data['msrp'] ?? 0;
         $data['updated_by'] = $request->user()->id;
+
+        $this->syncBrand($data['brand'] ?? null, $request->user()->id);
 
         $model->update($data);
 
@@ -92,5 +97,23 @@ class ModelController extends Controller
         $model->delete();
 
         return redirect()->route('admin.models.index')->with('success', __('Model deleted successfully.'));
+    }
+
+    private function syncBrand(?string $brand, int $userId): void
+    {
+        $brand = trim((string) $brand);
+
+        if ($brand === '') {
+            return;
+        }
+
+        Brand::firstOrCreate(
+            ['name' => $brand],
+            [
+                'status' => 1,
+                'created_by' => $userId,
+                'updated_by' => $userId,
+            ]
+        );
     }
 }

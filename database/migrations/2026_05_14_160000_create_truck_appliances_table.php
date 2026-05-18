@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('product_name')->nullable();
             $table->decimal('msrp', 10, 2)->default(0);
             $table->string('receiving_condition')->nullable();
+            $table->string('status')->nullable();
             $table->decimal('total_parts_cost', 10, 2)->default(0);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();

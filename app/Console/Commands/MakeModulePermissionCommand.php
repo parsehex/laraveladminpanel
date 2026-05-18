@@ -42,7 +42,7 @@ class MakeModulePermissionCommand extends Command
         }
 
         $this->newLine();
-        $this->comment('Assign these permissions to roles via Admin → Roles or $role->givePermissionTo(...) in a seeder.');
+        $this->comment('Assign these permissions to roles via Admin -> Roles or $role->givePermissionTo(...) in a seeder.');
 
         return self::SUCCESS;
     }

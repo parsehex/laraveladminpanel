@@ -22,6 +22,7 @@ return [
         'Super Admin',
         'admin',
         'technician',
+        'sales',
         'kit_assigner',
     ],
 
@@ -39,6 +40,7 @@ return [
         'Admin',
         'Super Admin',
         'technician',
+        'sales',
         'kit_assigner',
         'Manager',
     ],

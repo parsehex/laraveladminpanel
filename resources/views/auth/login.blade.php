@@ -8,24 +8,30 @@
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    @include('layouts.partials.theme')
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Toastr CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
-    <div class="max-w-md w-full space-y-8 p-8">
+<body class="min-h-screen flex items-center justify-center px-4 py-10" style="background: radial-gradient(circle at 50% 0%, rgba(247, 200, 20, 0.16), transparent 24rem), linear-gradient(135deg, #172a49 0%, #213a61 48%, #0f203b 100%);">
+    <div class="max-w-md w-full space-y-8">
+        <div class="text-center text-white">
+            <div class="ui-brand-mark h-20 w-20 rounded-3xl flex items-center justify-center mx-auto mb-6 font-extrabold text-3xl">B</div>
+            <h1 class="text-4xl font-extrabold tracking-tight text-white">Ben's Appliances</h1>
+        </div>
+
         <div class="bg-white rounded-lg shadow-md p-8">
             <div class="text-center mb-8">
-                <h2 class="text-3xl font-bold text-gray-900">Sign In</h2>
-                <p class="mt-2 text-gray-600">Access your dashboard</p>
+                <h2 class="text-2xl font-extrabold text-gray-900">Welcome Back</h2>
+                <p class="mt-2 text-sm text-gray-600">Sign in to your account to continue</p>
             </div>
             
             <form method="POST" action="{{ route('login') }}" class="space-y-6">
                 @csrf
                 
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
                         Email Address <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
@@ -44,7 +50,7 @@
                 </div>
                 
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
                         Password <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
@@ -67,26 +73,26 @@
                                id="remember" 
                                name="remember" 
                                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                        <label for="remember" class="ml-2 block text-sm text-gray-700">
+                        <label for="remember" class="ml-2 block text-sm font-medium text-gray-700">
                             Remember me
                         </label>
                     </div>
                 </div>
                 
                 <button type="submit" 
-                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150 ease-in-out">
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-md focus:outline-none focus:ring-4 focus:ring-blue-500/15 transition duration-150 ease-in-out">
                     <i class="fas fa-sign-in-alt mr-2"></i>
                     Sign In
                 </button>
             </form>
-            
-            <div class="mt-6 text-center">
-                <p class="text-sm text-gray-600">
+<!--
+            <div class="mt-6 text-center rounded-md border border-slate-200 bg-slate-50/80 p-4">
+                <p class="text-xs leading-5 text-gray-600">
                     Demo Credentials:<br>
                     <strong>Admin:</strong> admin@example.com / password<br>
                     <strong>User:</strong> user@example.com / password
                 </p>
-            </div>
+            </div> -->
         </div>
     </div>
     

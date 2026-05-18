@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTruckApplianceRequest;
 use App\Http\Requests\UpdateTruckApplianceRequest;
+use App\Models\Brand;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
 use Illuminate\Http\Request;
@@ -26,6 +27,8 @@ class TruckApplianceController extends Controller
         $data['created_by'] = $request->user()->id;
         $data['updated_by'] = $request->user()->id;
 
+        $this->syncBrand($data['brand'] ?? null, $request->user()->id);
+
         $truck->appliances()->create($data);
 
         return redirect()->route('admin.trucks.show', $truck)->with('success', __('Appliance added successfully.'));
@@ -40,6 +43,8 @@ class TruckApplianceController extends Controller
 
         $data['updated_by'] = $request->user()->id;
 
+        $this->syncBrand($data['brand'] ?? null, $request->user()->id);
+
         $appliance->update($data);
 
         return redirect()->route('admin.trucks.show', $truck)->with('success', __('Appliance updated successfully.'));
@@ -53,5 +58,23 @@ class TruckApplianceController extends Controller
         $appliance->delete();
 
         return redirect()->route('admin.trucks.show', $truck)->with('success', __('Appliance removed successfully.'));
+    }
+
+    private function syncBrand(?string $brand, int $userId): void
+    {
+        $brand = trim((string) $brand);
+
+        if ($brand === '') {
+            return;
+        }
+
+        Brand::firstOrCreate(
+            ['name' => $brand],
+            [
+                'status' => 1,
+                'created_by' => $userId,
+                'updated_by' => $userId,
+            ]
+        );
     }
 }

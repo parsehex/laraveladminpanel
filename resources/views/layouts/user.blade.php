@@ -8,6 +8,7 @@
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    @include('layouts.partials.theme')
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Toastr CSS -->
@@ -16,7 +17,7 @@
     @stack('styles')
 </head>
 <body class="bg-gray-100">
-    <div class="flex h-screen overflow-hidden">
+    <div class="app-shell flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <x-user.sidebar />
         
@@ -26,7 +27,7 @@
             <x-user.navbar />
             
             <!-- Page Content -->
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 lg:p-8">
                 @yield('content')
             </main>
         </div>

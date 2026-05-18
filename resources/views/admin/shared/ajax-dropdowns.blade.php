@@ -91,6 +91,14 @@
                 label: 'Model Name',
                 field: 'model_number',
                 placeholder: 'Search models...'
+            },
+            brand: {
+                list: '{{ route('admin.dropdowns.brands') }}',
+                store: '{{ route('admin.dropdowns.brands.store') }}',
+                title: 'Add Brand',
+                label: 'Brand Name',
+                field: 'name',
+                placeholder: 'Search brands...'
             }
         };
 

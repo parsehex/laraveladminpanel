@@ -37,7 +37,7 @@ class UserController extends Controller
             $query->whereHas('roles', fn ($q) => $q->where('name', $request->get('role')));
         }
 
-        $users = $query->latest()->paginate(10)->withQueryString();
+        $users = $query->latest()->paginate(20)->withQueryString();
         $filterRoles = Role::query()->orderBy('name')->pluck('name');
 
         return view('admin.users.index', compact('users', 'filterRoles'));
@@ -51,12 +51,13 @@ class UserController extends Controller
         return view('admin.users.create', compact('roles', 'permissions'));
     }
 
-    public function store(StoreUserRequest $request)
+public function store(StoreUserRequest $request)
     {
         $data = $request->validated();
         $roleName = $data['role'];
         $direct = $data['direct_permissions'] ?? [];
         unset($data['direct_permissions']);
+        unset($data['registration_code']);
 
         $user = User::create($data);
         $user->syncRoles([$roleName]);

@@ -20,12 +20,13 @@
             <x-form.input name="email" label="Email Address" type="email" required="true" />
             <x-form.input name="password" label="Password" type="password" required="true" />
             <x-form.input name="password_confirmation" label="Confirm Password" type="password" required="true" />
+            <x-form.input name="registration_code" label="Registration Code" type="text" required="true" />
             
             <x-form.select name="role" label="Role" :options="$roles" required="true" />
             
             <x-form.select name="status" label="Status" :options="['active' => 'Active', 'inactive' => 'Inactive']" value="active" required="true" />
 
-            @if(isset($permissions) && $permissions->isNotEmpty())
+            <!-- @if(isset($permissions) && $permissions->isNotEmpty())
             <div>
                 <p class="text-sm font-medium text-gray-700 mb-2">Direct permissions (optional)</p>
                 <p class="text-xs text-gray-500 mb-3">Overrides are merged with the role via Spatie.</p>
@@ -44,7 +45,7 @@
                     </div>
                 @endforeach
             </div>
-            @endif
+            @endif -->
             
             <div class="flex items-center justify-end space-x-3">
                 <a href="{{ route('admin.users.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">Cancel</a>

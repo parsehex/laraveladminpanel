@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Model;
 use Illuminate\Http\JsonResponse;
@@ -55,6 +56,25 @@ class DropdownController extends Controller
         ]);
     }
 
+    public function brands(Request $request): JsonResponse
+    {
+        $search = $request->string('q')->trim();
+
+        $brands = Brand::query()
+            ->where('status', 1)
+            ->when($search->isNotEmpty(), fn ($query) => $query->where('name', 'like', '%'.$search.'%'))
+            ->orderBy('name')
+            ->paginate(20);
+
+        return response()->json([
+            'data' => $brands->getCollection()->map(fn (Brand $brand) => [
+                'id' => $brand->name,
+                'text' => $brand->name,
+            ])->values(),
+            'next_page' => $brands->hasMorePages() ? $brands->currentPage() + 1 : null,
+        ]);
+    }
+
     public function storeCategory(Request $request): JsonResponse
     {
         abort_unless($request->user()?->can('category.create') || $request->user()?->can('models.create'), 403);
@@ -100,6 +120,37 @@ class DropdownController extends Controller
                 'id' => $model->id,
                 'value' => $model->model_number,
                 'text' => $model->model_number,
+            ],
+        ], 201);
+    }
+
+    public function storeBrand(Request $request): JsonResponse
+    {
+        abort_unless(
+            $request->user()?->can('models.create')
+                || $request->user()?->can('models.edit')
+                || $request->user()?->can('appliance.create')
+                || $request->user()?->can('appliance.edit'),
+            403
+        );
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255', Rule::unique('brands', 'name')],
+        ]);
+
+        $brand = Brand::create([
+            'name' => $data['name'],
+            'status' => 1,
+            'created_by' => $request->user()->id,
+            'updated_by' => $request->user()->id,
+        ]);
+
+        return response()->json([
+            'message' => __('Brand created successfully.'),
+            'item' => [
+                'id' => $brand->name,
+                'value' => $brand->name,
+                'text' => $brand->name,
             ],
         ], 201);
     }

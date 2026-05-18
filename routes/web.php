@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DropdownController;
+use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\ModelController;
 use App\Http\Controllers\Admin\PartController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SalesController;
 use App\Http\Controllers\Admin\TruckApplianceController;
 use App\Http\Controllers\Admin\TruckController;
 use App\Http\Controllers\Admin\UserController;
@@ -39,6 +41,15 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])
         ->middleware('permission:admin.dashboard')
         ->name('dashboard');
+    Route::post('/dashboard/suggestions', [AdminDashboardController::class, 'storeSuggestion'])
+        ->middleware('permission:admin.dashboard')
+        ->name('dashboard.suggestions.store');
+    Route::post('/dashboard/suggestions/{suggestion}/responses', [AdminDashboardController::class, 'storeSuggestionResponse'])
+        ->middleware('permission:admin.dashboard')
+        ->name('dashboard.suggestions.responses.store');
+    Route::patch('/dashboard/suggestions/{suggestion}/complete', [AdminDashboardController::class, 'completeSuggestion'])
+        ->middleware('permission:admin.dashboard')
+        ->name('dashboard.suggestions.complete');
 
     Route::get('dropdowns/categories', [DropdownController::class, 'categories'])
         ->middleware('permission:models.view|models.create|models.edit|appliance.create|appliance.edit')
@@ -46,16 +57,63 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('dropdowns/models', [DropdownController::class, 'models'])
         ->middleware('permission:parts.view|parts.create|parts.edit|models.view|appliance.create|appliance.edit')
         ->name('dropdowns.models');
+    Route::get('dropdowns/brands', [DropdownController::class, 'brands'])
+        ->middleware('permission:models.view|models.create|models.edit|appliance.create|appliance.edit')
+        ->name('dropdowns.brands');
     Route::post('dropdowns/categories', [DropdownController::class, 'storeCategory'])
         ->middleware('permission:category.create|models.create')
         ->name('dropdowns.categories.store');
     Route::post('dropdowns/models', [DropdownController::class, 'storeModel'])
         ->middleware('permission:models.create')
         ->name('dropdowns.models.store');
+    Route::post('dropdowns/brands', [DropdownController::class, 'storeBrand'])
+        ->middleware('permission:models.create|models.edit|appliance.create|appliance.edit')
+        ->name('dropdowns.brands.store');
 
     Route::resource('users', UserController::class);
 
     Route::resource('roles', RoleController::class)->except(['show']);
+
+    Route::get('sales', [SalesController::class, 'index'])
+        ->middleware('permission:sales.view')
+        ->name('sales.index');
+    Route::post('sales/mark-sold', [SalesController::class, 'markSold'])
+        ->middleware('permission:sales.create')
+        ->name('sales.mark-sold');
+    Route::patch('sales/{appliance}/sold-price', [SalesController::class, 'updateSoldPrice'])
+        ->middleware('permission:sales.edit')
+        ->name('sales.sold-price.update');
+
+    Route::get('inventory', [InventoryController::class, 'index'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.index');
+    Route::get('inventory/parts/search', [InventoryController::class, 'searchParts'])
+        ->middleware('permission:parts.view|appliance.edit')
+        ->name('inventory.parts.search');
+    Route::get('inventory/{appliance}', [InventoryController::class, 'show'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.show');
+    Route::patch('inventory/{appliance}/location', [InventoryController::class, 'updateLocation'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.location.update');
+    Route::patch('inventory/{appliance}/move-truck', [InventoryController::class, 'moveTruck'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.move-truck.update');
+    Route::patch('inventory/{appliance}/status', [InventoryController::class, 'updateStatus'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.status.update');
+    Route::post('inventory/{appliance}/parts', [InventoryController::class, 'storePart'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.parts.store');
+    Route::delete('inventory/{appliance}/parts/{part}', [InventoryController::class, 'destroyPart'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.parts.destroy');
+    Route::post('inventory/{appliance}/photos', [InventoryController::class, 'uploadPhotos'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.photos.store');
+    Route::delete('inventory/{appliance}/photos', [InventoryController::class, 'destroyPhoto'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.photos.destroy');
 
     Route::get('parts', [PartController::class, 'index'])
         ->middleware('permission:parts.view')

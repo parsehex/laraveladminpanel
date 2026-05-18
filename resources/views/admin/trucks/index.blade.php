@@ -8,18 +8,42 @@
     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <h1 class="text-2xl font-bold text-gray-900">Trucks</h1>
         @canAccess('trucks.create')
-        <a href="{{ route('admin.trucks.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md inline-flex items-center justify-center">
+        <button type="button" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md inline-flex items-center justify-center" data-toggle-create>
             <i class="fas fa-plus mr-2"></i>Add truck
-        </a>
+        </button>
         @endcanAccess
     </div>
+
+    @canAccess('trucks.create')
+    <div id="create-truck-panel" class="bg-white rounded-lg shadow p-6 {{ $errors->any() && old('_form') === 'create' ? '' : 'hidden' }}">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-900">New truck</h2>
+            <button type="button" class="text-gray-600 hover:text-gray-900 text-sm" data-toggle-create>
+                <i class="fas fa-times mr-1"></i>Close
+            </button>
+        </div>
+
+        <form method="POST" action="{{ route('admin.trucks.store') }}" class="space-y-6">
+            @csrf
+            <input type="hidden" name="_form" value="create">
+            @include('admin.trucks.form', ['truck' => null])
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600" data-toggle-create>Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                    <i class="fas fa-save mr-2"></i>Save
+                </button>
+            </div>
+        </form>
+    </div>
+    @endcanAccess
 
     <div class="bg-white rounded-lg shadow p-6">
         <form method="GET" action="{{ route('admin.trucks.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="md:col-span-2">
                 <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search by name</label>
                 <input type="text" id="search" name="search" value="{{ request('search') }}"
-                       placeholder="Truck name…"
+                       placeholder="Truck name..."
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
@@ -59,14 +83,14 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $truck->units_on_truck }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${{ number_format($truck->cost_of_truck, 2) }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${{ number_format($truck->total_appliance_msrp ?? 0, 2) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $truck->arrival_date ? $truck->arrival_date : '—' }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $truck->arrival_date ? $truck->arrival_date : '-' }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $truck->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
                                 {{ ucfirst($truck->status) }}
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {{ $truck->creator?->name ?? '—' }}
+                            {{ $truck->creator?->name ?? '-' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                             @canAccess('trucks.view')
@@ -98,3 +122,11 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    $('[data-toggle-create]').on('click', function () {
+        $('#create-truck-panel').toggleClass('hidden');
+    });
+</script>
+@endpush

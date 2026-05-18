@@ -17,7 +17,7 @@ class RolePermissionSeeder extends Seeder
         $guard = 'web';
 
         $definitions = [
-            ['name' => 'admin.dashboard', 'module_name' => 'admin', 'description' => 'Access admin dashboard'],
+            ['name' => 'admin.dashboard', 'module_name' => 'dashboard', 'description' => 'Access admin dashboard'],
             ['name' => 'users.view', 'module_name' => 'users', 'description' => 'List users'],
             ['name' => 'users.create', 'module_name' => 'users', 'description' => 'Create users'],
             ['name' => 'users.edit', 'module_name' => 'users', 'description' => 'Edit users'],
@@ -36,6 +36,10 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'models.create', 'module_name' => 'models', 'description' => 'Create models'],
             ['name' => 'models.edit', 'module_name' => 'models', 'description' => 'Edit models'],
             ['name' => 'models.delete', 'module_name' => 'models', 'description' => 'Delete models'],
+            ['name' => 'inventory.view', 'module_name' => 'inventory', 'description' => 'List inventory'],
+            ['name' => 'sales.view', 'module_name' => 'sales', 'description' => 'List sales'],
+            ['name' => 'sales.create', 'module_name' => 'sales', 'description' => 'Create sales'],
+            ['name' => 'sales.edit', 'module_name' => 'sales', 'description' => 'Edit sales'],
             ['name' => 'appliance.create', 'module_name' => 'appliances', 'description' => 'Create truck appliances'],
             ['name' => 'appliance.edit', 'module_name' => 'appliances', 'description' => 'Edit truck appliances'],
             ['name' => 'appliance.delete', 'module_name' => 'appliances', 'description' => 'Delete truck appliances'],
@@ -76,6 +80,8 @@ class RolePermissionSeeder extends Seeder
             'technician' => [
                 'admin.dashboard',
                 'users.view',
+                'inventory.view',
+                'sales.view',
                 'parts.view',
                 'models.view',
                 'appliance.edit',
@@ -84,6 +90,8 @@ class RolePermissionSeeder extends Seeder
             'kit_assigner' => [
                 'admin.dashboard',
                 'orders.approve',
+                'inventory.view',
+                'sales.view', 'sales.create',
                 'parts.view',
                 'models.view',
                 'appliance.create', 'appliance.edit',

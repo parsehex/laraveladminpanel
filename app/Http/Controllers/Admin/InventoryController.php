@@ -1,0 +1,426 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\AppliancePart;
+use App\Models\Part;
+use App\Models\Truck;
+use App\Models\TruckAppliance;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+
+class InventoryController extends Controller
+{
+    public const STATUSES = [
+        'Triage',
+        'Testing',
+        'Repair',
+        'Demanufacture',
+        'Cleaning',
+        'Ready',
+        'Scrap',
+        'Show Room',
+        'Sold',
+        'Holding for parts',
+        'Holding',
+    ];
+
+    public function __construct()
+    {
+        $this->middleware('permission:inventory.view');
+    }
+
+    public function index(Request $request)
+    {
+        $query = TruckAppliance::query()
+            ->with(['truck', 'category', 'model'])
+            ->latest('id');
+
+        $this->applyFilters($query, $request);
+
+        $limit = $request->get('limit', 25);
+        $limit = $limit === 'all' ? 'all' : max(1, (int) $limit);
+
+        if ($request->boolean('print')) {
+            $printQuery = TruckAppliance::query()
+                ->with(['truck', 'category', 'model', 'updater', 'parts.part', 'parts.user', 'statusHistories.user'])
+                ->latest('id');
+
+            if ($request->filled('ids')) {
+                $ids = collect(explode(',', (string) $request->get('ids')))
+                    ->map(fn ($id) => (int) trim($id))
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                $printQuery->whereIn('id', $ids);
+            } else {
+                $this->applyFilters($printQuery, $request);
+
+                if ($limit !== 'all') {
+                    $page = max(1, (int) $request->get('page', 1));
+                    $printQuery->skip(($page - 1) * $limit)->take($limit);
+                }
+            }
+
+            return view('admin.inventory.print', [
+                'items' => $printQuery->get(),
+            ]);
+        }
+
+        $items = $limit === 'all'
+            ? $query->paginate($query->count() ?: 1)->withQueryString()
+            : $query->paginate($limit)->withQueryString();
+
+        $brands = TruckAppliance::query()
+            ->whereNotNull('brand')
+            ->where('brand', '<>', '')
+            ->selectRaw('MIN(brand) as brand')
+            ->groupBy(DB::raw('LOWER(TRIM(brand))'))
+            ->orderBy('brand')
+            ->pluck('brand');
+
+        $categories = TruckAppliance::query()
+            ->with('category:id,name')
+            ->whereNotNull('category_id')
+            ->get()
+            ->pluck('category')
+            ->filter()
+            ->unique('id')
+            ->sortBy('name')
+            ->values();
+
+        $inventoryData = collect();
+        $totalInventoryValue = 0.0;
+        $showAdminValue = $request->user()?->hasRole('admin') || $request->user()?->role === 'admin';
+
+        if ($showAdminValue) {
+            $statusExpression = "COALESCE(NULLIF(status, ''), 'Triage')";
+
+            $baseInventoryRows = DB::table('truck_appliances')
+                ->selectRaw("$statusExpression as current_status")
+                ->selectRaw('COALESCE(msrp, 0) as msrp')
+                ->selectRaw('COALESCE(total_parts_cost, 0) as total_parts_cost')
+                ->whereNull('deleted_at');
+
+            $inventoryData = DB::query()
+                ->fromSub($baseInventoryRows, 'inventory_rows')
+                ->select('current_status')
+                ->selectRaw('COUNT(*) as unit_count')
+                ->selectRaw('SUM(msrp) as total_base_cost')
+                ->selectRaw('SUM(total_parts_cost) as total_parts_cost')
+                ->selectRaw('SUM(msrp + total_parts_cost) as total_inventory_value')
+                ->whereNotIn('current_status', ['Sold', 'Demanufacture', 'Show Room'])
+                ->groupBy('current_status')
+                ->orderBy('current_status')
+                ->get();
+
+            $totalInventoryValue = (float) $inventoryData->sum('total_inventory_value');
+        }
+
+        return view('admin.inventory.index', [
+            'items' => $items,
+            'brands' => $brands,
+            'categories' => $categories,
+            'statuses' => self::STATUSES,
+            'inventoryData' => $inventoryData,
+            'totalInventoryValue' => $totalInventoryValue,
+            'showAdminValue' => $showAdminValue,
+        ]);
+    }
+
+    public function show(TruckAppliance $appliance)
+    {
+        $appliance->load([
+            'truck',
+            'category',
+            'model',
+            'statusHistories.user',
+            'parts.part',
+            'parts.user',
+        ]);
+
+        return view('admin.inventory.show', [
+            'appliance' => $appliance,
+            'statuses' => self::STATUSES,
+            'trucks' => Truck::query()->whereKeyNot($appliance->truck_id)->orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+
+    public function searchParts(Request $request)
+    {
+        abort_unless($request->user()?->can('parts.view') || $request->user()?->can('appliance.edit'), 403);
+
+        $search = $request->string('q')->trim();
+
+        if ($search->length() < 2) {
+            return response()->json([]);
+        }
+
+        $parts = Part::query()
+            ->where(function (Builder $query) use ($search) {
+                $query->where('part_number', 'like', '%'.$search.'%')
+                    ->orWhere('product_name', 'like', '%'.$search.'%')
+                    ->orWhere('model_compatibility', 'like', '%'.$search.'%')
+                    ->orWhere('cross_reference', 'like', '%'.$search.'%');
+            })
+            ->orderBy('part_number')
+            ->limit(10)
+            ->get(['id', 'part_number', 'product_name', 'your_price', 'retail_price', 'total_stock']);
+
+        return response()->json($parts->map(fn (Part $part) => [
+            'id' => $part->id,
+            'part_number' => $part->part_number,
+            'description' => $part->product_name ?: $part->part_number,
+            'cost' => (float) ($part->your_price ?: $part->retail_price ?: 0),
+            'stock' => $part->total_stock,
+            'label' => trim($part->part_number.' - '.($part->product_name ?: '')),
+        ]));
+    }
+
+    public function updateLocation(Request $request, TruckAppliance $appliance)
+    {
+        abort_unless($request->user()?->can('appliance.edit'), 403);
+
+        $data = $request->validate([
+            'location' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $appliance->update([
+            'location' => $data['location'] ?? null,
+            'updated_by' => $request->user()->id,
+        ]);
+
+        return back()->with('success', __('Location updated successfully.'));
+    }
+
+    public function moveTruck(Request $request, TruckAppliance $appliance)
+    {
+        abort_unless($request->user()?->can('appliance.edit'), 403);
+
+        $data = $request->validate([
+            'truck_id' => ['required', 'exists:trucks,id', Rule::notIn([$appliance->truck_id])],
+        ]);
+
+        $oldTruckName = $appliance->truck?->name ?? 'Unassigned';
+        $newTruck = Truck::findOrFail($data['truck_id']);
+
+        DB::transaction(function () use ($appliance, $newTruck, $oldTruckName, $request) {
+            $appliance->update([
+                'truck_id' => $newTruck->id,
+                'updated_by' => $request->user()->id,
+            ]);
+
+            $appliance->statusHistories()->create([
+                'status' => $appliance->status ?: 'Triage',
+                'notes' => 'Moved from '.$oldTruckName.' to '.$newTruck->name.'.',
+                'parts_ordered' => false,
+                'user_id' => $request->user()->id,
+            ]);
+        });
+
+        return redirect()
+            ->route('admin.inventory.show', $appliance)
+            ->with('success', __('Unit moved to :truck successfully.', ['truck' => $newTruck->name]));
+    }
+
+    public function updateStatus(Request $request, TruckAppliance $appliance)
+    {
+        abort_unless($request->user()?->can('appliance.edit'), 403);
+
+        $data = $request->validate([
+            'status' => ['required', Rule::in(self::STATUSES)],
+            'notes' => ['nullable', 'string'],
+            'sold_price' => ['nullable', 'numeric', 'min:0'],
+            'parts_ordered' => ['nullable', 'boolean'],
+        ]);
+
+        $update = [
+            'status' => $data['status'],
+            'updated_by' => $request->user()->id,
+        ];
+
+        if ($data['status'] === 'Sold') {
+            $update['sold_price'] = $data['sold_price'] ?? null;
+            $update['sold_by'] = $request->user()->name;
+            $update['sold_at'] = now();
+        }
+
+        $appliance->update($update);
+        $appliance->statusHistories()->create([
+            'status' => $data['status'],
+            'notes' => $data['notes'] ?? null,
+            'parts_ordered' => (bool) ($data['parts_ordered'] ?? false),
+            'user_id' => $request->user()->id,
+        ]);
+
+        return back()->with('success', __('Status updated successfully.'));
+    }
+
+    public function storePart(Request $request, TruckAppliance $appliance)
+    {
+        abort_unless($request->user()?->can('appliance.edit'), 403);
+
+        $data = $request->validate([
+            'part_id' => ['nullable', 'exists:parts,id'],
+            'description' => ['required', 'string', 'max:255'],
+            'cost' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $selectedPart = ! empty($data['part_id'])
+            ? Part::query()->find($data['part_id'])
+            : null;
+
+        DB::transaction(function () use ($appliance, $data, $request, $selectedPart) {
+            $part = $selectedPart ?: Part::query()->create([
+                'part_number' => $this->generatePartNumber(),
+                'product_name' => $data['description'],
+                'model_compatibility' => $appliance->model?->model_number,
+                'total_stock' => 0,
+                'retail_price' => $data['cost'],
+                'your_price' => $data['cost'],
+                'cross_reference' => null,
+                'created_by' => $request->user()->id,
+                'updated_by' => $request->user()->id,
+            ]);
+
+            $partCost = (float) ($part->your_price ?: $part->retail_price ?: $data['cost']);
+
+            $appliance->parts()->create([
+                'part_id' => $part->id,
+                'description' => $part->product_name ?: $data['description'],
+                'part_number' => $part->part_number,
+                'cost' => $partCost,
+                'source' => null,
+                'user_id' => $request->user()->id,
+            ]);
+
+            $appliance->update([
+                'total_parts_cost' => $appliance->parts()->sum('cost'),
+                'updated_by' => $request->user()->id,
+            ]);
+        });
+
+        return back()->with('success', __('Part added successfully.'));
+    }
+
+    public function uploadPhotos(Request $request, TruckAppliance $appliance)
+    {
+        abort_unless($request->user()?->can('appliance.edit'), 403);
+
+        $data = $request->validate([
+            'photos' => ['required', 'array', 'max:5'],
+            'photos.*' => ['required', 'image', 'max:5120'],
+        ]);
+
+        $photos = $appliance->photos ?? [];
+
+        foreach ($data['photos'] as $photo) {
+            $photos[] = $photo->store('appliance-photos/'.$appliance->id, 'public');
+        }
+
+        $appliance->update([
+            'photos' => array_values($photos),
+            'updated_by' => $request->user()->id,
+        ]);
+
+        return back()->with('success', __('Photos uploaded successfully.'));
+    }
+
+    public function destroyPhoto(Request $request, TruckAppliance $appliance)
+    {
+        abort_unless($request->user()?->can('appliance.edit'), 403);
+
+        $data = $request->validate([
+            'photo' => ['required', 'string'],
+        ]);
+
+        $photos = collect($appliance->photos ?? []);
+        abort_unless($photos->contains($data['photo']), 404);
+
+        Storage::disk('public')->delete($data['photo']);
+
+        $appliance->update([
+            'photos' => $photos->reject(fn ($photo) => $photo === $data['photo'])->values()->all(),
+            'updated_by' => $request->user()->id,
+        ]);
+
+        return back()->with('success', __('Photo deleted successfully.'));
+    }
+
+    public function destroyPart(Request $request, TruckAppliance $appliance, AppliancePart $part)
+    {
+        abort_unless($request->user()?->can('appliance.edit'), 403);
+        abort_unless($part->truck_appliance_id === $appliance->id, 404);
+
+        $part->delete();
+        $appliance->update([
+            'total_parts_cost' => $appliance->parts()->sum('cost'),
+            'updated_by' => $request->user()->id,
+        ]);
+
+        return back()->with('success', __('Part removed successfully.'));
+    }
+
+    private function generatePartNumber(): string
+    {
+        do {
+            $number = (string) random_int(1000000000, 9999999999);
+            $letters = Str::upper(Str::random(2));
+            $partNumber = $number.$letters;
+        } while (
+            Part::query()->where('part_number', $partNumber)->exists()
+            || AppliancePart::query()->where('part_number', $partNumber)->exists()
+        );
+
+        return $partNumber;
+    }
+
+    private function applyFilters(Builder $query, Request $request): void
+    {
+        if ($request->filled('search')) {
+            $search = $request->string('search')->trim();
+
+            $query->where(function (Builder $query) use ($search) {
+                $query->where('serial_number', 'like', '%'.$search.'%')
+                    ->orWhere('product_name', 'like', '%'.$search.'%')
+                    ->orWhereHas('model', fn (Builder $modelQuery) => $modelQuery->where('model_number', 'like', '%'.$search.'%'));
+            });
+        }
+
+        $statuses = collect($request->input('status', []))
+            ->map(fn ($status) => trim((string) $status))
+            ->filter()
+            ->values();
+
+        if ($statuses->isNotEmpty()) {
+            $query->where(function (Builder $query) use ($statuses) {
+                $explicitStatuses = $statuses->reject(fn ($status) => $status === 'Triage')->values();
+
+                if ($explicitStatuses->isNotEmpty()) {
+                    $query->whereIn('status', $explicitStatuses->all());
+                }
+
+                if ($statuses->contains('Triage')) {
+                    $method = $explicitStatuses->isNotEmpty() ? 'orWhere' : 'where';
+                    $query->{$method}(function (Builder $triageQuery) {
+                        $triageQuery->whereNull('status')->orWhere('status', '')->orWhere('status', 'Triage');
+                    });
+                }
+            });
+        }
+
+        if ($request->filled('brand')) {
+            $query->where('brand', 'like', '%'.$request->string('brand')->trim().'%');
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->integer('category_id'));
+        }
+    }
+}

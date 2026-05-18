@@ -9,7 +9,8 @@
     <form method="POST" action="{{ route('admin.roles.store') }}" class="space-y-6">
         @csrf
         <x-form.input name="name" label="Role name" required="true" />
-        <x-form.select name="guard_name" label="Guard" :options="array_combine(array_keys(config('auth.guards')), array_keys(config('auth.guards')))" value="web" required="true" />
+        {{-- <x-form.select name="guard_name" label="Guard" :options="array_combine(array_keys(config('auth.guards')), array_keys(config('auth.guards')))" value="web" required="true" /> --}}
+        <input type="hidden" name="guard_name" value="web">
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
             <textarea name="description" rows="3" class="w-full border-gray-300 rounded-md shadow-sm">{{ old('description') }}</textarea>
@@ -18,15 +19,19 @@
         <div>
             <h3 class="text-lg font-medium mb-3">Permissions</h3>
             @foreach($permissions as $module => $items)
+                @php
+                    $modulePermissions = $items->pluck('name')->all();
+                    $selectedPermissions = old('permissions', []);
+                    $moduleChecked = count(array_intersect($modulePermissions, $selectedPermissions)) > 0;
+                @endphp
                 <div class="mb-4 border rounded-md p-4">
-                    <p class="font-semibold text-gray-800 mb-2">{{ $module }}</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <label class="inline-flex items-center text-sm font-semibold text-gray-800">
+                        <input type="checkbox" class="rounded border-gray-300 text-blue-600 js-module-permission" {{ $moduleChecked ? 'checked' : '' }}>
+                        <span class="ml-2">{{ $module }}</span>
+                    </label>
+                    <div class="js-module-permission-values">
                         @foreach($items as $permission)
-                            <label class="inline-flex items-center text-sm">
-                                <input type="checkbox" name="permissions[]" value="{{ $permission->name }}" class="rounded border-gray-300 text-blue-600"
-                                    {{ in_array($permission->name, old('permissions', []), true) ? 'checked' : '' }}>
-                                <span class="ml-2">{{ $permission->name }}</span>
-                            </label>
+                            <input type="hidden" name="permissions[]" value="{{ $permission->name }}" {{ $moduleChecked ? '' : 'disabled' }}>
                         @endforeach
                     </div>
                 </div>
@@ -39,4 +44,13 @@
         </div>
     </form>
 </div>
+<script>
+    document.querySelectorAll('.js-module-permission').forEach((checkbox) => {
+        const values = checkbox.closest('div').querySelectorAll('.js-module-permission-values input');
+        const togglePermissions = () => values.forEach((input) => input.disabled = !checkbox.checked);
+
+        togglePermissions();
+        checkbox.addEventListener('change', togglePermissions);
+    });
+</script>
 @endsection

@@ -26,7 +26,13 @@ class TruckAppliance extends EloquentModel
         'product_name',
         'msrp',
         'receiving_condition',
+        'status',
+        'location',
         'total_parts_cost',
+        'sold_price',
+        'sold_by',
+        'sold_at',
+        'photos',
         'created_by',
         'updated_by',
     ];
@@ -39,6 +45,9 @@ class TruckAppliance extends EloquentModel
             'model_id' => 'integer',
             'msrp' => 'decimal:2',
             'total_parts_cost' => 'decimal:2',
+            'sold_price' => 'decimal:2',
+            'sold_at' => 'datetime',
+            'photos' => 'array',
         ];
     }
 
@@ -55,5 +64,20 @@ class TruckAppliance extends EloquentModel
     public function model(): BelongsTo
     {
         return $this->belongsTo(\App\Models\Model::class);
+    }
+
+    public function updater(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function statusHistories()
+    {
+        return $this->hasMany(InventoryStatusHistory::class, 'truck_appliance_id');
+    }
+
+    public function parts()
+    {
+        return $this->hasMany(AppliancePart::class, 'truck_appliance_id');
     }
 }
