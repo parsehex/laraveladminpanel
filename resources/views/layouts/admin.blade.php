@@ -17,20 +17,23 @@
     @stack('styles')
 </head>
 <body class="bg-gray-100">
-    <div class="app-shell flex h-screen overflow-hidden">
-        <!-- Sidebar -->
-        <x-admin.sidebar />
-        
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Navbar -->
-            <x-admin.navbar />
+    <div class="flex h-screen flex-col overflow-hidden">
+        <div class="app-shell flex min-h-0 flex-1 overflow-hidden">
+            <!-- Sidebar -->
+            <x-admin.sidebar />
             
-            <!-- Page Content -->
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 lg:p-8">
-                @yield('content')
-            </main>
+            <!-- Main Content -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+                <!-- Navbar -->
+                <x-admin.navbar />
+                
+                <!-- Page Content -->
+                <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 lg:p-8">
+                    @yield('content')
+                </main>
+            </div>
         </div>
+        <x-admin.footer />
     </div>
     
     <!-- Scripts -->
