@@ -1,21 +1,26 @@
-<div class="ui-sidebar text-white w-64 flex-shrink-0">
+<aside x-cloak
+       :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+       class="ui-sidebar fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] flex-shrink-0 overflow-y-auto text-white transition-transform duration-200 ease-out lg:static lg:w-64 lg:max-w-none">
     <div class="flex items-center h-20 px-5">
         <div class="ui-brand-mark h-11 w-11 rounded-2xl flex items-center justify-center font-extrabold text-lg">B</div>
-        <div class="ml-3 leading-tight">
+        <div class="ml-3 min-w-0 leading-tight">
             <h1 class="text-lg font-extrabold tracking-tight">Ben's Appliances</h1>
             <p class="text-xs font-medium text-white/55">Unified system</p>
         </div>
+        <button type="button" @click="sidebarOpen = false" class="ml-auto flex h-10 w-10 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white lg:hidden" aria-label="Close menu">
+            <i class="fas fa-times"></i>
+        </button>
     </div>
     
     <nav class="mt-4 space-y-1">
-        <a href="{{ route('user.dashboard') }}" 
+        <a href="{{ route('user.dashboard') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('user.dashboard') ? 'is-active' : '' }}">
             <i class="fas fa-chart-pie mr-3 w-5 text-center"></i>
             <span>Dashboard</span>
         </a>
 
         @canAccess('admin.dashboard')
-        <a href="{{ route('admin.dashboard') }}" 
+        <a href="{{ route('admin.dashboard') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.dashboard') ? 'is-active' : '' }}">
             <i class="fas fa-gauge mr-3 w-5 text-center"></i>
             <span>Admin Dashboard</span>
@@ -23,7 +28,7 @@
         @endcanAccess
 
         @canAccess('parts.view')
-        <a href="{{ route('admin.parts.index') }}" 
+        <a href="{{ route('admin.parts.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.parts.*') ? 'is-active' : '' }}">
             <i class="fas fa-cogs mr-3 w-5 text-center"></i>
             <span>Parts</span>
@@ -31,7 +36,7 @@
         @endcanAccess
 
         @canAccess('models.view')
-        <a href="{{ route('admin.models.index') }}" 
+        <a href="{{ route('admin.models.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.models.*') ? 'is-active' : '' }}">
             <i class="fas fa-cube mr-3 w-5 text-center"></i>
             <span>Models</span>
@@ -39,7 +44,7 @@
         @endcanAccess
 
         @canAccess('trucks.view')
-        <a href="{{ route('admin.trucks.index') }}" 
+        <a href="{{ route('admin.trucks.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.trucks.*') ? 'is-active' : '' }}">
             <i class="fas fa-truck mr-3 w-5 text-center"></i>
             <span>Trucks</span>
@@ -47,7 +52,7 @@
         @endcanAccess
 
         @canAccess('sales.view')
-        <a href="{{ route('admin.sales.index') }}" 
+        <a href="{{ route('admin.sales.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.sales.*') ? 'is-active' : '' }}">
             <i class="fas fa-cash-register mr-3 w-5 text-center"></i>
             <span>Sales</span>
@@ -55,20 +60,20 @@
         @endcanAccess
 
         @canAccess('inventory.view')
-        <a href="{{ route('admin.inventory.index') }}" 
+        <a href="{{ route('admin.inventory.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.*') ? 'is-active' : '' }}">
             <i class="fas fa-boxes-stacked mr-3 w-5 text-center"></i>
             <span>Inventory</span>
         </a>
         @endcanAccess
 
-        <a href="{{ route("user.account.edit",['account' => encrypt(auth()->user()->id)]) }}" 
+        <a href="{{ route("user.account.edit",['account' => encrypt(auth()->user()->id)]) }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->is('user/account/*') ? 'is-active' : '' }}">
             <i class="fas fa-user mr-3 w-5 text-center"></i>
             <span>Profile</span>
         </a>
 
-        <a href="{{ route("user.account.changePassword",['uid' => encrypt(auth()->user()->id)]) }}" 
+        <a href="{{ route("user.account.changePassword",['uid' => encrypt(auth()->user()->id)]) }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('user.account.changePassword') ? 'is-active' : '' }}">
             <i class="fas fa-lock mr-3 w-5 text-center"></i>
             <span>Change Password</span>
@@ -84,4 +89,4 @@
             </form>
         </div>
     </nav>
-</div>
+</aside>

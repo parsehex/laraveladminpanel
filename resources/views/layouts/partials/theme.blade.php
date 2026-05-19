@@ -223,4 +223,191 @@
         border-radius: 0.9rem !important;
         box-shadow: var(--ui-shadow) !important;
     }
+
+    img,
+    video,
+    canvas,
+    svg {
+        max-width: 100%;
+        height: auto;
+    }
+
+    main {
+        min-width: 0;
+    }
+
+    main > * {
+        min-width: 0;
+    }
+
+    .overflow-x-auto {
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+
+    .overflow-x-auto > table {
+        min-width: max-content;
+    }
+
+    td,
+    th {
+        vertical-align: middle;
+    }
+
+    td {
+        overflow-wrap: anywhere;
+    }
+
+    main a[class*="bg-"],
+    main button[class*="bg-"],
+    main a[class*="border"],
+    main button[class*="border"] {
+        min-height: 2.5rem;
+    }
+
+    @media (max-width: 1023px) {
+        .ui-sidebar {
+            box-shadow: 24px 0 60px rgba(15, 23, 42, 0.24);
+        }
+    }
+
+    @media (max-width: 767px) {
+        body {
+            background: linear-gradient(180deg, #f8fafc 0%, #eef4fb 100%);
+        }
+
+        .app-shell main {
+            background: linear-gradient(180deg, #f8fafc 0%, #eef4fb 100%);
+        }
+
+        main .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 1rem !important;
+        }
+
+        .bg-white.rounded-lg,
+        .bg-white.rounded-md {
+            border-radius: 0.85rem !important;
+        }
+
+        main .p-6 {
+            padding: 1rem !important;
+        }
+
+        main .px-6 {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+
+        main .py-4 {
+            padding-top: 0.85rem !important;
+            padding-bottom: 0.85rem !important;
+        }
+
+        main .mb-6 {
+            margin-bottom: 1rem !important;
+        }
+
+        main .text-3xl {
+            font-size: 1.65rem !important;
+            line-height: 2rem !important;
+        }
+
+        main .text-2xl {
+            font-size: 1.35rem !important;
+            line-height: 1.8rem !important;
+        }
+
+        main .text-xl {
+            font-size: 1.15rem !important;
+            line-height: 1.65rem !important;
+        }
+
+        main .flex.items-center.justify-between,
+        main .flex.justify-between.items-center {
+            align-items: stretch !important;
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+        }
+
+        main .flex.justify-end,
+        main .flex.items-end,
+        main .flex.gap-2,
+        main .flex.gap-3,
+        main .flex.gap-6 {
+            flex-wrap: wrap;
+        }
+
+        main form .flex.items-end > *,
+        main form .flex.justify-end > *,
+        main form .flex.gap-2 > *,
+        main form .flex.gap-3 > * {
+            flex: 1 1 10rem;
+        }
+
+        main input:not([type="checkbox"]):not([type="radio"]),
+        main select,
+        main textarea {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        main button,
+        main a {
+            white-space: normal;
+        }
+
+        main a[class*="bg-"],
+        main button[class*="bg-"],
+        main a[class*="border"],
+        main button[class*="border"] {
+            justify-content: center;
+            text-align: center;
+        }
+
+        table {
+            font-size: 0.82rem;
+        }
+
+        th,
+        td {
+            padding: 0.7rem 0.85rem !important;
+        }
+
+        .toast-top-right {
+            top: 0.75rem !important;
+            right: 0.75rem !important;
+            left: 0.75rem !important;
+            width: auto !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        main .grid {
+            gap: 0.85rem !important;
+        }
+
+        main .rounded-lg,
+        main .rounded-md {
+            border-radius: 0.75rem !important;
+        }
+
+        main .inline-flex,
+        main .flex {
+            min-width: 0;
+        }
+
+        main .space-x-2 > :not([hidden]) ~ :not([hidden]),
+        main .space-x-3 > :not([hidden]) ~ :not([hidden]) {
+            margin-left: 0.25rem !important;
+        }
+
+        main .text-right {
+            text-align: left;
+        }
+
+        main td.text-right,
+        main th.text-right {
+            text-align: right;
+        }
+    }
 </style>

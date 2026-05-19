@@ -17,8 +17,10 @@
     @stack('styles')
 </head>
 <body class="bg-gray-100">
-    <div class="flex h-screen flex-col overflow-hidden">
+    <div x-data="{ sidebarOpen: false }" x-effect="document.body.classList.toggle('overflow-hidden', sidebarOpen)" class="flex h-screen flex-col overflow-hidden">
         <div class="app-shell flex min-h-0 flex-1 overflow-hidden">
+            <div x-cloak x-show="sidebarOpen" x-transition.opacity @click="sidebarOpen = false" class="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-sm lg:hidden"></div>
+
             <!-- Sidebar -->
             <x-admin.sidebar />
             
@@ -28,7 +30,7 @@
                 <x-admin.navbar />
                 
                 <!-- Page Content -->
-                <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 lg:p-8">
+                <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 sm:p-6 lg:p-8">
                     @yield('content')
                 </main>
             </div>
