@@ -109,6 +109,11 @@
                                     <i class="fas fa-eye"></i>
                                 </button>
                                 @endcanAccess
+                                @canAccess('parts.view')
+                                <button type="button" class="px-3 py-1 text-sm border border-blue-300 text-blue-600 rounded hover:bg-blue-50" data-toggle-row="model-parts-{{ $model->id }}">
+                                    Parts ({{ $model->related_parts_count }})
+                                </button>
+                                @endcanAccess
                                 @canAccess('models.edit')
                                 <button type="button" class="px-3 py-1 text-sm border border-yellow-400 text-yellow-600 rounded hover:bg-yellow-50" data-toggle-row="model-edit-{{ $model->id }}">
                                     Edit
@@ -153,6 +158,52 @@
                                 </dl>
                             </td>
                         </tr>
+                        @canAccess('parts.view')
+                        <tr id="model-parts-{{ $model->id }}" class="hidden bg-blue-50/50">
+                            <td colspan="7" class="px-4 py-4">
+                                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                                    <div>
+                                        <h3 class="text-base font-semibold text-gray-900">Related Parts for {{ $model->model_number }}</h3>
+                                        <p class="text-sm text-gray-500">{{ $model->related_parts_count }} part{{ $model->related_parts_count === 1 ? '' : 's' }} linked by model compatibility.</p>
+                                    </div>
+                                    <a href="{{ route('admin.parts.index', ['search' => $model->model_number]) }}" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+                                        <i class="fas fa-search mr-2"></i>Open in Parts
+                                    </a>
+                                </div>
+
+                                <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Part #</th>
+                                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Product Name</th>
+                                                <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Stock</th>
+                                                <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Retail</th>
+                                                <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Your Price</th>
+                                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Cross Reference</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100">
+                                            @forelse($model->relatedParts as $part)
+                                                <tr>
+                                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">{{ $part->part_number }}</td>
+                                                    <td class="px-4 py-3 text-sm text-gray-700">{{ $part->product_name ?: '-' }}</td>
+                                                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-700">{{ number_format((int) $part->total_stock) }}</td>
+                                                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-700">${{ number_format((float) $part->retail_price, 2) }}</td>
+                                                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-700">${{ number_format((float) $part->your_price, 2) }}</td>
+                                                    <td class="px-4 py-3 text-sm text-gray-700">{{ $part->cross_reference ?: '-' }}</td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">No related parts found for this model.</td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+                        @endcanAccess
                         @canAccess('models.edit')
                         <tr id="model-edit-{{ $model->id }}" class="{{ $errors->any() && old('_form') === 'edit-'.$model->id ? '' : 'hidden' }} bg-gray-50">
                             <td colspan="7" class="px-4 py-4">

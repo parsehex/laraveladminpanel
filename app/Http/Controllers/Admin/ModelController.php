@@ -24,7 +24,13 @@ class ModelController extends Controller
     {
         $this->authorize('viewAny', Model::class);
 
-        $query = Model::query()->with('category')->latest();
+        $query = Model::query()
+            ->with([
+                'category',
+                'relatedParts' => fn ($query) => $query->orderBy('part_number'),
+            ])
+            ->withCount('relatedParts')
+            ->latest();
 
         if ($request->filled('category')) {
             $query->where('category_id', $request->get('category'));

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -46,5 +47,10 @@ class Model extends EloquentModel
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function relatedParts(): HasMany
+    {
+        return $this->hasMany(Part::class, 'model_compatibility', 'model_number');
     }
 }
