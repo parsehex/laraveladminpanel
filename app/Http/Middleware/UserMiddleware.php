@@ -10,8 +10,12 @@ class UserMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! auth()->check() || auth()->user()->isStaff()) {
+        if (! auth()->check()) {
             return redirect()->route('login')->with('error', 'Access denied.');
+        }
+
+        if (auth()->user()->isStaff()) {
+            return redirect()->route('admin.dashboard');
         }
 
         return $next($request);

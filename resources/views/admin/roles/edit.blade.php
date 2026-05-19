@@ -32,7 +32,7 @@
                         $modulePermissions = $items->pluck('name')->all();
                         $moduleChecked = count(array_intersect($modulePermissions, $selected)) > 0;
                     @endphp
-                    <div class="border rounded-md p-4">
+                    <div class="border rounded-md p-4 js-permission-card">
                         <label class="inline-flex items-center text-sm font-semibold text-gray-800">
                             <input type="checkbox" class="rounded border-gray-300 text-blue-600 js-module-permission" {{ $moduleChecked ? 'checked' : '' }}>
                             <span class="ml-2">{{ $module }}</span>
@@ -64,7 +64,7 @@
     };
 
     moduleCheckboxes.forEach((checkbox) => {
-        const values = checkbox.closest('div').querySelectorAll('.js-module-permission-values input');
+        const values = checkbox.closest('.js-permission-card').querySelectorAll('.js-module-permission-values input');
         const togglePermissions = () => {
             values.forEach((input) => input.disabled = !checkbox.checked);
             updateSelectAll();
@@ -75,10 +75,13 @@
     });
 
     selectAll?.addEventListener('change', () => {
+        const shouldCheck = selectAll.checked;
         moduleCheckboxes.forEach((checkbox) => {
-            checkbox.checked = selectAll.checked;
+            checkbox.checked = shouldCheck;
             checkbox.dispatchEvent(new Event('change'));
         });
+        selectAll.checked = shouldCheck;
+        selectAll.indeterminate = false;
     });
 </script>
 @endsection

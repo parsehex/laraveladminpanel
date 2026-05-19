@@ -36,10 +36,10 @@ class AuthController extends Controller
 
             // Redirect based on role
             if ($user->isAdmin()) {
-                return redirect()->intended('/admin/dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
-            } else {
-                return redirect()->intended('/user/dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
+                return redirect('/admin/dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
             }
+
+            return redirect('/user/dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
         }
 
         throw ValidationException::withMessages([
