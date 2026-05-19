@@ -15,20 +15,12 @@
             <span>Dashboard</span>
         </a>
         @endcanAccess
-        
-        @canAccess('users.view')
-        <a href="{{ route('admin.users.index') }}" 
-           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.users.*') ? 'is-active' : '' }}">
-            <i class="fas fa-users mr-3 w-5 text-center"></i>
-            <span>Users</span>
-        </a>
-        @endcanAccess
 
-        @canAccess('roles.view')
-        <a href="{{ route('admin.roles.index') }}" 
-           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.roles.*') ? 'is-active' : '' }}">
-            <i class="fas fa-user-shield mr-3 w-5 text-center"></i>
-            <span>Roles</span>
+        <!-- @canAccess('trucks.view')
+        <a href="{{ route('admin.trucks.index') }}" 
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.trucks.*') ? 'is-active' : '' }}">
+            <i class="fas fa-truck mr-3 w-5 text-center"></i>
+            <span>Trucks</span>
         </a>
         @endcanAccess
 
@@ -48,14 +40,6 @@
         </a>
         @endcanAccess
 
-        @canAccess('trucks.view')
-        <a href="{{ route('admin.trucks.index') }}" 
-           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.trucks.*') ? 'is-active' : '' }}">
-            <i class="fas fa-truck mr-3 w-5 text-center"></i>
-            <span>Trucks</span>
-        </a>
-        @endcanAccess
-
         @canAccess('sales.view')
         <a href="{{ route('admin.sales.index') }}" 
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.sales.*') ? 'is-active' : '' }}">
@@ -63,12 +47,28 @@
             <span>Sales</span>
         </a>
         @endcanAccess
-
+        
         @canAccess('inventory.view')
         <a href="{{ route('admin.inventory.index') }}" 
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.*') ? 'is-active' : '' }}">
             <i class="fas fa-boxes-stacked mr-3 w-5 text-center"></i>
             <span>Inventory</span>
+        </a>
+        @endcanAccess -->
+
+        @canAccess('users.view')
+        <a href="{{ route('admin.users.index') }}" 
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.users.*') ? 'is-active' : '' }}">
+            <i class="fas fa-users mr-3 w-5 text-center"></i>
+            <span>Users</span>
+        </a>
+        @endcanAccess
+
+        @canAccess('roles.view')
+        <a href="{{ route('admin.roles.index') }}" 
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.roles.*') ? 'is-active' : '' }}">
+            <i class="fas fa-user-shield mr-3 w-5 text-center"></i>
+            <span>Roles</span>
         </a>
         @endcanAccess
         

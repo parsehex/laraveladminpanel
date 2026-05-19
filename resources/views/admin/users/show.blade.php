@@ -66,16 +66,6 @@
                                     <dt class="text-sm font-medium text-gray-500">Status</dt>
                                     <dd class="mt-1 text-sm text-gray-900">{{ ucfirst($user->status) }}</dd>
                                 </div>
-                                <div class="sm:col-span-2">
-                                    <dt class="text-sm font-medium text-gray-500">Direct permissions</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">
-                                        @forelse($user->permissions as $p)
-                                            <span class="inline-block bg-gray-100 rounded px-2 py-0.5 mr-1 mb-1 text-xs">{{ $p->name }}</span>
-                                        @empty
-                                            <span class="text-gray-400">None</span>
-                                        @endforelse
-                                    </dd>
-                                </div>
                                 <div>
                                     <dt class="text-sm font-medium text-gray-500">Member Since</dt>
                                     <dd class="mt-1 text-sm text-gray-900">{{ $user->created_at->format('F d, Y') }}</dd>

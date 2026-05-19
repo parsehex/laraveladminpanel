@@ -15,7 +15,6 @@ class StoreUserRequest extends FormRequest
 
     public function rules(): array
     {
-        $permissionsTable = config('permission.table_names.permissions', 'permissions');
         $registrationCode = (string) env('REGISTRATION_CODE', '');
 
         return [
@@ -33,11 +32,6 @@ class StoreUserRequest extends FormRequest
             ],
             'role' => ['required', 'string', 'max:255', Rule::in(Role::query()->where('guard_name', 'web')->pluck('name'))],
             'status' => ['required', Rule::in(['active', 'inactive'])],
-            'direct_permissions' => ['nullable', 'array'],
-            'direct_permissions.*' => [
-                'string',
-                Rule::exists($permissionsTable, 'name')->where(fn ($q) => $q->where('guard_name', 'web')),
-            ],
         ];
     }
 

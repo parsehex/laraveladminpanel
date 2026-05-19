@@ -67,7 +67,7 @@
                     </option>
                 @endforeach
             </select>
-            @if(auth()->user()?->can('category.create') || auth()->user()?->can('models.create'))
+            @if(auth()->user()?->can('category.create'))
             <button type="button" class="mt-1 h-8 w-8 flex-shrink-0 rounded-md bg-blue-600 text-xs text-white hover:bg-blue-700" title="Add category" data-open-quick-create="category" data-target="#{{ $prefix }}-category">
                 <i class="fas fa-plus"></i>
             </button>

@@ -6,12 +6,17 @@
         </div>
         
         <div class="flex items-center space-x-4">
+            <div class="hidden md:block rounded-xl border border-slate-200 bg-white/80 px-4 py-2 shadow-sm">
+                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Signed In</p>
+                <p class="max-w-44 truncate text-sm font-semibold text-slate-800">{{ auth()->user()->name }}</p>
+            </div>
+
             <!-- Notifications -->
-            <div class="relative">
+            <!-- <div class="relative">
                 <button type="button" class="h-10 w-10 rounded-full border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-white flex items-center justify-center">
                     <i class="fas fa-bell"></i>
                 </button>
-            </div>
+            </div> -->
             
             <!-- User Dropdown -->
             <div class="relative" x-data="{ open: false }">
@@ -25,12 +30,12 @@
                 
                 <div x-cloak x-show="open" @click.away="open = false"
                      class="absolute right-0 mt-3 w-52 bg-white rounded-md shadow-lg py-2 z-[1001] border border-slate-200">
-                    <!-- <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <a href="{{ route('admin.profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         <i class="fas fa-user mr-2"></i>Profile
                     </a>
-                    <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        <i class="fas fa-cog mr-2"></i>Settings
-                    </a> -->
+                    <a href="{{ route('admin.profile.password.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <i class="fas fa-lock mr-2"></i>Change Password
+                    </a>
                     <div class="px-4 py-2">
                         <p class="text-sm font-semibold text-slate-900">{{ auth()->user()->name }}</p>
                         <p class="text-xs text-slate-500">{{ auth()->user()->email }}</p>

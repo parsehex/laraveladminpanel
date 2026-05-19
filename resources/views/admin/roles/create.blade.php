@@ -17,25 +17,33 @@
             @error('description')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
         </div>
         <div>
-            <h3 class="text-lg font-medium mb-3">Permissions</h3>
-            @foreach($permissions as $module => $items)
-                @php
-                    $modulePermissions = $items->pluck('name')->all();
-                    $selectedPermissions = old('permissions', []);
-                    $moduleChecked = count(array_intersect($modulePermissions, $selectedPermissions)) > 0;
-                @endphp
-                <div class="mb-4 border rounded-md p-4">
-                    <label class="inline-flex items-center text-sm font-semibold text-gray-800">
-                        <input type="checkbox" class="rounded border-gray-300 text-blue-600 js-module-permission" {{ $moduleChecked ? 'checked' : '' }}>
-                        <span class="ml-2">{{ $module }}</span>
-                    </label>
-                    <div class="js-module-permission-values">
-                        @foreach($items as $permission)
-                            <input type="hidden" name="permissions[]" value="{{ $permission->name }}" {{ $moduleChecked ? '' : 'disabled' }}>
-                        @endforeach
+            <div class="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h3 class="text-lg font-medium">Permissions</h3>
+                <label class="inline-flex items-center text-sm font-semibold text-gray-800">
+                    <input type="checkbox" class="rounded border-gray-300 text-blue-600 js-select-all-permissions">
+                    <span class="ml-2">Select All</span>
+                </label>
+            </div>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                @foreach($permissions as $module => $items)
+                    @php
+                        $modulePermissions = $items->pluck('name')->all();
+                        $selectedPermissions = old('permissions', []);
+                        $moduleChecked = count(array_intersect($modulePermissions, $selectedPermissions)) > 0;
+                    @endphp
+                    <div class="border rounded-md p-4">
+                        <label class="inline-flex items-center text-sm font-semibold text-gray-800">
+                            <input type="checkbox" class="rounded border-gray-300 text-blue-600 js-module-permission" {{ $moduleChecked ? 'checked' : '' }}>
+                            <span class="ml-2">{{ $module }}</span>
+                        </label>
+                        <div class="js-module-permission-values">
+                            @foreach($items as $permission)
+                                <input type="hidden" name="permissions[]" value="{{ $permission->name }}" {{ $moduleChecked ? '' : 'disabled' }}>
+                            @endforeach
+                        </div>
                     </div>
-                </div>
-            @endforeach
+                @endforeach
+            </div>
             @error('permissions')<p class="text-sm text-red-600 mt-1">{{ $message }}</p>@enderror
         </div>
         <div class="flex justify-end gap-2">
@@ -45,12 +53,31 @@
     </form>
 </div>
 <script>
-    document.querySelectorAll('.js-module-permission').forEach((checkbox) => {
+    const moduleCheckboxes = document.querySelectorAll('.js-module-permission');
+    const selectAll = document.querySelector('.js-select-all-permissions');
+
+    const updateSelectAll = () => {
+        if (!selectAll) return;
+        selectAll.checked = [...moduleCheckboxes].length > 0 && [...moduleCheckboxes].every((checkbox) => checkbox.checked);
+        selectAll.indeterminate = [...moduleCheckboxes].some((checkbox) => checkbox.checked) && !selectAll.checked;
+    };
+
+    moduleCheckboxes.forEach((checkbox) => {
         const values = checkbox.closest('div').querySelectorAll('.js-module-permission-values input');
-        const togglePermissions = () => values.forEach((input) => input.disabled = !checkbox.checked);
+        const togglePermissions = () => {
+            values.forEach((input) => input.disabled = !checkbox.checked);
+            updateSelectAll();
+        };
 
         togglePermissions();
         checkbox.addEventListener('change', togglePermissions);
+    });
+
+    selectAll?.addEventListener('change', () => {
+        moduleCheckboxes.forEach((checkbox) => {
+            checkbox.checked = selectAll.checked;
+            checkbox.dispatchEvent(new Event('change'));
+        });
     });
 </script>
 @endsection

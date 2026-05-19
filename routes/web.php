@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DropdownController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\ModelController;
 use App\Http\Controllers\Admin\PartController;
+use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SalesController;
 use App\Http\Controllers\Admin\TruckApplianceController;
@@ -41,6 +42,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])
         ->middleware('permission:admin.dashboard')
         ->name('dashboard');
+    Route::get('/profile', [ProfileController::class, 'edit'])
+        ->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])
+        ->name('profile.update');
+    Route::get('/profile/change-password', [ProfileController::class, 'editPassword'])
+        ->name('profile.password.edit');
+    Route::put('/profile/change-password', [ProfileController::class, 'updatePassword'])
+        ->name('profile.password.update');
     Route::post('/dashboard/suggestions', [AdminDashboardController::class, 'storeSuggestion'])
         ->middleware('permission:admin.dashboard')
         ->name('dashboard.suggestions.store');
@@ -61,7 +70,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->middleware('permission:models.view|models.create|models.edit|appliance.create|appliance.edit')
         ->name('dropdowns.brands');
     Route::post('dropdowns/categories', [DropdownController::class, 'storeCategory'])
-        ->middleware('permission:category.create|models.create')
+        ->middleware('permission:category.create')
         ->name('dropdowns.categories.store');
     Route::post('dropdowns/models', [DropdownController::class, 'storeModel'])
         ->middleware('permission:models.create')

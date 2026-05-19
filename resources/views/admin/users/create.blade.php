@@ -26,27 +26,6 @@
             
             <x-form.select name="status" label="Status" :options="['active' => 'Active', 'inactive' => 'Inactive']" value="active" required="true" />
 
-            <!-- @if(isset($permissions) && $permissions->isNotEmpty())
-            <div>
-                <p class="text-sm font-medium text-gray-700 mb-2">Direct permissions (optional)</p>
-                <p class="text-xs text-gray-500 mb-3">Overrides are merged with the role via Spatie.</p>
-                @foreach($permissions as $module => $items)
-                    <div class="mb-3 border rounded p-3">
-                        <p class="text-xs font-semibold text-gray-600 mb-2">{{ $module }}</p>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            @foreach($items as $permission)
-                                <label class="inline-flex items-center text-sm">
-                                    <input type="checkbox" name="direct_permissions[]" value="{{ $permission->name }}" class="rounded border-gray-300 text-blue-600"
-                                        {{ in_array($permission->name, old('direct_permissions', []), true) ? 'checked' : '' }}>
-                                    <span class="ml-2">{{ $permission->name }}</span>
-                                </label>
-                            @endforeach
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-            @endif -->
-            
             <div class="flex items-center justify-end space-x-3">
                 <a href="{{ route('admin.users.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">Cancel</a>
                 <x-form.button type="submit" variant="primary"><i class="fas fa-save mr-2"></i>Create User</x-form.button>

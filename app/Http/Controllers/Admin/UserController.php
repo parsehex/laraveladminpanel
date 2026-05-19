@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
-use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -46,22 +45,18 @@ class UserController extends Controller
     public function create()
     {
         $roles = Role::query()->where('guard_name', 'web')->orderBy('name')->pluck('name', 'name');
-        $permissions = Permission::query()->orderBy('module_name')->orderBy('name')->get()->groupBy(fn ($p) => $p->module_name ?? 'general');
 
-        return view('admin.users.create', compact('roles', 'permissions'));
+        return view('admin.users.create', compact('roles'));
     }
 
 public function store(StoreUserRequest $request)
     {
         $data = $request->validated();
         $roleName = $data['role'];
-        $direct = $data['direct_permissions'] ?? [];
-        unset($data['direct_permissions']);
         unset($data['registration_code']);
 
         $user = User::create($data);
         $user->syncRoles([$roleName]);
-        $user->syncPermissions($direct);
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User created successfully.');
@@ -69,7 +64,7 @@ public function store(StoreUserRequest $request)
 
     public function show(User $user)
     {
-        $user->load(['roles', 'permissions']);
+        $user->load('roles');
 
         return view('admin.users.show', compact('user'));
     }
@@ -77,18 +72,15 @@ public function store(StoreUserRequest $request)
     public function edit(User $user)
     {
         $roles = Role::query()->where('guard_name', 'web')->orderBy('name')->pluck('name', 'name');
-        $permissions = Permission::query()->orderBy('module_name')->orderBy('name')->get()->groupBy(fn ($p) => $p->module_name ?? 'general');
-        $user->load(['roles', 'permissions']);
+        $user->load('roles');
 
-        return view('admin.users.edit', compact('user', 'roles', 'permissions'));
+        return view('admin.users.edit', compact('user', 'roles'));
     }
 
     public function update(UpdateUserRequest $request, User $user)
     {
         $data = $request->validated();
         $roleName = $data['role'];
-        $direct = $data['direct_permissions'] ?? [];
-        unset($data['direct_permissions']);
 
         if (empty($data['password'])) {
             unset($data['password']);
@@ -96,7 +88,6 @@ public function store(StoreUserRequest $request)
 
         $user->update($data);
         $user->syncRoles([$roleName]);
-        $user->syncPermissions($direct);
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User updated successfully.');

@@ -26,7 +26,6 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'roles.create', 'module_name' => 'roles', 'description' => 'Create roles'],
             ['name' => 'roles.edit', 'module_name' => 'roles', 'description' => 'Edit roles'],
             ['name' => 'roles.delete', 'module_name' => 'roles', 'description' => 'Delete roles'],
-            ['name' => 'orders.approve', 'module_name' => 'orders', 'description' => 'Approve orders'],
             ['name' => 'category.create', 'module_name' => 'categories', 'description' => 'Create categories'],
             ['name' => 'parts.view', 'module_name' => 'parts', 'description' => 'List parts'],
             ['name' => 'parts.create', 'module_name' => 'parts', 'description' => 'Create parts'],
@@ -89,7 +88,6 @@ class RolePermissionSeeder extends Seeder
             ],
             'kit_assigner' => [
                 'admin.dashboard',
-                'orders.approve',
                 'inventory.view',
                 'sales.view', 'sales.create',
                 'parts.view',

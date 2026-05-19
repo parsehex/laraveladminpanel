@@ -6,21 +6,45 @@
         </div>
         
         <div class="flex items-center space-x-4">
-            <!-- User Info -->
-            <div class="flex items-center space-x-3 text-gray-700 rounded-full border border-slate-200 bg-white/70 py-1.5 pl-1.5 pr-3">
-                <div class="w-9 h-9 bg-gray-300 rounded-full flex items-center justify-center text-slate-700">
-                    <i class="fas fa-user"></i>
-                </div>
-                <span class="text-sm font-semibold">{{ auth()->user()->name }}</span>
+            <div class="hidden md:block rounded-xl border border-slate-200 bg-white/80 px-4 py-2 shadow-sm">
+                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Signed In</p>
+                <p class="max-w-44 truncate text-sm font-semibold text-slate-800">{{ auth()->user()->name }}</p>
+            </div>
+
+            <div class="relative">
+                <button type="button" class="h-10 w-10 rounded-full border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-white flex items-center justify-center">
+                    <i class="fas fa-bell"></i>
+                </button>
             </div>
             
-            <!-- Logout -->
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="h-10 w-10 rounded-full border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-white flex items-center justify-center">
-                    <i class="fas fa-sign-out-alt"></i>
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open" class="flex items-center space-x-3 text-gray-700 hover:text-gray-900 rounded-full border border-slate-200 bg-white/70 py-1.5 pl-1.5 pr-3">
+                    <div class="w-9 h-9 bg-gray-300 rounded-full flex items-center justify-center text-slate-700">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <span class="text-sm font-semibold">{{ auth()->user()->name }}</span>
+                    <i class="fas fa-chevron-down text-xs text-slate-400"></i>
                 </button>
-            </form>
+
+                <div x-cloak x-show="open" @click.away="open = false"
+                     class="absolute right-0 mt-3 w-52 bg-white rounded-md shadow-lg py-2 z-[1001] border border-slate-200">
+                    <a href="{{ route('user.account.edit', ['account' => encrypt(auth()->id())]) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <i class="fas fa-user mr-2"></i>Profile
+                    </a>
+                    <a href="{{ route('user.account.changePassword', ['uid' => encrypt(auth()->id())]) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <i class="fas fa-lock mr-2"></i>Change Password
+                    </a>
+                    <div class="border-t border-gray-100 my-1"></div>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </header>
+
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>

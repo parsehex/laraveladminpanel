@@ -77,7 +77,7 @@ class DropdownController extends Controller
 
     public function storeCategory(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->can('category.create') || $request->user()?->can('models.create'), 403);
+        abort_unless($request->user()?->can('category.create'), 403);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique('categories', 'name')],
