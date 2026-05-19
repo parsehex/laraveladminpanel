@@ -22,11 +22,11 @@ class RedirectIfAuthenticated
             if (Auth::guard($guard)->check()) {
                 $user = Auth::guard($guard)->user();
 
-                if ($user?->isStaff()) {
+                if ($user?->isStaff() || $user?->getAllPermissions()->isNotEmpty()) {
                     return redirect()->route('admin.dashboard');
                 }
 
-                return redirect()->route('user.dashboard');
+                return redirect()->route('admin.dashboard');
             }
         }
 

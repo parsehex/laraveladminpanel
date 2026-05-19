@@ -30,6 +30,7 @@
                 <x-form.input name="password_confirmation" label="Confirm Password" type="password" placeholder="Leave blank to keep current password" />
 
                 <x-form.select name="role" label="Role" :options="$roles" :value="old('role', $user->roles->first()?->name ?? $user->role)" required="true" />
+                <x-form.select name="platform" label="Kit Platform" :options="['' => 'All / Not assigned', 'amazon' => 'Amazon', 'shopify' => 'Shopify']" :value="old('platform', $user->platform)" />
                 <x-form.select name="status" label="Status" :options="['active' => 'Active', 'inactive' => 'Inactive']" :value="$user->status" required="true" />
             </div>
             

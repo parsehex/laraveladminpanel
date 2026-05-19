@@ -66,7 +66,7 @@
         </div>
         <div class="p-6">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <a href="{{ route('user.account.edit', ['account' => encrypt($user->id)]) }}" class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition duration-150">
+                <a href="{{ route('admin.profile.edit') }}" class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition duration-150">
                     <div class="p-2 bg-blue-500 bg-opacity-10 rounded">
                         <i class="fas fa-user-edit text-blue-500"></i>
                     </div>
@@ -76,7 +76,7 @@
                     </div>
                 </a>
                 
-                <a href="{{ route("user.account.changePassword",['uid' => encrypt($user->id)]) }}" class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-green-500 hover:shadow-md transition duration-150">
+                <a href="{{ route('admin.profile.password.edit') }}" class="flex items-center p-4 border border-gray-200 rounded-lg hover:border-green-500 hover:shadow-md transition duration-150">
                     <div class="p-2 bg-green-500 bg-opacity-10 rounded">
                         <i class="fas fa-lock text-green-500"></i>
                     </div>

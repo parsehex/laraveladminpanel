@@ -33,10 +33,10 @@
 
                 <div x-cloak x-show="open" @click.away="open = false"
                      class="absolute right-0 mt-3 w-52 bg-white rounded-md shadow-lg py-2 z-[1001] border border-slate-200">
-                    <a href="{{ route('user.account.edit', ['account' => encrypt(auth()->id())]) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <a href="{{ route('admin.profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         <i class="fas fa-user mr-2"></i>Profile
                     </a>
-                    <a href="{{ route('user.account.changePassword', ['uid' => encrypt(auth()->id())]) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <a href="{{ route('admin.profile.password.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         <i class="fas fa-lock mr-2"></i>Change Password
                     </a>
                     <div class="border-t border-gray-100 my-1"></div>

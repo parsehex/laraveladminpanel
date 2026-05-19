@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\DeliveryController;
 use App\Http\Controllers\Admin\DropdownController;
 use App\Http\Controllers\Admin\InventoryController;
+use App\Http\Controllers\Admin\KitController;
 use App\Http\Controllers\Admin\ModelController;
 use App\Http\Controllers\Admin\PartController;
 use App\Http\Controllers\Admin\ProfileController;
@@ -12,8 +14,6 @@ use App\Http\Controllers\Admin\TruckApplianceController;
 use App\Http\Controllers\Admin\TruckController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\User\AccountController;
-use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -93,6 +93,65 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->middleware('permission:sales.edit')
         ->name('sales.sold-price.update');
 
+    Route::get('deliveries', [DeliveryController::class, 'index'])
+        ->middleware('permission:deliveries.view')
+        ->name('deliveries.index');
+    Route::post('deliveries', [DeliveryController::class, 'store'])
+        ->middleware('permission:deliveries.create')
+        ->name('deliveries.store');
+    Route::delete('deliveries/{delivery}', [DeliveryController::class, 'destroy'])
+        ->middleware('permission:deliveries.delete')
+        ->name('deliveries.destroy');
+
+    Route::get('kits', [KitController::class, 'index'])
+        ->middleware('permission:kits.view')
+        ->name('kits.index');
+    Route::post('kits', [KitController::class, 'store'])
+        ->middleware('permission:kits.manage')
+        ->name('kits.store');
+    Route::delete('kits/{kit}', [KitController::class, 'destroy'])
+        ->middleware('permission:kits.manage')
+        ->name('kits.destroy');
+    Route::post('kits/{kit}/parts', [KitController::class, 'addParts'])
+        ->middleware('permission:kits.manage')
+        ->name('kits.parts.store');
+    Route::delete('kits/{kit}/parts/{part}', [KitController::class, 'destroyPart'])
+        ->middleware('permission:kits.manage')
+        ->name('kits.parts.destroy');
+    Route::post('kits/assignments', [KitController::class, 'assign'])
+        ->middleware('permission:kits.manage')
+        ->name('kits.assignments.store');
+    Route::patch('kits/assignments/{assignment}/start', [KitController::class, 'start'])
+        ->middleware('permission:kits.build|kits.manage')
+        ->name('kits.assignments.start');
+    Route::patch('kits/assignments/{assignment}/built', [KitController::class, 'built'])
+        ->middleware('permission:kits.build|kits.manage')
+        ->name('kits.assignments.built');
+    Route::patch('kits/assignments/{assignment}/confirm', [KitController::class, 'confirm'])
+        ->middleware('permission:kits.manage')
+        ->name('kits.assignments.confirm');
+    Route::delete('kits/assignments/{assignment}', [KitController::class, 'destroyAssignment'])
+        ->middleware('permission:kits.manage')
+        ->name('kits.assignments.destroy');
+    Route::post('kits/assignments/{assignment}/messages', [KitController::class, 'message'])
+        ->middleware('permission:kits.build|kits.manage')
+        ->name('kits.messages.store');
+    Route::post('kits/inventory/adjust-stock', [KitController::class, 'adjustStock'])
+        ->middleware('permission:kits.manage')
+        ->name('kits.inventory.adjust-stock');
+    Route::post('kits/inventory/adjust-min-level', [KitController::class, 'adjustMinLevel'])
+        ->middleware('permission:kits.manage')
+        ->name('kits.inventory.adjust-min-level');
+    Route::post('kits/resources', [KitController::class, 'storeResource'])
+        ->middleware('permission:kits.manage')
+        ->name('kits.resources.store');
+    Route::delete('kits/resources/{resource}', [KitController::class, 'destroyResource'])
+        ->middleware('permission:kits.manage')
+        ->name('kits.resources.destroy');
+    Route::get('kits/{kit}/sop', [KitController::class, 'sop'])
+        ->middleware('permission:kits.view')
+        ->name('kits.sop');
+
     Route::get('inventory', [InventoryController::class, 'index'])
         ->middleware('permission:inventory.view')
         ->name('inventory.index');
@@ -161,13 +220,4 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->name('trucks.appliances.destroy');
 
     Route::resource('trucks', TruckController::class);
-});
-
-Route::middleware(['auth', 'user'])->prefix('user')->name('user.')->group(function () {
-    Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/account/change-password/{uid}', [AccountController::class, 'changePassword'])
-        ->name('account.changePassword');
-    Route::put('/account/change-password/{uid}', [AccountController::class, 'updateChangePassword'])
-        ->name('account.updatePassword');
-    Route::resource('account', AccountController::class);
 });

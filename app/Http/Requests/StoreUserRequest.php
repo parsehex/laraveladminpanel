@@ -31,6 +31,7 @@ class StoreUserRequest extends FormRequest
                 },
             ],
             'role' => ['required', 'string', 'max:255', Rule::in(Role::query()->where('guard_name', 'web')->pluck('name'))],
+            'platform' => ['nullable', Rule::in(['amazon', 'shopify'])],
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ];
     }
@@ -46,5 +47,12 @@ class StoreUserRequest extends FormRequest
             'password.confirmed' => 'Password confirmation does not match.',
             'registration_code.required' => 'The registration code field is required.',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->input('platform') === '') {
+            $this->merge(['platform' => null]);
+        }
     }
 }

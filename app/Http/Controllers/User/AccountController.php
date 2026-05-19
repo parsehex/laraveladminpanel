@@ -62,10 +62,10 @@ class AccountController extends Controller
             $data = $request->validated();
             $user = User::findOrFail(decrypt($id));
             $user->update($data);
-            return redirect()->route('user.account.edit', ['account' => encrypt($user->id)])
+            return redirect()->route('admin.profile.edit')
                 ->with('success', 'User updated successfully.');
         } catch (\Throwable $th) {
-            return redirect()->route('user.account.edit', ['account' => encrypt($user->id)])
+            return redirect()->route('admin.profile.edit')
                 ->with('error', $th->getMessage());
         }
 
@@ -96,7 +96,7 @@ class AccountController extends Controller
 
         $user->update($data);
 
-        return redirect()->route('user.dashboard')
+        return redirect()->route('admin.dashboard')
             ->with('success', 'User updated successfully.');
     }
 }

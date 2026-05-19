@@ -45,6 +45,14 @@
         </a>
         @endcanAccess
 
+        @canAccess('deliveries.view')
+        <a href="{{ route('admin.deliveries.index') }}" @click="sidebarOpen = false"
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.deliveries.*') ? 'is-active' : '' }}">
+            <i class="fas fa-route mr-3 w-5 text-center"></i>
+            <span>Deliveries</span>
+        </a>
+        @endcanAccess
+
         @canAccess('sales.view')
         <a href="{{ route('admin.sales.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.sales.*') ? 'is-active' : '' }}">
@@ -52,12 +60,20 @@
             <span>Sales</span>
         </a>
         @endcanAccess
-        
+
         @canAccess('inventory.view')
         <a href="{{ route('admin.inventory.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.*') ? 'is-active' : '' }}">
             <i class="fas fa-boxes-stacked mr-3 w-5 text-center"></i>
             <span>Inventory</span>
+        </a>
+        @endcanAccess
+
+        @canAccess('kits.view')
+        <a href="{{ route('admin.kits.index') }}" @click="sidebarOpen = false"
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.kits.*') ? 'is-active' : '' }}">
+            <i class="fas fa-toolbox mr-3 w-5 text-center"></i>
+            <span>Kits</span>
         </a>
         @endcanAccess -->
 

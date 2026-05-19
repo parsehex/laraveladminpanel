@@ -23,6 +23,7 @@
             <x-form.input name="registration_code" label="Registration Code" type="text" required="true" />
             
             <x-form.select name="role" label="Role" :options="$roles" required="true" />
+            <x-form.select name="platform" label="Kit Platform" :options="['' => 'All / Not assigned', 'amazon' => 'Amazon', 'shopify' => 'Shopify']" />
             
             <x-form.select name="status" label="Status" :options="['active' => 'Active', 'inactive' => 'Inactive']" value="active" required="true" />
 

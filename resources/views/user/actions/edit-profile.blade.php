@@ -1,4 +1,4 @@
-@extends('layouts.user')
+@extends('layouts.admin')
 
 @section('title', 'Edit User')
 @section('page-title', 'Edit User')
@@ -8,12 +8,12 @@
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-xl font-semibold text-gray-900">Edit User: {{ $user->name }}</h2>
-            <a href="{{ route('user.dashboard') }}" class="text-gray-600 hover:text-gray-900">
+            <a href="{{ route('admin.dashboard') }}" class="text-gray-600 hover:text-gray-900">
                 <i class="fas fa-arrow-left mr-1"></i> Back to dashboard
             </a>
         </div>
         
-        <form method="POST" action="{{ route('user.account.update', ['account' => encrypt($user->id)]) }}" class="space-y-6">
+        <form method="POST" action="{{ route('admin.profile.update') }}" class="space-y-6">
             @csrf
             @method('PUT')
             
@@ -33,7 +33,7 @@
             </div>
             
             <div class="flex items-center justify-end space-x-3">
-                <a href="{{ route('user.dashboard') }}" 
+                <a href="{{ route('admin.dashboard') }}"
                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">
                     Cancel
                 </a>

@@ -246,7 +246,8 @@
     }
 
     .overflow-x-auto > table {
-        min-width: max-content;
+        width: 100%;
+        min-width: 100%;
     }
 
     td,
@@ -366,6 +367,10 @@
 
         table {
             font-size: 0.82rem;
+        }
+
+        .overflow-x-auto > table {
+            min-width: max-content;
         }
 
         th,

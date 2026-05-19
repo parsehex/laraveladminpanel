@@ -34,12 +34,12 @@ class AuthController extends Controller
                 ]);
             }
 
-            // Redirect based on role
-            if ($user->isAdmin()) {
+            // Staff and permission-based panel users share the admin namespace.
+            if ($user->isAdmin() || $user->getAllPermissions()->isNotEmpty()) {
                 return redirect('/admin/dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
             }
 
-            return redirect('/user/dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
+            return redirect('/admin/dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
         }
 
         throw ValidationException::withMessages([

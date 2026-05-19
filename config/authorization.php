@@ -24,6 +24,7 @@ return [
         'technician',
         'sales',
         'kit_assigner',
+        'kit_maker',
     ],
 
     /*
@@ -42,6 +43,7 @@ return [
         'technician',
         'sales',
         'kit_assigner',
+        'kit_maker',
         'Manager',
     ],
 
@@ -55,6 +57,7 @@ return [
         'admin',
         'technician',
         'kit_assigner',
+        'kit_maker',
         'user',
     ],
 ];
