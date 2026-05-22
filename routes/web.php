@@ -69,6 +69,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('dropdowns/brands', [DropdownController::class, 'brands'])
         ->middleware('permission:models.view|models.create|models.edit|appliance.create|appliance.edit')
         ->name('dropdowns.brands');
+    Route::get('dropdowns/kit-parts', [DropdownController::class, 'kitParts'])
+        ->middleware('permission:kits.view|kits.manage')
+        ->name('dropdowns.kit-parts');
     Route::post('dropdowns/categories', [DropdownController::class, 'storeCategory'])
         ->middleware('permission:category.create')
         ->name('dropdowns.categories.store');
@@ -78,6 +81,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('dropdowns/brands', [DropdownController::class, 'storeBrand'])
         ->middleware('permission:models.create|models.edit|appliance.create|appliance.edit')
         ->name('dropdowns.brands.store');
+    Route::post('dropdowns/kit-parts', [DropdownController::class, 'storeKitPart'])
+        ->middleware('permission:kits.manage')
+        ->name('dropdowns.kit-parts.store');
 
     Route::resource('users', UserController::class);
 
@@ -179,6 +185,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('inventory/{appliance}/photos', [InventoryController::class, 'uploadPhotos'])
         ->middleware('permission:appliance.edit')
         ->name('inventory.photos.store');
+    Route::get('inventory/{appliance}/photos/view', [InventoryController::class, 'showPhoto'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.photos.show');
     Route::delete('inventory/{appliance}/photos', [InventoryController::class, 'destroyPhoto'])
         ->middleware('permission:appliance.edit')
         ->name('inventory.photos.destroy');

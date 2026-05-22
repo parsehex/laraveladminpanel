@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\KitInventory;
 use App\Models\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -72,6 +73,28 @@ class DropdownController extends Controller
                 'text' => $brand->name,
             ])->values(),
             'next_page' => $brands->hasMorePages() ? $brands->currentPage() + 1 : null,
+        ]);
+    }
+
+    public function kitParts(Request $request): JsonResponse
+    {
+        $search = $request->string('q')->trim();
+        $kitCodes = \App\Models\Kit::query()->pluck('code');
+
+        $parts = KitInventory::query()
+            ->whereNotIn('part_name', $kitCodes)
+            ->when($search->isNotEmpty(), fn ($query) => $query->where('part_name', 'like', '%'.$search.'%'))
+            ->orderBy('part_name')
+            ->paginate(20);
+
+        return response()->json([
+            'data' => $parts->getCollection()->map(fn (KitInventory $part) => [
+                'id' => $part->part_name,
+                'text' => $part->part_name.' (stock: '.$part->current_stock.')',
+                'value' => $part->part_name,
+                'stock' => $part->current_stock,
+            ])->values(),
+            'next_page' => $parts->hasMorePages() ? $parts->currentPage() + 1 : null,
         ]);
     }
 
@@ -151,6 +174,31 @@ class DropdownController extends Controller
                 'id' => $brand->name,
                 'value' => $brand->name,
                 'text' => $brand->name,
+            ],
+        ], 201);
+    }
+
+    public function storeKitPart(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->can('kits.manage'), 403);
+
+        $data = $request->validate([
+            'part_name' => ['required', 'string', 'max:255', Rule::unique('kit_inventory', 'part_name')],
+        ]);
+
+        $part = KitInventory::create([
+            'part_name' => trim($data['part_name']),
+            'current_stock' => 0,
+            'min_level' => 0,
+        ]);
+
+        return response()->json([
+            'message' => __('Part added successfully.'),
+            'item' => [
+                'id' => $part->part_name,
+                'value' => $part->part_name,
+                'text' => $part->part_name.' (stock: 0)',
+                'stock' => 0,
             ],
         ], 201);
     }

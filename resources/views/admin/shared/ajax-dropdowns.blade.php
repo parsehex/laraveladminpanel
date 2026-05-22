@@ -99,6 +99,14 @@
                 label: 'Brand Name',
                 field: 'name',
                 placeholder: 'Search brands...'
+            },
+            kit_part: {
+                list: '{{ route('admin.dropdowns.kit-parts') }}',
+                store: '{{ route('admin.dropdowns.kit-parts.store') }}',
+                title: 'Add Part',
+                label: 'Part Name',
+                field: 'part_name',
+                placeholder: 'Search parts...'
             }
         };
 
@@ -120,11 +128,21 @@
             }).length > 0;
 
             if (! exists) {
-                $select.append(new Option(item.text, optionId, false, false));
+                const option = new Option(item.text, optionId, false, false);
+                if (item.stock !== undefined) {
+                    $(option).attr('data-stock', item.stock);
+                }
+                $select.append(option);
             }
 
             if (selected) {
                 $select.val(optionId).trigger('change');
+                $select.trigger({
+                    type: 'select2:select',
+                    params: {
+                        data: item
+                    }
+                });
             }
         }
 
@@ -167,9 +185,13 @@
             });
         }
 
+        window.initializeAjaxDropdowns = initializeAjaxDropdowns;
+
         $(document).on('click', '[data-open-quick-create]', function () {
             quickCreateType = $(this).data('openQuickCreate');
-            quickCreateTarget = $($(this).data('target'));
+            quickCreateTarget = $(this).data('target')
+                ? $($(this).data('target'))
+                : $(this).closest('[data-quick-create-wrapper]').find('[data-ajax-dropdown]').first();
 
             $('#quick-create-title').text(endpoints[quickCreateType].title);
             $('#quick-create-label').text(endpoints[quickCreateType].label);

@@ -1,6 +1,5 @@
-<aside x-cloak
-       :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-       class="ui-sidebar fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] flex-shrink-0 overflow-y-auto text-white transition-transform duration-200 ease-out lg:static lg:w-64 lg:max-w-none">
+<aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+       class="ui-sidebar fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] -translate-x-full flex-shrink-0 overflow-y-auto text-white transition-transform duration-200 ease-out lg:static lg:w-64 lg:max-w-none lg:translate-x-0">
     <div class="flex items-center h-20 px-5">
         <div class="ui-brand-mark h-11 w-11 rounded-2xl flex items-center justify-center font-extrabold text-lg">B</div>
         <div class="ml-3 min-w-0 leading-tight">
@@ -45,7 +44,7 @@
         </a>
         @endcanAccess
 
-        @canAccess('deliveries.view')
+        <!-- @canAccess('deliveries.view')
         <a href="{{ route('admin.deliveries.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.deliveries.*') ? 'is-active' : '' }}">
             <i class="fas fa-route mr-3 w-5 text-center"></i>
@@ -75,7 +74,7 @@
             <i class="fas fa-toolbox mr-3 w-5 text-center"></i>
             <span>Kits</span>
         </a>
-        @endcanAccess
+        @endcanAccess -->
 
         @canAccess('users.view')
         <a href="{{ route('admin.users.index') }}" @click="sidebarOpen = false"

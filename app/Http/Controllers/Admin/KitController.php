@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class KitController extends Controller
 {
@@ -165,6 +166,9 @@ class KitController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
+        $kit = Kit::with('parts')->findOrFail($data['kit_id']);
+        $this->assertKitAssignmentStock($kit, (int) $data['quantity']);
+
         KitAssignment::create([
             ...$data,
             'assigned_by' => $request->user()->id,
@@ -181,6 +185,7 @@ class KitController extends Controller
 
         DB::transaction(function () use ($assignment) {
             $assignment->load('kit.parts');
+            $this->assertKitAssignmentStock($assignment->kit, $assignment->quantity);
 
             foreach ($assignment->kit->parts as $part) {
                 KitInventory::query()
@@ -332,6 +337,26 @@ class KitController extends Controller
 
     private function syncNewParts(Kit $kit, array $partNames, array $quantities): void
     {
+        $parts = $this->normalizeParts($partNames, $quantities);
+        $this->assertPartQuantitiesWithinStock($parts);
+
+        foreach ($parts as $partName => $quantity) {
+            KitPart::updateOrCreate(
+                ['kit_id' => $kit->id, 'part_name' => $partName],
+                ['quantity_per_kit' => $quantity]
+            );
+        }
+    }
+
+    /**
+     * @param  array<int, mixed>  $partNames
+     * @param  array<int, mixed>  $quantities
+     * @return array<string, int>
+     */
+    private function normalizeParts(array $partNames, array $quantities): array
+    {
+        $parts = [];
+
         foreach ($partNames as $index => $partName) {
             $partName = trim((string) $partName);
             $quantity = (int) ($quantities[$index] ?? 0);
@@ -340,11 +365,48 @@ class KitController extends Controller
                 continue;
             }
 
-            KitInventory::firstOrCreate(['part_name' => $partName], ['current_stock' => 0, 'min_level' => 0]);
-            KitPart::updateOrCreate(
-                ['kit_id' => $kit->id, 'part_name' => $partName],
-                ['quantity_per_kit' => $quantity]
-            );
+            $parts[$partName] = $quantity;
+        }
+
+        return $parts;
+    }
+
+    /**
+     * @param  array<string, int>  $parts
+     */
+    private function assertPartQuantitiesWithinStock(array $parts): void
+    {
+        foreach ($parts as $partName => $quantity) {
+            $inventory = KitInventory::query()->where('part_name', $partName)->first();
+
+            if (! $inventory) {
+                throw ValidationException::withMessages([
+                    'part_name' => "The selected part '{$partName}' does not exist in raw inventory.",
+                ]);
+            }
+
+            if ($quantity > $inventory->current_stock) {
+                throw ValidationException::withMessages([
+                    'quantity_per_kit' => "Quantity for '{$partName}' cannot be greater than available stock ({$inventory->current_stock}).",
+                ]);
+            }
+        }
+    }
+
+    private function assertKitAssignmentStock(Kit $kit, int $kitQuantity): void
+    {
+        $kit->loadMissing('parts');
+
+        foreach ($kit->parts as $part) {
+            $inventory = KitInventory::query()->where('part_name', $part->part_name)->first();
+            $available = $inventory?->current_stock ?? 0;
+            $required = $kitQuantity * $part->quantity_per_kit;
+
+            if ($required > $available) {
+                throw ValidationException::withMessages([
+                    'quantity' => "Not enough stock for '{$part->part_name}'. Required {$required}, available {$available}.",
+                ]);
+            }
         }
     }
 }

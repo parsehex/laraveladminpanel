@@ -240,9 +240,10 @@
             @if(count($appliance->photos ?? []))
             <div class="photo-grid">
                 @foreach($appliance->photos as $photo)
+                @php($photoUrl = route('admin.inventory.photos.show', ['appliance' => $appliance, 'photo' => $photo]))
                 <div class="photo-card">
-                    <button type="button" class="photo-thumb" data-photo-url="{{ Storage::url($photo) }}" aria-label="View appliance photo">
-                        <img src="{{ Storage::url($photo) }}" alt="Appliance photo">
+                    <button type="button" class="photo-thumb" data-photo-url="{{ $photoUrl }}" aria-label="View appliance photo">
+                        <img src="{{ $photoUrl }}" alt="Appliance photo">
                         <span class="photo-view-chip"><i class="fas fa-search-plus"></i> View</span>
                     </button>
                     @canAccess('appliance.edit')

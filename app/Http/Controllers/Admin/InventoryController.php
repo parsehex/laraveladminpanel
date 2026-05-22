@@ -332,6 +332,19 @@ class InventoryController extends Controller
         return back()->with('success', __('Photos uploaded successfully.'));
     }
 
+    public function showPhoto(Request $request, TruckAppliance $appliance)
+    {
+        $data = $request->validate([
+            'photo' => ['required', 'string'],
+        ]);
+
+        $photos = collect($appliance->photos ?? []);
+        abort_unless($photos->contains($data['photo']), 404);
+        abort_unless(Storage::disk('public')->exists($data['photo']), 404);
+
+        return Storage::disk('public')->response($data['photo']);
+    }
+
     public function destroyPhoto(Request $request, TruckAppliance $appliance)
     {
         abort_unless($request->user()?->can('appliance.edit'), 403);

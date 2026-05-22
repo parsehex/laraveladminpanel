@@ -38,9 +38,16 @@
                 <div class="border-t border-gray-200 pt-4">
                     <h3 class="text-base font-semibold text-gray-900">Parts for Kit</h3>
                     <div id="parts-fields" class="mt-3 space-y-2">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <input name="part_name[]" placeholder="Part Name" class="px-3 py-2 border border-gray-300 rounded-md">
-                            <input name="quantity_per_kit[]" type="number" min="1" placeholder="Quantity per Kit" class="px-3 py-2 border border-gray-300 rounded-md">
+                        <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_160px] gap-2" data-kit-part-row>
+                            <div class="flex gap-2" data-quick-create-wrapper>
+                                <select name="part_name[]" data-ajax-dropdown="kit_part" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                    <option value="">Search part...</option>
+                                </select>
+                                <button type="button" class="mt-1 h-8 w-8 flex-shrink-0 rounded-md bg-blue-600 text-xs text-white hover:bg-blue-700" title="Add part" data-open-quick-create="kit_part">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <input name="quantity_per_kit[]" type="number" min="1" placeholder="Qty per Kit" class="px-3 py-2 border border-gray-300 rounded-md" data-kit-part-qty>
                         </div>
                     </div>
                     <button type="button" data-add-part="#parts-fields" class="mt-3 px-4 py-2 rounded-md bg-gray-500 text-white font-semibold">Add Another Part</button>
@@ -112,9 +119,16 @@
                     @csrf
                     <h3 class="text-base font-semibold text-gray-900">Add New Parts</h3>
                     <div id="edit-parts-fields" class="mt-3 space-y-2">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <input name="part_name[]" placeholder="Part Name" class="px-3 py-2 border border-gray-300 rounded-md">
-                            <input name="quantity_per_kit[]" type="number" min="1" placeholder="Quantity per Kit" class="px-3 py-2 border border-gray-300 rounded-md">
+                        <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_160px] gap-2" data-kit-part-row>
+                            <div class="flex gap-2" data-quick-create-wrapper>
+                                <select name="part_name[]" data-ajax-dropdown="kit_part" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                    <option value="">Search part...</option>
+                                </select>
+                                <button type="button" class="mt-1 h-8 w-8 flex-shrink-0 rounded-md bg-blue-600 text-xs text-white hover:bg-blue-700" title="Add part" data-open-quick-create="kit_part">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <input name="quantity_per_kit[]" type="number" min="1" placeholder="Qty per Kit" class="px-3 py-2 border border-gray-300 rounded-md" data-kit-part-qty>
                         </div>
                     </div>
                     <div class="mt-3 flex flex-wrap justify-end gap-2">
@@ -285,13 +299,47 @@
         <div id="sop-content" class="mt-4 text-sm text-gray-700">Loading...</div>
     </div>
 </div>
+
+@include('admin.shared.ajax-dropdowns')
 @endsection
 
 @push('scripts')
 <script>
+    function kitPartRow() {
+        return `
+            <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_160px] gap-2" data-kit-part-row>
+                <div class="flex gap-2" data-quick-create-wrapper>
+                    <select name="part_name[]" data-ajax-dropdown="kit_part" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="">Search part...</option>
+                    </select>
+                    <button type="button" class="mt-1 h-8 w-8 flex-shrink-0 rounded-md bg-blue-600 text-xs text-white hover:bg-blue-700" title="Add part" data-open-quick-create="kit_part">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <input name="quantity_per_kit[]" type="number" min="1" placeholder="Qty per Kit" class="px-3 py-2 border border-gray-300 rounded-md" data-kit-part-qty>
+            </div>
+        `;
+    }
+
     $('[data-add-part]').on('click', function () {
         const target = $($(this).data('add-part'));
-        target.append('<div class="grid grid-cols-1 md:grid-cols-2 gap-2"><input name="part_name[]" placeholder="Part Name" class="px-3 py-2 border border-gray-300 rounded-md"><input name="quantity_per_kit[]" type="number" min="1" placeholder="Quantity per Kit" class="px-3 py-2 border border-gray-300 rounded-md"></div>');
+        target.append(kitPartRow());
+        window.initializeAjaxDropdowns && window.initializeAjaxDropdowns();
+    });
+
+    $(document).on('select2:select change', '[data-ajax-dropdown="kit_part"]', function (event) {
+        const $select = $(this);
+        const selected = event.params && event.params.data ? event.params.data : {};
+        const optionStock = $select.find(':selected').data('stock');
+        const stock = selected.stock !== undefined ? selected.stock : optionStock;
+        const $qty = $select.closest('[data-kit-part-row]').find('[data-kit-part-qty]');
+
+        if (stock !== undefined && stock !== '') {
+            $qty.attr('max', stock);
+            $qty.attr('title', 'Available stock: ' + stock);
+        } else {
+            $qty.removeAttr('max').removeAttr('title');
+        }
     });
 
     $('[data-delete-kit-select]').on('change', function () {
