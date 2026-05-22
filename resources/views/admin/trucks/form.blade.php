@@ -2,8 +2,8 @@
     $truck = $truck ?? null;
 @endphp
 
-<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-    <div>
+<div class="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2 xl:grid-cols-5">
+    <div class="[&>div]:mb-2">
         <x-form.input
             name="name"
             label="Name"
@@ -13,7 +13,7 @@
         />
     </div>
 
-    <div>
+    <div class="[&>div]:mb-2">
         <x-form.input
             name="units_on_truck"
             label="Units on truck"
@@ -23,7 +23,7 @@
         />
     </div>
 
-    <div>
+    <div class="[&>div]:mb-2">
         <x-form.input
             name="cost_of_truck"
             label="Cost of truck"
@@ -35,7 +35,7 @@
         />
     </div>
 
-    <div>
+    <div class="[&>div]:mb-2">
         <x-form.input
             name="arrival_date"
             label="Arrival date"
@@ -45,7 +45,7 @@
         />
     </div>
 
-    <div>
+    <div class="[&>div]:mb-2">
         <x-form.select
             name="status"
             label="Status"
@@ -55,9 +55,9 @@
         />
     </div>
 
-    <div class="md:col-span-2">
+    <div class="md:col-span-2 xl:col-span-5">
         <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-        <textarea id="notes" name="notes" rows="4"
+        <textarea id="notes" name="notes" rows="2"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">{{ old('notes', $truck?->notes) }}</textarea>
         @error('notes')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
