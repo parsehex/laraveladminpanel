@@ -164,6 +164,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('inventory/parts/search', [InventoryController::class, 'searchParts'])
         ->middleware('permission:parts.view|appliance.edit')
         ->name('inventory.parts.search');
+    Route::get('inventory/stickers', [InventoryController::class, 'stickers'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.stickers');
     Route::get('inventory/{appliance}', [InventoryController::class, 'show'])
         ->middleware('permission:inventory.view')
         ->name('inventory.show');
@@ -185,6 +188,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('inventory/{appliance}/photos', [InventoryController::class, 'uploadPhotos'])
         ->middleware('permission:appliance.edit')
         ->name('inventory.photos.store');
+    Route::get('inventory/{appliance}/photos', [InventoryController::class, 'photos'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.photos.index');
     Route::get('inventory/{appliance}/photos/view', [InventoryController::class, 'showPhoto'])
         ->middleware('permission:inventory.view')
         ->name('inventory.photos.show');

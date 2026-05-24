@@ -75,20 +75,30 @@ class TruckController extends Controller
         return redirect()->route('admin.trucks.index')->with('success', __('Truck created successfully.'));
     }
 
-    public function show(Truck $truck)
+    public function show(Request $request, Truck $truck)
     {
         $truck->load([
             'creator',
             'updater',
-            'appliances' => fn ($query) => $query->with(['category', 'model'])->latest(),
         ]);
 
-        $categoryIds = $truck->appliances->pluck('category_id')->filter()->unique()->values();
-        $modelIds = $truck->appliances->pluck('model_id')->filter()->unique()->values();
+        $perPage = (int) $request->input('appliances_per_page', 25);
+        $perPage = in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 25;
+        $appliances = $truck->appliances()
+            ->with(['category', 'model'])
+            ->orderBy('id')
+            ->paginate($perPage, ['*'], 'appliances_page')
+            ->withQueryString();
+
+        $allAppliances = $truck->appliances()->with(['category', 'model'])->get();
+        $truck->setRelation('appliances', $allAppliances);
+
+        $categoryIds = $allAppliances->pluck('category_id')->filter()->unique()->values();
+        $modelIds = $allAppliances->pluck('model_id')->filter()->unique()->values();
         $categories = Category::query()->whereIn('id', $categoryIds)->orderBy('name')->get();
         $models = ApplianceModel::query()->whereIn('id', $modelIds)->orderBy('model_number')->get();
 
-        return view('admin.trucks.show', compact('truck', 'categories', 'models'));
+        return view('admin.trucks.show', compact('truck', 'categories', 'models', 'appliances', 'perPage'));
     }
 
     public function edit(Truck $truck)

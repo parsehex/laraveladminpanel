@@ -19,8 +19,8 @@ class StorePartRequest extends FormRequest
             'product_name' => ['nullable', 'string', 'max:255'],
             'model_compatibility' => ['nullable', 'string', 'max:255'],
             'total_stock' => ['nullable', 'integer', 'min:0'],
-            'retail_price' => ['required', 'numeric', 'min:1'],
-            'your_price' => ['required', 'numeric', 'min:1'],
+            'retail_price' => ['required', 'numeric', 'min:0'],
+            'your_price' => ['required', 'numeric', 'min:0'],
             'cross_reference' => ['nullable', 'string', 'max:255'],
         ];
     }

@@ -106,7 +106,7 @@ class ModelController extends Controller
 
         return response()->streamDownload(function () use ($query) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['ID', 'Model #', 'Product Name', 'Brand', 'Category', 'MSRP', 'Created At', 'Updated At']);
+            fputcsv($handle, ['ID', 'Model #', 'Product Name', 'Brand', 'Category', 'MSRP', 'Created At']);
 
             foreach ($query->get() as $model) {
                 fputcsv($handle, [
@@ -116,8 +116,7 @@ class ModelController extends Controller
                     $model->brand,
                     $model->category?->name,
                     $model->msrp,
-                    $model->created_at,
-                    $model->updated_at,
+                    $model->created_at?->format('Y-m-d H:i:s') ?? 'N/A',
                 ]);
             }
 

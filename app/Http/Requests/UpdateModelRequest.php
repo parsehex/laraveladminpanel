@@ -18,7 +18,7 @@ class UpdateModelRequest extends FormRequest
             'model_number' => ['required', 'string', 'max:255', Rule::unique('models', 'model_number')->ignore($this->route('model'))],
             'product_name' => ['nullable', 'string', 'max:255'],
             'brand' => ['nullable', 'string', 'max:255'],
-            'category_id' => ['nullable', 'exists:categories,id'],
+            'category_id' => ['required', 'exists:categories,id'],
             'msrp' => ['nullable', 'numeric', 'min:0'],
         ];
     }

@@ -10,19 +10,19 @@
 <input type="hidden" name="truck_id" value="{{ $truck->id }}">
 
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-    <div>
+    <!-- <div>
         <label for="{{ $prefix }}-unit-label" class="block text-sm font-medium text-gray-700 mb-2">Unit Label</label>
         <input type="text" id="{{ $prefix }}-unit-label" name="unit_label" value="{{ old('unit_label', $appliance?->unit_label) }}" placeholder="{{ $truck->name }}-001"
                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         @error('unit_label')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
         @enderror
-    </div>
+    </div> -->
 
     <div>
-        <label for="{{ $prefix }}-category" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+        <label for="{{ $prefix }}-category" class="block text-sm font-medium text-gray-700 mb-2">Category <span class="text-red-500">*</span></label>
         <div class="flex gap-2">
-            <select id="{{ $prefix }}-category" name="category_id" data-ajax-dropdown="category"
+            <select id="{{ $prefix }}-category" name="category_id" data-ajax-dropdown="category" required
                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 <option value="">-- Select Category --</option>
                 @foreach($categories as $category)
@@ -43,9 +43,9 @@
     </div>
 
     <div>
-        <label for="{{ $prefix }}-model" class="block text-sm font-medium text-gray-700 mb-2">Model</label>
+        <label for="{{ $prefix }}-model" class="block text-sm font-medium text-gray-700 mb-2">Model <span class="text-red-500">*</span></label>
         <div class="flex gap-2">
-            <select id="{{ $prefix }}-model" name="model_id" data-ajax-dropdown="model" data-value-field="id"
+            <select id="{{ $prefix }}-model" name="model_id" data-ajax-dropdown="model" data-value-field="id" required
                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 <option value="">-- Select Model --</option>
                 @foreach($models as $model)
@@ -66,8 +66,8 @@
     </div>
 
     <div>
-        <label for="{{ $prefix }}-serial-number" class="block text-sm font-medium text-gray-700 mb-2">Serial #</label>
-        <input type="text" id="{{ $prefix }}-serial-number" name="serial_number" value="{{ old('serial_number', $appliance?->serial_number) }}"
+        <label for="{{ $prefix }}-serial-number" class="block text-sm font-medium text-gray-700 mb-2">Serial # <span class="text-red-500">*</span></label>
+        <input type="text" id="{{ $prefix }}-serial-number" name="serial_number" value="{{ old('serial_number', $appliance?->serial_number) }}" required
                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         @error('serial_number')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -75,9 +75,9 @@
     </div>
 
     <div>
-        <label for="{{ $prefix }}-brand" class="block text-sm font-medium text-gray-700 mb-2">Brand</label>
+        <label for="{{ $prefix }}-brand" class="block text-sm font-medium text-gray-700 mb-2">Brand <span class="text-red-500">*</span></label>
         <div class="flex gap-2">
-            <select id="{{ $prefix }}-brand" name="brand" data-ajax-dropdown="brand"
+            <select id="{{ $prefix }}-brand" name="brand" data-ajax-dropdown="brand" required
                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 <option value="">-- Select Brand --</option>
                 @if(old('brand', $appliance?->brand))
@@ -114,6 +114,22 @@
     </div>
 
     <div>
+        <label for="{{ $prefix }}-receiving-condition" class="block text-sm font-medium text-gray-700 mb-2">Receiving Condition <span class="text-red-500">*</span></label>
+        <select id="{{ $prefix }}-receiving-condition" name="receiving_condition" required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <option value="">-- Select Condition --</option>
+            @foreach($conditions as $condition)
+                <option value="{{ $condition }}" {{ old('receiving_condition', $appliance?->receiving_condition) === $condition ? 'selected' : '' }}>
+                    {{ $condition }}
+                </option>
+            @endforeach
+        </select>
+        @error('receiving_condition')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <!-- <div>
         <label for="{{ $prefix }}-quantity" class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
         <input type="number" id="{{ $prefix }}-quantity" name="quantity" value="{{ old('quantity', $appliance?->quantity ?? 1) }}" min="0"
                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
@@ -138,23 +154,9 @@
         @error('fuel_type')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
         @enderror
-    </div>
+    </div> -->
 
-    <div>
-        <label for="{{ $prefix }}-receiving-condition" class="block text-sm font-medium text-gray-700 mb-2">Receiving Condition</label>
-        <select id="{{ $prefix }}-receiving-condition" name="receiving_condition"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-            <option value="">-- Select Condition --</option>
-            @foreach($conditions as $condition)
-                <option value="{{ $condition }}" {{ old('receiving_condition', $appliance?->receiving_condition) === $condition ? 'selected' : '' }}>
-                    {{ $condition }}
-                </option>
-            @endforeach
-        </select>
-        @error('receiving_condition')
-            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-        @enderror
-    </div>
+    
 
     <div>
         <label for="{{ $prefix }}-total-parts-cost" class="block text-sm font-medium text-gray-700 mb-2">Total Parts Cost</label>

@@ -11,20 +11,8 @@
 @endphp
 
 <div class="space-y-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
         <h1 class="text-4xl font-semibold text-gray-900">Models Management</h1>
-        <div class="flex flex-wrap gap-2">
-            @canAccess('models.view')
-            <a href="{{ route('admin.models.export', request()->only(['category', 'search'])) }}" class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-                <i class="fas fa-file-export mr-2"></i>Export All
-            </a>
-            @endcanAccess
-            @canAccess('models.create')
-            <button type="button" class="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700" data-toggle-import-scraped>
-                <i class="fas fa-file-import mr-2"></i>Import Scraped Data
-            </button>
-            @endcanAccess
-        </div>
     </div>
 
     @canAccess('models.create')
@@ -70,9 +58,21 @@
     </div>
     @endcanAccess
 
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="bg-blue-600 px-6 py-4 flex flex-wrap items-center gap-3">
+    <div id="models-list-results" class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-blue-600 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-xl font-semibold text-white">Models List ({{ $models->total() }} total)</h2>
+            <div class="flex flex-wrap gap-2">
+                @canAccess('models.view')
+                <a href="{{ route('admin.models.export', request()->only(['category', 'search'])) }}" class="inline-flex items-center justify-center rounded-md bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600">
+                    <i class="fas fa-file-export mr-2"></i>Export All
+                </a>
+                @endcanAccess
+                @canAccess('models.create')
+                <button type="button" class="inline-flex items-center justify-center rounded-md bg-sky-500 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-600" data-toggle-import-scraped>
+                    <i class="fas fa-file-import mr-2"></i>Import Scraped Data
+                </button>
+                @endcanAccess
+            </div>
         </div>
 
         <div class="p-6 space-y-6">
@@ -360,7 +360,7 @@
 
     @if(request()->hasAny(['search', 'category']))
         setTimeout(function () {
-            document.getElementById('models-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            document.getElementById('models-list-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 150);
     @endif
 </script>

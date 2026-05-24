@@ -135,6 +135,26 @@ class InventoryController extends Controller
         ]);
     }
 
+    public function stickers(Request $request)
+    {
+        $ids = collect(explode(',', (string) $request->get('ids')))
+            ->map(fn ($id) => (int) trim($id))
+            ->filter()
+            ->values();
+
+        abort_if($ids->isEmpty(), 404);
+
+        $items = TruckAppliance::query()
+            ->with(['truck', 'model'])
+            ->whereIn('id', $ids->all())
+            ->orderByRaw('FIELD(id, '.$ids->implode(',').')')
+            ->get();
+
+        abort_if($items->isEmpty(), 404);
+
+        return view('admin.inventory.stickers', compact('items'));
+    }
+
     public function show(TruckAppliance $appliance)
     {
         $appliance->load([
@@ -331,6 +351,26 @@ class InventoryController extends Controller
         ]);
 
         return back()->with('success', __('Photos uploaded successfully.'));
+    }
+
+    public function photos(Request $request, TruckAppliance $appliance)
+    {
+        $photos = collect($appliance->photos ?? [])
+            ->filter(fn ($photo) => Storage::disk('public')->exists($photo))
+            ->map(fn ($photo) => [
+                'path' => $photo,
+                'url' => route('admin.inventory.photos.show', ['appliance' => $appliance, 'photo' => $photo]),
+            ])
+            ->values();
+
+        return response()->json([
+            'appliance' => [
+                'id' => $appliance->id,
+                'unit_label' => $appliance->unit_label,
+                'serial_number' => $appliance->serial_number,
+            ],
+            'photos' => $photos,
+        ]);
     }
 
     public function showPhoto(Request $request, TruckAppliance $appliance)

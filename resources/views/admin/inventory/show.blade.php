@@ -20,7 +20,7 @@
         <a href="{{ url()->previous() !== url()->current() ? url()->previous() : route('admin.inventory.index') }}" class="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-xs">Back</a>
     </div>
 
-    <section class="legacy-panel">
+    <section id="photos" class="legacy-panel">
         <div class="legacy-panel-heading bg-blue-600">Appliance Information</div>
         <div class="legacy-panel-body space-y-2">
             <p><strong>Unit Label:</strong> #{{ $appliance->id }}</p>

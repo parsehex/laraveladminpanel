@@ -17,7 +17,7 @@ class StoreModelRequest extends FormRequest
             'model_number' => ['required', 'string', 'max:255', 'unique:models,model_number,NULL,id,deleted_at,NULL'],
             'product_name' => ['nullable', 'string', 'max:255'],
             'brand' => ['nullable', 'string', 'max:255'],
-            'category_id' => ['nullable', 'exists:categories,id'],
+            'category_id' => ['required', 'exists:categories,id'],
             'msrp' => ['nullable', 'numeric', 'min:0'],
         ];
     }
