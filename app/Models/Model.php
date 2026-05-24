@@ -19,6 +19,7 @@ class Model extends EloquentModel
         'category_id',
         'brand',
         'msrp',
+        'variations',
         'status',
         'created_by',
         'updated_by',
@@ -30,6 +31,7 @@ class Model extends EloquentModel
         return [
             'category_id' => 'integer',
             'msrp' => 'decimal:2',
+            'variations' => 'array',
             'status' => 'integer',
         ];
     }

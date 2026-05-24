@@ -211,6 +211,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('models', [ModelController::class, 'index'])
         ->middleware('permission:models.view')
         ->name('models.index');
+    Route::get('models/export', [ModelController::class, 'export'])
+        ->middleware('permission:models.view')
+        ->name('models.export');
+    Route::post('models/import-scraped', [ModelController::class, 'importScraped'])
+        ->middleware('permission:models.create')
+        ->name('models.import-scraped');
     Route::post('models', [ModelController::class, 'store'])
         ->middleware('permission:models.create')
         ->name('models.store');

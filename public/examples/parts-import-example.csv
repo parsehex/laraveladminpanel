@@ -1,4 +1,4 @@
-part_number,product_name,model_compatibility,total_stock,retail_price,your_price,cross_reference
-W10820039,Washer drive belt,WTW5000DW1,12,49.99,28.50,AP5983729
-WPW10144820,Dryer thermal fuse,WED4815EW1,8,34.99,14.75,AP6015765
-DA97-17376B,Refrigerator water filter,RF28R7351SR,0,59.99,37.25,HAFCIN
+URL,Part Number,Retail Price,Your Price,Images,Cross Reference Information,Models it applies to
+https://example.com/parts/W10820039,W10820039,49.99,28.50,,AP5983729,WTW5000DW1
+https://example.com/parts/WPW10144820,WPW10144820,34.99,14.75,,AP6015765,WED4815EW1
+https://example.com/parts/DA97-17376B,DA97-17376B,59.99,37.25,,HAFCIN,RF28R7351SR

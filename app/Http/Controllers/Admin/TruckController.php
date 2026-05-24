@@ -44,14 +44,17 @@ class TruckController extends Controller
         $trucks->getCollection()->transform(function ($truck) {
 
             $truck->appliance_statuses = $truck->appliances
-                ->pluck('status')
-                ->filter()
-                ->unique()
+                ->groupBy('status')
+                ->map(fn ($items, $status) => [
+                    'status' => $status,
+                    'count' => $items->count(),
+                ])
                 ->values()
                 ->toArray();
 
             return $truck;
         });
+        
 
         return view('admin.trucks.index', compact('trucks'));
     }

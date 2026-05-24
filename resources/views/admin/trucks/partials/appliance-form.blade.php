@@ -11,6 +11,15 @@
 
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
     <div>
+        <label for="{{ $prefix }}-unit-label" class="block text-sm font-medium text-gray-700 mb-2">Unit Label</label>
+        <input type="text" id="{{ $prefix }}-unit-label" name="unit_label" value="{{ old('unit_label', $appliance?->unit_label) }}" placeholder="{{ $truck->name }}-001"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        @error('unit_label')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div>
         <label for="{{ $prefix }}-category" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
         <div class="flex gap-2">
             <select id="{{ $prefix }}-category" name="category_id" data-ajax-dropdown="category"
@@ -105,6 +114,33 @@
     </div>
 
     <div>
+        <label for="{{ $prefix }}-quantity" class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+        <input type="number" id="{{ $prefix }}-quantity" name="quantity" value="{{ old('quantity', $appliance?->quantity ?? 1) }}" min="0"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        @error('quantity')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div>
+        <label for="{{ $prefix }}-price" class="block text-sm font-medium text-gray-700 mb-2">Our Cost</label>
+        <input type="number" id="{{ $prefix }}-price" name="price" value="{{ old('price', $appliance?->price ?? 0) }}" min="0" step="0.01"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        @error('price')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div>
+        <label for="{{ $prefix }}-fuel-type" class="block text-sm font-medium text-gray-700 mb-2">Fuel Type</label>
+        <input type="text" id="{{ $prefix }}-fuel-type" name="fuel_type" value="{{ old('fuel_type', $appliance?->fuel_type) }}"
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        @error('fuel_type')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div>
         <label for="{{ $prefix }}-receiving-condition" class="block text-sm font-medium text-gray-700 mb-2">Receiving Condition</label>
         <select id="{{ $prefix }}-receiving-condition" name="receiving_condition"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
@@ -129,7 +165,7 @@
         @enderror
     </div>
 
-    <div>
+    <!-- <div>
         <label for="{{ $prefix }}-status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
         <select id="{{ $prefix }}-status" name="status"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
@@ -141,5 +177,5 @@
         @error('status')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
         @enderror
-    </div>
+    </div> -->
 </div>

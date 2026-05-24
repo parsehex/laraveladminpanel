@@ -94,9 +94,12 @@
                         <td class="px-6 py-4">
                             <div class="flex flex-wrap gap-1">
 
-                                @forelse($truck->appliance_statuses as $status)
+                                @forelse($truck->appliance_statuses as $item)
 
                                     @php
+                                        $status = $item['status'];
+                                        $count = $item['count'];
+
                                         $classes = match(strtolower($status)) {
 
                                             'triage' => 'bg-indigo-100 text-indigo-800',
@@ -128,7 +131,7 @@
                                     @endphp
 
                                     <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $classes }}">
-                                        {{ ucfirst($status) }}
+                                        {{ ucfirst($status) }} ({{ $count }})
                                     </span>
 
                                 @empty
@@ -144,23 +147,35 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                             @canAccess('trucks.view')
-                            <a href="{{ route('admin.trucks.show', $truck) }}" class="text-blue-600 hover:text-blue-900"><i class="fas fa-eye"></i></a>
+                            <a href="{{ route('admin.trucks.show', $truck) }}" class="text-blue-600 hover:text-blue-900" title="View"><i class="fas fa-eye"></i></a>
+                            <a href="{{ route('admin.trucks.appliances.export', $truck) }}" class="text-emerald-600 hover:text-emerald-900" title="Export appliances">
+                                <i class="fas fa-file-export"></i>
+                            </a>
+                            @endcanAccess
+                            @canAccess('appliance.create')
+                            <form method="POST" action="{{ route('admin.trucks.appliances.import', $truck) }}" enctype="multipart/form-data" class="inline" data-truck-import-form>
+                                @csrf
+                                <input type="file" name="csv_file" accept=".csv,text/csv" required class="hidden" data-truck-import-input>
+                                <button type="button" class="text-indigo-600 hover:text-indigo-900" title="Import appliances" data-truck-import-button>
+                                    <i class="fas fa-file-import"></i>
+                                </button>
+                            </form>
                             @endcanAccess
                             @canAccess('trucks.edit')
-                            <a href="{{ route('admin.trucks.edit', $truck) }}" class="text-green-600 hover:text-green-900"><i class="fas fa-edit"></i></a>
+                            <a href="{{ route('admin.trucks.edit', $truck) }}" class="text-green-600 hover:text-green-900" title="Edit"><i class="fas fa-edit"></i></a>
                             @endcanAccess
                             @canAccess('trucks.delete')
                             <form action="{{ route('admin.trucks.destroy', $truck) }}" method="POST" class="inline" onsubmit="return confirm('Delete this truck?');">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></button>
+                                <button type="submit" class="text-red-600 hover:text-red-900" title="Delete"><i class="fas fa-trash"></i></button>
                             </form>
                             @endcanAccess
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-8 text-center text-gray-500">No trucks found.</td>
+                        <td colspan="9" class="px-6 py-8 text-center text-gray-500">No trucks found.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -180,6 +195,16 @@
         if (! $panel.hasClass('hidden')) {
             $panel[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
             $panel.find('input, select, textarea').filter(':visible:first').trigger('focus');
+        }
+    });
+
+    $('[data-truck-import-button]').on('click', function () {
+        $(this).closest('[data-truck-import-form]').find('[data-truck-import-input]').trigger('click');
+    });
+
+    $('[data-truck-import-input]').on('change', function () {
+        if (this.files.length) {
+            $(this).closest('form').trigger('submit');
         }
     });
 

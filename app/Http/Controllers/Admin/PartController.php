@@ -75,26 +75,29 @@ class PartController extends Controller
         ]);
 
         $handle = fopen($data['csv_file']->getRealPath(), 'r');
-        $headers = fgetcsv($handle) ?: [];
-        $headers = array_map(fn ($header) => $this->normalizeCsvHeader((string) $header), $headers);
+        fgetcsv($handle);
         $imported = 0;
         $updated = 0;
 
         while (($row = fgetcsv($handle)) !== false) {
-            $item = array_combine($headers, array_slice(array_pad($row, count($headers), null), 0, count($headers)));
+            if (count($row) < 7) {
+                continue;
+            }
 
-            if (! $item || empty($item['part_number'])) {
+            $partNumber = $this->normalizeIdentifier((string) ($row[1] ?? ''));
+
+            if ($partNumber === '') {
                 continue;
             }
 
             $payload = validator([
-                'part_number' => trim((string) $item['part_number']),
-                'product_name' => trim((string) ($item['product_name'] ?? '')) ?: null,
-                'model_compatibility' => trim((string) ($item['model_compatibility'] ?? '')) ?: null,
-                'total_stock' => $item['total_stock'] ?? 0,
-                'retail_price' => $item['retail_price'] ?? null,
-                'your_price' => $item['your_price'] ?? null,
-                'cross_reference' => trim((string) ($item['cross_reference'] ?? '')) ?: null,
+                'part_number' => $partNumber,
+                'product_name' => null,
+                'model_compatibility' => trim((string) ($row[6] ?? '')) ?: null,
+                'total_stock' => 0,
+                'retail_price' => $row[2] ?? null,
+                'your_price' => $row[3] ?? null,
+                'cross_reference' => trim((string) ($row[5] ?? '')) ?: null,
             ], [
                 'part_number' => ['required', 'string', 'max:255'],
                 'product_name' => ['nullable', 'string', 'max:255'],
@@ -147,16 +150,8 @@ class PartController extends Controller
         return redirect()->route('admin.parts.index')->with('success', __('Part deleted successfully.'));
     }
 
-    private function normalizeCsvHeader(string $header): string
+    private function normalizeIdentifier(string $value): string
     {
-        $key = strtolower(trim(str_replace([' ', '-'], '_', $header)));
-        $key = str_replace(['#', '__'], ['', '_'], $key);
-
-        return match ($key) {
-            'part', 'part_no', 'part_num', 'part_number' => 'part_number',
-            'models_it_applies_to', 'models_applies_to', 'model', 'model_number' => 'model_compatibility',
-            'cross_reference_information', 'cross_reference_info' => 'cross_reference',
-            default => $key,
-        };
+        return strtoupper(preg_replace('/[^A-Z0-9-]/', '', strtoupper(trim($value))) ?? '');
     }
 }

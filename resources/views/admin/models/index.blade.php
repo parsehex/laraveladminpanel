@@ -11,11 +11,47 @@
 @endphp
 
 <div class="space-y-6">
-    <div>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 class="text-4xl font-semibold text-gray-900">Models Management</h1>
+        <div class="flex flex-wrap gap-2">
+            @canAccess('models.view')
+            <a href="{{ route('admin.models.export', request()->only(['category', 'search'])) }}" class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                <i class="fas fa-file-export mr-2"></i>Export All
+            </a>
+            @endcanAccess
+            @canAccess('models.create')
+            <button type="button" class="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700" data-toggle-import-scraped>
+                <i class="fas fa-file-import mr-2"></i>Import Scraped Data
+            </button>
+            @endcanAccess
+        </div>
     </div>
 
     @canAccess('models.create')
+    <div id="import-scraped-panel" class="hidden bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-blue-600 px-6 py-4">
+            <h2 class="text-xl font-semibold text-white">Import Scraped Data</h2>
+        </div>
+        <form id="import-scraped-form" method="POST" action="{{ route('admin.models.import-scraped') }}" enctype="multipart/form-data" class="grid grid-cols-1 gap-4 p-6 md:grid-cols-[1fr_2fr_auto] md:items-end">
+            @csrf
+            <div>
+                <label for="base_model" class="block text-sm font-medium text-gray-700 mb-1">Base Model</label>
+                <input type="text" id="base_model" name="base_model" required placeholder="Example: FFHT2022AS" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label for="csv_files" class="block text-sm font-medium text-gray-700 mb-1">CSV Files</label>
+                <input type="file" id="csv_files" name="csv_files[]" accept=".csv,text/csv" multiple required class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
+                <p class="mt-1 text-xs text-gray-500">Filename format must match legacy scraper files, for example FFHT2022AS0-WCI.csv.</p>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700">
+                    Upload CSVs
+                </button>
+                <a href="{{ asset('examples/FFHT2022AS0-WCI.csv') }}" class="rounded-md bg-gray-600 px-4 py-2 font-semibold text-white hover:bg-gray-700" download>Example CSV</a>
+            </div>
+        </form>
+    </div>
+
     <div id="models-results" class="bg-white rounded-lg shadow overflow-hidden">
         <div class="bg-blue-600 px-6 py-4">
             <h2 class="text-xl font-semibold text-white">Add New Model</h2>
@@ -102,7 +138,9 @@
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $model->brand ?: '-' }}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $model->category?->name ?? '-' }}</td>
                             <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${{ number_format((float) $model->msrp, 2) }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $model->model_number }}-default</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                {{ collect($model->variations ?: [$model->model_number.'-default'])->implode(', ') }}
+                            </td>
                             <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                 @canAccess('models.view')
                                 <button type="button" class="text-blue-600 hover:text-blue-900" title="View" data-toggle-row="model-view-{{ $model->id }}">
@@ -153,7 +191,7 @@
                                     </div>
                                     <div>
                                         <dt class="font-medium text-gray-500">Variations</dt>
-                                        <dd class="text-gray-900">{{ $model->model_number }}-default</dd>
+                                        <dd class="text-gray-900">{{ collect($model->variations ?: [$model->model_number.'-default'])->implode(', ') }}</dd>
                                     </div>
                                 </dl>
                             </td>
@@ -248,6 +286,59 @@
 
 @push('scripts')
 <script>
+    $('[data-toggle-import-scraped]').on('click', function () {
+        const $panel = $('#import-scraped-panel').toggleClass('hidden');
+        if (! $panel.hasClass('hidden')) {
+            $panel[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            $panel.find('input, select, textarea').filter(':visible:first').trigger('focus');
+        }
+    });
+
+    $('#import-scraped-form').on('submit', function (event) {
+        event.preventDefault();
+
+        const form = this;
+        const $button = $(form).find('button[type="submit"]');
+        const originalText = $button.text();
+
+        $button.prop('disabled', true).text('Importing...');
+
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': $(form).find('input[name="_token"]').val(),
+            },
+        })
+            .then(async function (response) {
+                const payload = await response.json().catch(function () {
+                    return {};
+                });
+
+                if (! response.ok || payload.success === false) {
+                    const errors = payload.errors ? Object.values(payload.errors).flat().join(' ') : '';
+                    throw new Error(errors || payload.error || payload.message || 'Import failed.');
+                }
+
+                const message = 'Scraped data imported successfully! Variations and parts added.'
+                    + ' Files processed: ' + (payload.files_processed || 0)
+                    + ', parts added: ' + (payload.parts_added || 0)
+                    + (payload.error_msg || '');
+
+                toastr.success(message);
+                setTimeout(function () {
+                    window.location.reload();
+                }, 900);
+            })
+            .catch(function (error) {
+                toastr.error(error.message || 'Import failed.');
+            })
+            .finally(function () {
+                $button.prop('disabled', false).text(originalText);
+            });
+    });
+
     $('[data-toggle-row]').on('click', function () {
         const $row = $('#' + $(this).data('toggle-row')).toggleClass('hidden');
         if (! $row.hasClass('hidden')) {

@@ -18,6 +18,10 @@ class Part extends Model
         'retail_price',
         'your_price',
         'cross_reference',
+        'diagram_name',
+        'image_url',
+        'make',
+        'item',
         'created_by',
         'updated_by',
     ];

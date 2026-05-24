@@ -127,11 +127,15 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Label</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serial #</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Our Cost</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MSRP</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fuel Type</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receiving Condition</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Parts Cost</th>
@@ -142,11 +146,15 @@
                     @forelse($truck->appliances as $appliance)
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->category?->name ?? '-' }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $truck->name ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->model?->model_number ?? '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->serial_number ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->brand ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->product_name ?: '-' }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->quantity ?? 1 }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${{ number_format((float) $appliance->price, 2) }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${{ number_format($appliance->msrp, 2) }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->fuel_type ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->receiving_condition ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
                             @php
@@ -203,7 +211,7 @@
                     </tr>
                     @canAccess('appliance.edit')
                     <tr id="appliance-edit-{{ $appliance->id }}" class="{{ $errors->any() && old('_form') === 'edit-appliance-'.$appliance->id ? '' : 'hidden' }} bg-gray-50">
-                        <td colspan="10" class="px-4 py-4">
+                        <td colspan="14" class="px-4 py-4">
                             <form method="POST" action="{{ route('admin.trucks.appliances.update', [$truck, $appliance]) }}" class="space-y-6">
                                 @csrf
                                 @method('PUT')
@@ -228,7 +236,7 @@
                     @endcanAccess
                     @empty
                     <tr>
-                        <td colspan="10" class="px-6 py-8 text-center text-gray-500">No appliances assigned to this truck.</td>
+                        <td colspan="14" class="px-6 py-8 text-center text-gray-500">No appliances assigned to this truck.</td>
                     </tr>
                     @endforelse
                 </tbody>
