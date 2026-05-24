@@ -24,13 +24,14 @@ class TruckController extends Controller
     public function index(Request $request)
     {
         $query = Truck::query()
-            ->with('creator')
+            ->with('creator', 'appliances')
             ->withSum('appliances as total_appliance_msrp', 'msrp')
             ->latest();
 
         if ($request->filled('search')) {
             $search = $request->string('search')->trim();
-            $query->where('name', 'like', '%'.$search.'%');
+
+            $query->where('name', 'like', '%' . $search . '%');
         }
 
         if ($request->filled('status')) {
@@ -38,6 +39,19 @@ class TruckController extends Controller
         }
 
         $trucks = $query->paginate(12)->withQueryString();
+
+        // Add unique appliance statuses
+        $trucks->getCollection()->transform(function ($truck) {
+
+            $truck->appliance_statuses = $truck->appliances
+                ->pluck('status')
+                ->filter()
+                ->unique()
+                ->values()
+                ->toArray();
+
+            return $truck;
+        });
 
         return view('admin.trucks.index', compact('trucks'));
     }

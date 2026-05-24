@@ -17,9 +17,22 @@ class AdminMiddleware
         $user = auth()->user();
 
         if (! $user->isStaff() && $user->getAllPermissions()->isEmpty()) {
-            return redirect()->route('login')->with('error', 'Access denied. Admin privileges required.');
+            abort(403, 'You do not have permission to access '.$this->routeLabel($request).'.');
         }
 
         return $next($request);
+    }
+
+    private function routeLabel(Request $request): string
+    {
+        $routeName = (string) $request->route()?->getName();
+        $module = str($routeName)
+            ->after('admin.')
+            ->before('.')
+            ->replace(['_', '-'], ' ')
+            ->title()
+            ->toString();
+
+        return $module !== '' ? ($module === 'Dashboard' ? 'Dashboard' : $module) : 'this module';
     }
 }

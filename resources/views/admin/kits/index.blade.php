@@ -47,7 +47,7 @@
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
-                            <input name="quantity_per_kit[]" type="number" min="1" placeholder="Qty per Kit" class="px-3 py-2 border border-gray-300 rounded-md" data-kit-part-qty>
+                            <input name="quantity_per_kit[]" type="number" min="1" placeholder="Quantity per Kit" class="px-3 py-2 border border-gray-300 rounded-md" data-kit-part-qty>
                         </div>
                     </div>
                     <button type="button" data-add-part="#parts-fields" class="mt-3 px-4 py-2 rounded-md bg-gray-500 text-white font-semibold">Add Another Part</button>
@@ -93,12 +93,17 @@
                     <h3 class="text-base font-semibold text-gray-900">Current Parts</h3>
                     <div class="mt-3 overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left">Part Name</th><th class="px-4 py-3 text-left">Quantity per Kit</th><th class="px-4 py-3 text-right">Action</th></tr></thead>
+                            <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left">Part Name</th><th class="px-4 py-3 text-right">Qty per Kit</th><th class="px-4 py-3 text-right">Available</th><th class="px-4 py-3 text-right">Unit Cost</th><th class="px-4 py-3 text-right">Line Cost</th><th class="px-4 py-3 text-right">Can Build</th><th class="px-4 py-3 text-right">Action</th></tr></thead>
                             <tbody class="divide-y divide-gray-200">
                                 @forelse($editKit->parts as $part)
+                                @php($summaryPart = collect($kitSummaries[$editKit->id]['parts'] ?? [])->firstWhere('part_name', $part->part_name))
                                 <tr>
                                     <td class="px-4 py-3">{{ $part->part_name }}</td>
-                                    <td class="px-4 py-3">{{ $part->quantity_per_kit }}</td>
+                                    <td class="px-4 py-3 text-right">{{ $part->quantity_per_kit }}</td>
+                                    <td class="px-4 py-3 text-right">{{ $summaryPart['available'] ?? 0 }}</td>
+                                    <td class="px-4 py-3 text-right">${{ number_format($summaryPart['unit_cost'] ?? 0, 2) }}</td>
+                                    <td class="px-4 py-3 text-right">${{ number_format($summaryPart['line_cost'] ?? 0, 2) }}</td>
+                                    <td class="px-4 py-3 text-right">{{ $summaryPart['buildable'] ?? 0 }}</td>
                                     <td class="px-4 py-3 text-right">
                                         <form method="POST" action="{{ route('admin.kits.parts.destroy', [$editKit, $part]) }}" onsubmit="return confirm('Delete this part?')">
                                             @csrf
@@ -108,7 +113,7 @@
                                     </td>
                                 </tr>
                                 @empty
-                                <tr><td colspan="3" class="px-4 py-6 text-center text-gray-500">No parts.</td></tr>
+                                <tr><td colspan="7" class="px-4 py-6 text-center text-gray-500">No parts.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -128,7 +133,7 @@
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
-                            <input name="quantity_per_kit[]" type="number" min="1" placeholder="Qty per Kit" class="px-3 py-2 border border-gray-300 rounded-md" data-kit-part-qty>
+                            <input name="quantity_per_kit[]" type="number" min="1" placeholder="Quantity per Kit" class="px-3 py-2 border border-gray-300 rounded-md" data-kit-part-qty>
                         </div>
                     </div>
                     <div class="mt-3 flex flex-wrap justify-end gap-2">
@@ -147,10 +152,11 @@
         </div>
         <form method="POST" action="{{ route('admin.kits.assignments.store') }}" class="p-6 grid grid-cols-1 md:grid-cols-6 gap-3">
             @csrf
-            <select name="kit_id" class="px-3 py-2 border border-gray-300 rounded-md" required>
+            <select name="kit_id" class="px-3 py-2 border border-gray-300 rounded-md" data-assignment-kit required>
                 <option value="">Select Kit</option>
                 @foreach($kits as $kit)
-                    <option value="{{ $kit->id }}">{{ $kit->code }} - {{ $kit->name }}</option>
+                    @php($summary = $kitSummaries[$kit->id] ?? ['buildable' => 0, 'cost' => 0])
+                    <option value="{{ $kit->id }}">{{ $kit->code }} - {{ $kit->name }} (can build: {{ $summary['buildable'] }}, cost: ${{ number_format($summary['cost'], 2) }})</option>
                 @endforeach
             </select>
             <input type="number" min="1" name="quantity" placeholder="Qty" class="px-3 py-2 border border-gray-300 rounded-md" required>
@@ -167,6 +173,7 @@
             </select>
             <input type="date" name="due_date" class="px-3 py-2 border border-gray-300 rounded-md" required>
             <button class="px-4 py-2 rounded-md bg-blue-600 text-white font-semibold">Assign</button>
+            <p class="md:col-span-6 text-sm text-gray-600" data-assignment-summary>Select a kit to see stock and cost.</p>
         </form>
     </div>
     @endif
@@ -186,14 +193,17 @@
                 <div class="p-6 space-y-5">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left">Kit</th><th class="px-4 py-3 text-right">Amazon Stock</th><th class="px-4 py-3 text-right">Amazon Min</th><th class="px-4 py-3 text-right">Shopify Stock</th><th class="px-4 py-3 text-right">Shopify Min</th><th class="px-4 py-3 text-left">Status</th></tr></thead>
+                            <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left">Kit</th><th class="px-4 py-3 text-right">Cost/Kit</th><th class="px-4 py-3 text-right">Can Build</th><th class="px-4 py-3 text-right">Amazon Stock</th><th class="px-4 py-3 text-right">Amazon Min</th><th class="px-4 py-3 text-right">Shopify Stock</th><th class="px-4 py-3 text-right">Shopify Min</th><th class="px-4 py-3 text-left">Status</th></tr></thead>
                             <tbody class="divide-y divide-gray-200">
                                 @forelse($kits as $kit)
                                     @php($item = $finishedKits->get($kit->code))
+                                    @php($summary = $kitSummaries[$kit->id] ?? ['cost' => 0, 'buildable' => 0])
                                     @php($amazonLow = $item && $item->amazon_stock < $item->amazon_min_level)
                                     @php($shopifyLow = $item && $item->shopify_stock < $item->shopify_min_level)
                                     <tr class="{{ $amazonLow || $shopifyLow ? 'bg-red-50' : '' }}">
                                         <td class="px-4 py-3 font-semibold">{{ $kit->code }} - {{ $kit->name }}</td>
+                                        <td class="px-4 py-3 text-right">${{ number_format($summary['cost'], 2) }}</td>
+                                        <td class="px-4 py-3 text-right">{{ $summary['buildable'] }}</td>
                                         <td class="px-4 py-3 text-right">{{ $item?->amazon_stock ?? 0 }}</td>
                                         <td class="px-4 py-3 text-right">{{ $item?->amazon_min_level ?? 0 }}</td>
                                         <td class="px-4 py-3 text-right">{{ $item?->shopify_stock ?? 0 }}</td>
@@ -201,7 +211,7 @@
                                         <td class="px-4 py-3">{{ $amazonLow ? 'Amazon Low ' : '' }}{{ $shopifyLow ? 'Shopify Low' : '' }}{{ ! $amazonLow && ! $shopifyLow ? 'OK' : '' }}</td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">No completed kits.</td></tr>
+                                    <tr><td colspan="8" class="px-4 py-6 text-center text-gray-500">No completed kits.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -305,6 +315,8 @@
 
 @push('scripts')
 <script>
+    const kitSummaries = @json($kitSummaries);
+
     function kitPartRow() {
         return `
             <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_160px] gap-2" data-kit-part-row>
@@ -316,7 +328,7 @@
                         <i class="fas fa-plus"></i>
                     </button>
                 </div>
-                <input name="quantity_per_kit[]" type="number" min="1" placeholder="Qty per Kit" class="px-3 py-2 border border-gray-300 rounded-md" data-kit-part-qty>
+                <input name="quantity_per_kit[]" type="number" min="1" placeholder="Quantity per Kit" class="px-3 py-2 border border-gray-300 rounded-md" data-kit-part-qty>
             </div>
         `;
     }
@@ -325,6 +337,18 @@
         const target = $($(this).data('add-part'));
         target.append(kitPartRow());
         window.initializeAjaxDropdowns && window.initializeAjaxDropdowns();
+    });
+
+    $('[data-assignment-kit]').on('change', function () {
+        const summary = kitSummaries[this.value];
+        const $summary = $('[data-assignment-summary]');
+
+        if (! summary) {
+            $summary.text('Select a kit to see stock and cost.');
+            return;
+        }
+
+        $summary.text('Current stock can build ' + summary.buildable + ' kit(s). Cost per kit: $' + Number(summary.cost || 0).toFixed(2) + '.');
     });
 
     $(document).on('select2:select change', '[data-ajax-dropdown="kit_part"]', function (event) {

@@ -19,6 +19,7 @@
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Kit</th>
                         <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-600">Qty</th>
+                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-600">Cost</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Platform</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Status</th>
                         <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Due Date</th>
@@ -28,9 +29,11 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @forelse($rows as $assignment)
+                        @php($kitCost = ($kitSummaries[$assignment->kit_id]['cost'] ?? 0) * $assignment->quantity)
                         <tr>
                             <td class="px-4 py-3 font-semibold text-gray-900">{{ $assignment->kit?->code }} - {{ $assignment->kit?->name }}</td>
                             <td class="px-4 py-3 text-right">{{ $assignment->quantity }}</td>
+                            <td class="px-4 py-3 text-right">${{ number_format($kitCost, 2) }}</td>
                             <td class="px-4 py-3">{{ ucfirst($assignment->platform) }}</td>
                             <td class="px-4 py-3">
                                 <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ $statusClasses[$assignment->status] ?? 'bg-gray-100 text-gray-800' }}">
@@ -79,7 +82,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="px-4 py-6 text-center text-gray-500">No assignments.</td></tr>
+                        <tr><td colspan="8" class="px-4 py-6 text-center text-gray-500">No assignments.</td></tr>
                     @endforelse
                 </tbody>
             </table>

@@ -1,5 +1,6 @@
 @php
     $truck = $truck ?? null;
+    $arrivalDate = old('arrival_date', $truck?->arrival_date?->format('Y-m-d') ?? '');
 @endphp
 
 <div class="grid grid-cols-1 gap-x-4 gap-y-2 md:grid-cols-2 xl:grid-cols-5">
@@ -40,8 +41,7 @@
             name="arrival_date"
             label="Arrival date"
             type="date"
-            :value="old('arrival_date', $truck?->arrival_date)"
-            required="true"
+            :value="$arrivalDate"
         />
     </div>
 
@@ -49,7 +49,7 @@
         <x-form.select
             name="status"
             label="Status"
-            :options="['active' => 'Active', 'inactive' => 'Inactive']"
+            :options="['active' => 'Active', 'inactive' => 'Inactive', 'breakdown' => 'Breakdown']"
             :value="old('status', $truck?->status ?? 'active')"
             required="true"
         />

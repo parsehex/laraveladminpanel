@@ -24,6 +24,7 @@ class StoreTruckApplianceRequest extends FormRequest
             'product_name' => ['nullable', 'string', 'max:255'],
             'msrp' => ['required', 'numeric', 'min:0'],
             'receiving_condition' => ['nullable', Rule::in(TruckAppliance::RECEIVING_CONDITIONS)],
+            'status' => ['nullable', Rule::in(\App\Http\Controllers\Admin\InventoryController::STATUSES)],
             'total_parts_cost' => ['required', 'numeric', 'min:0'],
         ];
     }

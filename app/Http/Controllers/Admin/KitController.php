@@ -8,6 +8,7 @@ use App\Models\KitAssignment;
 use App\Models\KitInventory;
 use App\Models\KitMessage;
 use App\Models\KitPart;
+use App\Models\Part;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -29,7 +30,8 @@ class KitController extends Controller
         $user = $request->user();
         $canManage = $user?->can('kits.manage');
         $platform = $user->platform ?: null;
-        $editKit = $request->integer('edit_kit') ? Kit::with('parts')->find($request->integer('edit_kit')) : null;
+        $kits = Kit::query()->with('parts')->orderBy('code')->get();
+        $editKit = $request->integer('edit_kit') ? $kits->firstWhere('id', $request->integer('edit_kit')) : null;
         $selectedAssignment = $request->integer('assign')
             ? KitAssignment::with(['kit', 'messages.sender'])->find($request->integer('assign'))
             : null;
@@ -62,7 +64,8 @@ class KitController extends Controller
         $kitCodes = Kit::query()->pluck('code');
 
         return view('admin.kits.index', [
-            'kits' => Kit::query()->with('parts')->orderBy('code')->get(),
+            'kits' => $kits,
+            'kitSummaries' => $kits->mapWithKeys(fn (Kit $kit) => [$kit->id => $this->kitSummary($kit)]),
             'makers' => User::query()
                 ->whereHas('roles', fn (Builder $query) => $query->whereIn('name', ['kit_maker', 'kit_assigner']))
                 ->orderBy('name')
@@ -166,9 +169,6 @@ class KitController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        $kit = Kit::with('parts')->findOrFail($data['kit_id']);
-        $this->assertKitAssignmentStock($kit, (int) $data['quantity']);
-
         KitAssignment::create([
             ...$data,
             'assigned_by' => $request->user()->id,
@@ -185,9 +185,12 @@ class KitController extends Controller
 
         DB::transaction(function () use ($assignment) {
             $assignment->load('kit.parts');
-            $this->assertKitAssignmentStock($assignment->kit, $assignment->quantity);
 
             foreach ($assignment->kit->parts as $part) {
+                Part::query()
+                    ->where('part_number', $part->part_name)
+                    ->decrement('total_stock', $assignment->quantity * $part->quantity_per_kit);
+
                 KitInventory::query()
                     ->where('part_name', $part->part_name)
                     ->decrement('current_stock', $assignment->quantity * $part->quantity_per_kit);
@@ -237,6 +240,10 @@ class KitController extends Controller
                 $assignment->load('kit.parts');
 
                 foreach ($assignment->kit->parts as $part) {
+                    Part::query()
+                        ->where('part_number', $part->part_name)
+                        ->increment('total_stock', $assignment->quantity * $part->quantity_per_kit);
+
                     KitInventory::query()
                         ->where('part_name', $part->part_name)
                         ->increment('current_stock', $assignment->quantity * $part->quantity_per_kit);
@@ -259,6 +266,12 @@ class KitController extends Controller
 
         $column = $data['platform'] ? $data['platform'].'_stock' : 'current_stock';
         KitInventory::query()->where('part_name', $data['part_name'])->increment($column, $data['adjustment']);
+
+        if (! $data['platform']) {
+            Part::query()
+                ->where('part_number', $data['part_name'])
+                ->increment('total_stock', $data['adjustment']);
+        }
 
         return back()->with('success', __('Stock adjusted.'));
     }
@@ -291,6 +304,15 @@ class KitController extends Controller
             'current_stock' => $data['initial_stock'] ?? 0,
             'min_level' => $data['min_level'] ?? 0,
         ]);
+
+        Part::firstOrCreate(
+            ['part_number' => trim($data['part_name'])],
+            [
+                'total_stock' => $data['initial_stock'] ?? 0,
+                'created_by' => $request->user()->id,
+                'updated_by' => $request->user()->id,
+            ]
+        );
 
         return back()->with('success', __('Resource added.'));
     }
@@ -341,6 +363,22 @@ class KitController extends Controller
         $this->assertPartQuantitiesWithinStock($parts);
 
         foreach ($parts as $partName => $quantity) {
+            $part = Part::query()->where('part_number', $partName)->first();
+
+            if (! $part) {
+                throw ValidationException::withMessages([
+                    'part_name' => "The selected part '{$partName}' does not exist in parts.",
+                ]);
+            }
+
+            KitInventory::firstOrCreate(
+                ['part_name' => $part->part_number],
+                [
+                    'current_stock' => $part->total_stock,
+                    'min_level' => 0,
+                ]
+            );
+
             KitPart::updateOrCreate(
                 ['kit_id' => $kit->id, 'part_name' => $partName],
                 ['quantity_per_kit' => $quantity]
@@ -377,17 +415,17 @@ class KitController extends Controller
     private function assertPartQuantitiesWithinStock(array $parts): void
     {
         foreach ($parts as $partName => $quantity) {
-            $inventory = KitInventory::query()->where('part_name', $partName)->first();
+            $part = Part::query()->where('part_number', $partName)->first();
 
-            if (! $inventory) {
+            if (! $part) {
                 throw ValidationException::withMessages([
-                    'part_name' => "The selected part '{$partName}' does not exist in raw inventory.",
+                    'part_name' => "The selected part '{$partName}' does not exist in parts.",
                 ]);
             }
 
-            if ($quantity > $inventory->current_stock) {
+            if ($quantity > $part->total_stock) {
                 throw ValidationException::withMessages([
-                    'quantity_per_kit' => "Quantity for '{$partName}' cannot be greater than available stock ({$inventory->current_stock}).",
+                    'quantity_per_kit' => "Quantity for '{$partName}' cannot be greater than available stock ({$part->total_stock}).",
                 ]);
             }
         }
@@ -398,15 +436,66 @@ class KitController extends Controller
         $kit->loadMissing('parts');
 
         foreach ($kit->parts as $part) {
-            $inventory = KitInventory::query()->where('part_name', $part->part_name)->first();
-            $available = $inventory?->current_stock ?? 0;
+            $catalogPart = Part::query()->where('part_number', $part->part_name)->first();
+            $available = $catalogPart?->total_stock ?? 0;
             $required = $kitQuantity * $part->quantity_per_kit;
 
             if ($required > $available) {
+                $maxKits = $part->quantity_per_kit > 0 ? intdiv($available, $part->quantity_per_kit) : 0;
+
                 throw ValidationException::withMessages([
-                    'quantity' => "Not enough stock for '{$part->part_name}'. Required {$required}, available {$available}.",
+                    'quantity' => "Not enough stock for '{$part->part_name}'. Required {$required}, available {$available}. You can assign up to {$maxKits} kit(s).",
                 ]);
             }
         }
+    }
+
+    /**
+     * @return array{cost: float, buildable: int|null, parts: array<int, array<string, mixed>>}
+     */
+    private function kitSummary(Kit $kit): array
+    {
+        $kit->loadMissing('parts');
+        $partNumbers = $kit->parts->pluck('part_name')->filter()->values();
+        $catalogParts = Part::query()
+            ->whereIn('part_number', $partNumbers)
+            ->get()
+            ->keyBy('part_number');
+
+        $cost = 0.0;
+        $buildable = null;
+        $parts = [];
+
+        foreach ($kit->parts as $kitPart) {
+            $catalogPart = $catalogParts->get($kitPart->part_name);
+            $unitCost = $catalogPart ? $this->partCost($catalogPart) : 0.0;
+            $lineCost = $unitCost * $kitPart->quantity_per_kit;
+            $available = $catalogPart?->total_stock ?? 0;
+            $partBuildable = $kitPart->quantity_per_kit > 0 ? intdiv($available, $kitPart->quantity_per_kit) : 0;
+
+            $cost += $lineCost;
+            $buildable = $buildable === null ? $partBuildable : min($buildable, $partBuildable);
+            $parts[] = [
+                'part_name' => $kitPart->part_name,
+                'quantity_per_kit' => $kitPart->quantity_per_kit,
+                'available' => $available,
+                'unit_cost' => $unitCost,
+                'line_cost' => $lineCost,
+                'buildable' => $partBuildable,
+            ];
+        }
+
+        return [
+            'cost' => $cost,
+            'buildable' => $buildable ?? 0,
+            'parts' => $parts,
+        ];
+    }
+
+    private function partCost(Part $part): float
+    {
+        $yourPrice = (float) $part->your_price;
+
+        return $yourPrice > 0 ? $yourPrice : (float) $part->retail_price;
     }
 }

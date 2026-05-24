@@ -20,6 +20,7 @@ class InventoryController extends Controller
         'Triage',
         'Testing',
         'Repair',
+        'Breakdown',
         'Demanufacture',
         'Cleaning',
         'Ready',

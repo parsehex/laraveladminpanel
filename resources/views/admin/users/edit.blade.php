@@ -20,11 +20,7 @@
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <x-form.input name="name" label="Full Name" type="text" :value="$user->name" required="true" />
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                    <input type="email" value="{{ $user->email }}" disabled class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600 shadow-sm">
-                    <p class="mt-1 text-xs text-gray-500">Email address cannot be edited.</p>
-                </div>
+                <x-form.input name="email" label="Email Address" type="email" :value="$user->email" required="true" />
 
                 <x-form.input name="password" label="Password" type="password" placeholder="Leave blank to keep current password" />
                 <x-form.input name="password_confirmation" label="Confirm Password" type="password" placeholder="Leave blank to keep current password" />

@@ -57,10 +57,13 @@
                         <input type="password" 
                                id="password" 
                                name="password"
-                               class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('password') border-red-500 @enderror"
+                               class="w-full px-4 py-3 pl-10 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('password') border-red-500 @enderror"
                                placeholder="Enter your password"
                                required>
                         <i class="fas fa-lock absolute left-3 top-3.5 text-gray-400"></i>
+                        <button type="button" class="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-gray-500 hover:text-gray-700" data-toggle-login-password aria-label="Show password">
+                            <i class="fas fa-eye"></i>
+                        </button>
                     </div>
                     @error('password')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -123,6 +126,16 @@
                 toastr.error('{{ $error }}');
             @endforeach
         @endif
+
+        $('[data-toggle-login-password]').on('click', function () {
+            const input = document.getElementById('password');
+            const icon = $(this).find('i');
+            const showing = input.type === 'text';
+
+            input.type = showing ? 'password' : 'text';
+            icon.toggleClass('fa-eye', showing).toggleClass('fa-eye-slash', !showing);
+            $(this).attr('aria-label', showing ? 'Show password' : 'Hide password');
+        });
     </script>
 </body>
 </html>

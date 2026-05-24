@@ -52,6 +52,7 @@
                     <option value="">All</option>
                     <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
                     <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                    <option value="breakdown" {{ request('status') === 'breakdown' ? 'selected' : '' }}>Breakdown</option>
                 </select>
             </div>
             <div class="flex items-end gap-2">
@@ -61,7 +62,7 @@
         </form>
     </div>
 
-    <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div id="truck-results" class="bg-white rounded-lg shadow overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -71,7 +72,8 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cost</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total MSRP</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Arrival</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Truck Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Appliance Statuses</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created by</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -85,9 +87,57 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${{ number_format($truck->total_appliance_msrp ?? 0, 2) }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $truck->arrival_date ? $truck->arrival_date : '-' }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $truck->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $truck->status === 'active' ? 'bg-green-100 text-green-800' : ($truck->status === 'breakdown' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800') }}">
                                 {{ ucfirst($truck->status) }}
                             </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex flex-wrap gap-1">
+
+                                @forelse($truck->appliance_statuses as $status)
+
+                                    @php
+                                        $classes = match(strtolower($status)) {
+
+                                            'triage' => 'bg-indigo-100 text-indigo-800',
+
+                                            'testing' => 'bg-blue-100 text-blue-800',
+
+                                            'repair' => 'bg-orange-100 text-orange-800',
+
+                                            'breakdown' => 'bg-red-100 text-red-800',
+
+                                            'demanufacture' => 'bg-pink-100 text-pink-800',
+
+                                            'cleaning' => 'bg-cyan-100 text-cyan-800',
+
+                                            'ready' => 'bg-green-100 text-green-800',
+
+                                            'scrap' => 'bg-gray-200 text-gray-800',
+
+                                            'show room' => 'bg-purple-100 text-purple-800',
+
+                                            'sold' => 'bg-emerald-100 text-emerald-800',
+
+                                            'holding for parts' => 'bg-yellow-100 text-yellow-800',
+
+                                            'holding' => 'bg-amber-100 text-amber-800',
+
+                                            default => 'bg-gray-100 text-gray-700',
+                                        };
+                                    @endphp
+
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $classes }}">
+                                        {{ ucfirst($status) }}
+                                    </span>
+
+                                @empty
+
+                                    <span class="text-gray-500 text-sm">N/A</span>
+
+                                @endforelse
+
+                            </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {{ $truck->creator?->name ?? '-' }}
@@ -126,7 +176,17 @@
 @push('scripts')
 <script>
     $('[data-toggle-create]').on('click', function () {
-        $('#create-truck-panel').toggleClass('hidden');
+        const $panel = $('#create-truck-panel').toggleClass('hidden');
+        if (! $panel.hasClass('hidden')) {
+            $panel[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            $panel.find('input, select, textarea').filter(':visible:first').trigger('focus');
+        }
     });
+
+    @if(request()->hasAny(['search', 'status']))
+        setTimeout(function () {
+            document.getElementById('truck-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+    @endif
 </script>
 @endpush

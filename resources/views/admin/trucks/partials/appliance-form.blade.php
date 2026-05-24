@@ -4,6 +4,7 @@
     $categories = $categories ?? collect();
     $models = $models ?? collect();
     $conditions = \App\Models\TruckAppliance::RECEIVING_CONDITIONS;
+    $statuses = \App\Http\Controllers\Admin\InventoryController::STATUSES;
 @endphp
 
 <input type="hidden" name="truck_id" value="{{ $truck->id }}">
@@ -124,6 +125,20 @@
         <input type="number" id="{{ $prefix }}-total-parts-cost" name="total_parts_cost" value="{{ old('total_parts_cost', $appliance?->total_parts_cost ?? 0) }}" min="0" step="0.01"
                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         @error('total_parts_cost')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div>
+        <label for="{{ $prefix }}-status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+        <select id="{{ $prefix }}-status" name="status"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Triage</option>
+            @foreach($statuses as $status)
+                <option value="{{ $status }}" {{ old('status', $appliance?->status) === $status ? 'selected' : '' }}>{{ $status }}</option>
+            @endforeach
+        </select>
+        @error('status')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
         @enderror
     </div>

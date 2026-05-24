@@ -1,0 +1,4 @@
+category,model,serial_number,brand,product_name,msrp,receiving_condition,total_parts_cost,status
+Washer,WTW5000DW1,CX1234567,Whirlpool,Top Load Washer,399.00,A-Grade,0.00,Triage
+Dryer,WED4815EW1,MX7654321,Whirlpool,Electric Dryer,349.00,B-Grade,25.00,Testing
+Refrigerator,RF28R7351SR,RF2026001,Samsung,French Door Refrigerator,899.00,C-Grade,75.50,Breakdown

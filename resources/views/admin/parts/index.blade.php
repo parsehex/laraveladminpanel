@@ -40,12 +40,12 @@
     </div>
     @endcanAccess
 
-    <div class="bg-white rounded-lg shadow p-6">
+    <div class="bg-white rounded-lg shadow p-6 space-y-4">
         <form method="GET" action="{{ route('admin.parts.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="md:col-span-3">
-                <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                <label for="search" class="block text-sm font-medium text-gray-700 mb-1">{{request('is_from_model_section') ? "Search Model Compatibility" : "Search by any feild"}}</label>
                 <input type="text" id="search" name="search" value="{{ request('search') }}"
-                       placeholder="Part #, product, model, or cross reference"
+                       placeholder="{{request('is_from_model_section') ? 'Search Model Compatibility' : 'Search by any feild'}}"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div class="flex items-end gap-2">
@@ -53,9 +53,20 @@
                 <a href="{{ route('admin.parts.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">Reset</a>
             </div>
         </form>
+        @canAccess('parts.create')
+        <form method="POST" action="{{ route('admin.parts.import') }}" enctype="multipart/form-data" class="flex flex-wrap items-end gap-3 border-t border-gray-200 pt-4">
+            @csrf
+            <div>
+                <label for="parts-csv" class="block text-sm font-medium text-gray-700 mb-1">CSV Upload</label>
+                <input id="parts-csv" type="file" name="csv_file" accept=".csv,text/csv" required class="rounded-md border border-gray-300 px-3 py-2 text-sm">
+            </div>
+            <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Import Parts</button>
+            <a href="{{ asset('examples/parts-import-example.csv') }}" class="rounded-md bg-gray-600 px-4 py-2 text-white hover:bg-gray-700" download>Example CSV</a>
+        </form>
+        @endcanAccess
     </div>
 
-    <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div id="parts-results" class="bg-white rounded-lg shadow overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -104,7 +115,7 @@
                         </td>
                     </tr>
                     <tr id="part-view-{{ $part->id }}" class="hidden bg-gray-50">
-                        <td colspan="8" class="px-6 py-4">
+                        <td colspan="9" class="px-6 py-4">
                             <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                                 <div>
                                     <dt class="font-medium text-gray-500">Part #</dt>
@@ -135,7 +146,7 @@
                     </tr>
                     @canAccess('parts.edit')
                     <tr id="part-edit-{{ $part->id }}" class="{{ $errors->any() && old('_form') === 'edit-'.$part->id ? '' : 'hidden' }} bg-gray-50">
-                        <td colspan="8" class="px-6 py-4">
+                        <td colspan="9" class="px-6 py-4">
                             <form method="POST" action="{{ route('admin.parts.update', $part) }}" class="space-y-6">
                                 @csrf
                                 @method('PUT')
@@ -154,7 +165,7 @@
                     @endcanAccess
                     @empty
                     <tr>
-                        <td colspan="8" class="px-6 py-8 text-center text-gray-500">No parts found.</td>
+                        <td colspan="9" class="px-6 py-8 text-center text-gray-500">No parts found.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -172,11 +183,30 @@
 @push('scripts')
 <script>
     $('[data-toggle-create]').on('click', function () {
-        $('#create-part-panel').toggleClass('hidden');
+        const $panel = $('#create-part-panel').toggleClass('hidden');
+        if (! $panel.hasClass('hidden')) {
+            $panel[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            $panel.find('input, select, textarea').filter(':visible:first').trigger('focus');
+        }
     });
 
     $('[data-toggle-row]').on('click', function () {
-        $('#' + $(this).data('toggle-row')).toggleClass('hidden');
+        const $row = $('#' + $(this).data('toggle-row')).toggleClass('hidden');
+        if (! $row.hasClass('hidden')) {
+            $row[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            $row.find('input, select, textarea').filter(':visible:first').trigger('focus');
+        }
     });
+
+    @if(request()->hasAny(['search', 'part_id']))
+        setTimeout(function () {
+            const partId = '{{ request('part_id') }}';
+            const target = partId ? document.getElementById('part-view-' + partId) : document.getElementById('parts-results');
+            if (partId && target) {
+                target.classList.remove('hidden');
+            }
+            (target || document.getElementById('parts-results'))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+    @endif
 </script>
 @endpush

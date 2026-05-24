@@ -198,6 +198,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('parts', [PartController::class, 'store'])
         ->middleware('permission:parts.create')
         ->name('parts.store');
+    Route::post('parts/import', [PartController::class, 'import'])
+        ->middleware('permission:parts.create')
+        ->name('parts.import');
     Route::put('parts/{part}', [PartController::class, 'update'])
         ->middleware('permission:parts.edit')
         ->name('parts.update');
@@ -221,6 +224,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('trucks/{truck}/appliances', [TruckApplianceController::class, 'store'])
         ->middleware('permission:appliance.create')
         ->name('trucks.appliances.store');
+    Route::get('trucks/{truck}/appliances/export', [TruckApplianceController::class, 'export'])
+        ->middleware('permission:trucks.view')
+        ->name('trucks.appliances.export');
+    Route::post('trucks/{truck}/appliances/import', [TruckApplianceController::class, 'import'])
+        ->middleware('permission:appliance.create')
+        ->name('trucks.appliances.import');
     Route::put('trucks/{truck}/appliances/{appliance}', [TruckApplianceController::class, 'update'])
         ->middleware('permission:appliance.edit')
         ->name('trucks.appliances.update');

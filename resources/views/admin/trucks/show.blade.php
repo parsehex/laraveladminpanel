@@ -4,8 +4,8 @@
 @section('page-title', 'Truck details')
 
 @section('content')
-<div class="max-w-7xl mx-auto space-y-6">
-    <div class="bg-white rounded-lg shadow overflow-hidden">
+<div class="max-w-7xl mx-auto flex flex-col gap-6">
+    <div id="truck-details" class="order-3 bg-white rounded-lg shadow overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-4">
             <h2 class="text-xl font-semibold text-gray-900">{{ $truck->name }}</h2>
             <div class="flex flex-wrap gap-2">
@@ -29,12 +29,12 @@
             </div>
             <div>
                 <dt class="text-sm font-medium text-gray-500">Arrival date</dt>
-                <dd class="mt-1 text-sm text-gray-900">{{ $truck->arrival_date ? $truck->arrival_date : '—' }}</dd>
+                <dd class="mt-1 text-sm text-gray-900">{{ $truck->arrival_date ? $truck->arrival_date->format('Y-m-d') : '-' }}</dd>
             </div>
             <div>
                 <dt class="text-sm font-medium text-gray-500">Status</dt>
                 <dd class="mt-1">
-                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $truck->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $truck->status === 'active' ? 'bg-green-100 text-green-800' : ($truck->status === 'breakdown' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800') }}">
                         {{ ucfirst($truck->status) }}
                     </span>
                 </dd>
@@ -75,7 +75,7 @@
     </div>
 
     @canAccess('appliance.create')
-    <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div id="add-appliance" class="order-1 bg-white rounded-lg shadow overflow-hidden">
         <div class="bg-blue-600 px-6 py-4">
             <h2 class="text-xl font-semibold text-white">Add New Appliance to Truck</h2>
         </div>
@@ -100,9 +100,26 @@
     </div>
     @endcanAccess
 
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="bg-blue-600 px-6 py-4">
+    <div id="truck-appliances" class="order-2 bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-blue-600 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-xl font-semibold text-white">Truck Appliances ({{ $truck->appliances->count() }} total)</h2>
+            <div class="flex flex-wrap gap-2">
+                @canAccess('trucks.view')
+                <a href="{{ route('admin.trucks.appliances.export', $truck) }}" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100">
+                    <i class="fas fa-file-export mr-1"></i>Export
+                </a>
+                @endcanAccess
+                @canAccess('appliance.create')
+                <form method="POST" action="{{ route('admin.trucks.appliances.import', $truck) }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">
+                    @csrf
+                    <input type="file" name="csv_file" accept=".csv,text/csv" required class="max-w-52 rounded-md bg-white px-2 py-1 text-sm text-gray-800">
+                    <button type="submit" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100">
+                        <i class="fas fa-file-import mr-1"></i>Import
+                    </button>
+                    <a href="{{ asset('examples/truck-appliances-import-example.csv') }}" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100" download>Example CSV</a>
+                </form>
+                @endcanAccess
+            </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -116,6 +133,7 @@
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MSRP</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receiving Condition</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Parts Cost</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -130,6 +148,43 @@
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->product_name ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${{ number_format($appliance->msrp, 2) }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->receiving_condition ?: '-' }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                            @php
+                                $classes = match(strtolower($appliance->status)) {
+
+                                    'triage' => 'bg-indigo-100 text-indigo-800',
+
+                                    'testing' => 'bg-blue-100 text-blue-800',
+
+                                    'repair' => 'bg-orange-100 text-orange-800',
+
+                                    'breakdown' => 'bg-red-100 text-red-800',
+
+                                    'demanufacture' => 'bg-pink-100 text-pink-800',
+
+                                    'cleaning' => 'bg-cyan-100 text-cyan-800',
+
+                                    'ready' => 'bg-green-100 text-green-800',
+
+                                    'scrap' => 'bg-gray-200 text-gray-800',
+
+                                    'show room' => 'bg-purple-100 text-purple-800',
+
+                                    'sold' => 'bg-emerald-100 text-emerald-800',
+
+                                    'holding for parts' => 'bg-yellow-100 text-yellow-800',
+
+                                    'holding' => 'bg-amber-100 text-amber-800',
+
+                                    default => 'bg-gray-100 text-gray-700',
+                                };
+                            @endphp
+                            <dd class="mt-1">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $classes }}">
+                                    {{ ucfirst($appliance->status) }}
+                                </span>
+                            </dd>
+                        </td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${{ number_format($appliance->total_parts_cost, 2) }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium space-x-2">
                             @canAccess('appliance.edit')
@@ -148,7 +203,7 @@
                     </tr>
                     @canAccess('appliance.edit')
                     <tr id="appliance-edit-{{ $appliance->id }}" class="{{ $errors->any() && old('_form') === 'edit-appliance-'.$appliance->id ? '' : 'hidden' }} bg-gray-50">
-                        <td colspan="9" class="px-4 py-4">
+                        <td colspan="10" class="px-4 py-4">
                             <form method="POST" action="{{ route('admin.trucks.appliances.update', [$truck, $appliance]) }}" class="space-y-6">
                                 @csrf
                                 @method('PUT')
@@ -173,7 +228,7 @@
                     @endcanAccess
                     @empty
                     <tr>
-                        <td colspan="9" class="px-6 py-8 text-center text-gray-500">No appliances assigned to this truck.</td>
+                        <td colspan="10" class="px-6 py-8 text-center text-gray-500">No appliances assigned to this truck.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -188,7 +243,23 @@
 @push('scripts')
 <script>
     $('[data-toggle-row]').on('click', function () {
-        $('#' + $(this).data('toggle-row')).toggleClass('hidden');
+        const $row = $('#' + $(this).data('toggle-row')).toggleClass('hidden');
+
+        if (! $row.hasClass('hidden')) {
+            $row[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            $row.find('input, select, textarea').filter(':visible:first').trigger('focus');
+        }
     });
+
+    const openEditForm = '{{ old('_form') }}';
+    if (openEditForm && openEditForm.startsWith('edit-appliance-')) {
+        const $row = $('#appliance-' + openEditForm);
+        if ($row.length) {
+            setTimeout(function () {
+                $row[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                $row.find('input, select, textarea').filter(':visible:first').trigger('focus');
+            }, 150);
+        }
+    }
 </script>
 @endpush

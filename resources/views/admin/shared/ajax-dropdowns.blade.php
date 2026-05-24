@@ -63,6 +63,10 @@
                 <input type="text" id="quick-create-name" class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500">
                 <p id="quick-create-error" class="mt-1 hidden text-sm text-red-600"></p>
             </div>
+            <div id="quick-create-stock-wrapper" class="hidden">
+                <label for="quick-create-stock" class="mb-2 block text-sm font-medium text-gray-700">Total Stock</label>
+                <input type="number" min="0" id="quick-create-stock" class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500">
+            </div>
             <div class="flex justify-end gap-2">
                 <button type="button" class="rounded-md bg-gray-500 px-4 py-2 text-white hover:bg-gray-600" data-close-quick-create>Cancel</button>
                 <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Save</button>
@@ -104,7 +108,7 @@
                 list: '{{ route('admin.dropdowns.kit-parts') }}',
                 store: '{{ route('admin.dropdowns.kit-parts.store') }}',
                 title: 'Add Part',
-                label: 'Part Name',
+                label: 'Part Number',
                 field: 'part_name',
                 placeholder: 'Search parts...'
             }
@@ -196,6 +200,8 @@
             $('#quick-create-title').text(endpoints[quickCreateType].title);
             $('#quick-create-label').text(endpoints[quickCreateType].label);
             $('#quick-create-name').val('').attr('name', endpoints[quickCreateType].field).trigger('focus');
+            $('#quick-create-stock').val('0');
+            $('#quick-create-stock-wrapper').toggleClass('hidden', quickCreateType !== 'kit_part');
             $('#quick-create-error').addClass('hidden').text('');
             $('#quick-create-modal').removeClass('hidden').addClass('flex');
         });
@@ -210,6 +216,10 @@
             const config = endpoints[quickCreateType];
             const payload = {};
             payload[config.field] = $('#quick-create-name').val();
+
+            if (quickCreateType === 'kit_part') {
+                payload.total_stock = $('#quick-create-stock').val();
+            }
 
             $.ajax({
                 url: config.store,

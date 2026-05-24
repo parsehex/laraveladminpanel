@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
-use App\Models\KitInventory;
 use App\Models\Model;
+use App\Models\Part;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -79,20 +79,25 @@ class DropdownController extends Controller
     public function kitParts(Request $request): JsonResponse
     {
         $search = $request->string('q')->trim();
-        $kitCodes = \App\Models\Kit::query()->pluck('code');
 
-        $parts = KitInventory::query()
-            ->whereNotIn('part_name', $kitCodes)
-            ->when($search->isNotEmpty(), fn ($query) => $query->where('part_name', 'like', '%'.$search.'%'))
-            ->orderBy('part_name')
+        $parts = Part::query()
+            ->when($search->isNotEmpty(), function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('part_number', 'like', '%'.$search.'%')
+                        ->orWhere('product_name', 'like', '%'.$search.'%')
+                        ->orWhere('model_compatibility', 'like', '%'.$search.'%');
+                });
+            })
+            ->orderBy('part_number')
             ->paginate(20);
 
         return response()->json([
-            'data' => $parts->getCollection()->map(fn (KitInventory $part) => [
-                'id' => $part->part_name,
-                'text' => $part->part_name.' (stock: '.$part->current_stock.')',
-                'value' => $part->part_name,
-                'stock' => $part->current_stock,
+            'data' => $parts->getCollection()->map(fn (Part $part) => [
+                'id' => $part->part_number,
+                'text' => $part->part_number.($part->product_name ? ' - '.$part->product_name : '').' (stock: '.$part->total_stock.', cost: $'.number_format($this->partCost($part), 2).')',
+                'value' => $part->part_number,
+                'stock' => $part->total_stock,
+                'cost' => $this->partCost($part),
             ])->values(),
             'next_page' => $parts->hasMorePages() ? $parts->currentPage() + 1 : null,
         ]);
@@ -183,23 +188,33 @@ class DropdownController extends Controller
         abort_unless($request->user()?->can('kits.manage'), 403);
 
         $data = $request->validate([
-            'part_name' => ['required', 'string', 'max:255', Rule::unique('kit_inventory', 'part_name')],
+            'part_name' => ['required', 'string', 'max:255', Rule::unique('parts', 'part_number')->whereNull('deleted_at')],
+            'total_stock' => ['nullable', 'integer', 'min:0'],
         ]);
 
-        $part = KitInventory::create([
-            'part_name' => trim($data['part_name']),
-            'current_stock' => 0,
-            'min_level' => 0,
+        $part = Part::create([
+            'part_number' => trim($data['part_name']),
+            'total_stock' => $data['total_stock'] ?? 0,
+            'created_by' => $request->user()->id,
+            'updated_by' => $request->user()->id,
         ]);
 
         return response()->json([
             'message' => __('Part added successfully.'),
             'item' => [
-                'id' => $part->part_name,
-                'value' => $part->part_name,
-                'text' => $part->part_name.' (stock: 0)',
-                'stock' => 0,
+                'id' => $part->part_number,
+                'value' => $part->part_number,
+                'text' => $part->part_number.' (stock: '.$part->total_stock.', cost: $'.number_format($this->partCost($part), 2).')',
+                'stock' => $part->total_stock,
+                'cost' => $this->partCost($part),
             ],
         ], 201);
+    }
+
+    private function partCost(Part $part): float
+    {
+        $yourPrice = (float) $part->your_price;
+
+        return $yourPrice > 0 ? $yourPrice : (float) $part->retail_price;
     }
 }

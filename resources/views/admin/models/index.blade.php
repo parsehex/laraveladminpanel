@@ -16,7 +16,7 @@
     </div>
 
     @canAccess('models.create')
-    <div class="bg-white rounded-lg shadow overflow-hidden">
+    <div id="models-results" class="bg-white rounded-lg shadow overflow-hidden">
         <div class="bg-blue-600 px-6 py-4">
             <h2 class="text-xl font-semibold text-white">Add New Model</h2>
         </div>
@@ -166,7 +166,7 @@
                                         <h3 class="text-base font-semibold text-gray-900">Related Parts for {{ $model->model_number }}</h3>
                                         <p class="text-sm text-gray-500">{{ $model->related_parts_count }} part{{ $model->related_parts_count === 1 ? '' : 's' }} linked by model compatibility.</p>
                                     </div>
-                                    <a href="{{ route('admin.parts.index', ['search' => $model->model_number]) }}" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+                                    <a href="{{ route('admin.parts.index', ['search' => $model->model_number,'is_from_model_section' => true]) }}" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
                                         <i class="fas fa-search mr-2"></i>Open in Parts
                                     </a>
                                 </div>
@@ -181,6 +181,7 @@
                                                 <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Retail</th>
                                                 <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Your Price</th>
                                                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Cross Reference</th>
+                                                <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-gray-100">
@@ -192,10 +193,13 @@
                                                     <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-700">${{ number_format((float) $part->retail_price, 2) }}</td>
                                                     <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-700">${{ number_format((float) $part->your_price, 2) }}</td>
                                                     <td class="px-4 py-3 text-sm text-gray-700">{{ $part->cross_reference ?: '-' }}</td>
+                                                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
+                                                        <a href="{{ route('admin.parts.index', ['search' => $model->model_number, 'part_id' => $part->id]) }}" class="font-semibold text-blue-600 hover:text-blue-800">Open</a>
+                                                    </td>
                                                 </tr>
                                             @empty
                                                 <tr>
-                                                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">No related parts found for this model.</td>
+                                                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">No related parts found for this model.</td>
                                                 </tr>
                                             @endforelse
                                         </tbody>
@@ -245,7 +249,28 @@
 @push('scripts')
 <script>
     $('[data-toggle-row]').on('click', function () {
-        $('#' + $(this).data('toggle-row')).toggleClass('hidden');
+        const $row = $('#' + $(this).data('toggle-row')).toggleClass('hidden');
+        if (! $row.hasClass('hidden')) {
+            $row[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            $row.find('input, select, textarea').filter(':visible:first').trigger('focus');
+        }
     });
+
+    const openModelForm = '{{ old('_form') }}';
+    if (openModelForm && openModelForm.startsWith('edit-')) {
+        const $row = $('#model-' + openModelForm);
+        if ($row.length) {
+            setTimeout(function () {
+                $row[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                $row.find('input, select, textarea').filter(':visible:first').trigger('focus');
+            }, 150);
+        }
+    }
+
+    @if(request()->hasAny(['search', 'category']))
+        setTimeout(function () {
+            document.getElementById('models-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+    @endif
 </script>
 @endpush
