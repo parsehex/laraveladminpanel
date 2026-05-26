@@ -30,7 +30,7 @@ class TruckApplianceController extends Controller
         $data = $request->validated();
         abort_unless((int) $data['truck_id'] === $truck->id, 403);
 
-        $data['unit_label'] = $data['unit_label'] ?: $this->nextUnitLabel($truck);
+        $data['unit_label'] = isset($data['unit_label']) ? $this->nextUnitLabel($truck) : '';
         $data['created_by'] = $request->user()->id;
         $data['updated_by'] = $request->user()->id;
 
@@ -48,7 +48,7 @@ class TruckApplianceController extends Controller
         $data = $request->validated();
         abort_unless((int) $data['truck_id'] === $truck->id, 403);
 
-        $data['unit_label'] = $data['unit_label'] ?: ($appliance->unit_label ?: $this->nextUnitLabel($truck));
+        $data['unit_label'] = isset($data['unit_label']) ? ($appliance->unit_label ?: $this->nextUnitLabel($truck)) : '';
         $data['updated_by'] = $request->user()->id;
 
         $this->syncBrand($data['brand'] ?? null, $request->user()->id);

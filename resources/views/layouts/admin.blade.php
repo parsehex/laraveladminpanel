@@ -41,7 +41,20 @@
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    
+    <script>
+        document.querySelectorAll('.caps').forEach(input => {
+        // While typing
+        input.addEventListener('input', function () {
+            this.value = this.value.toUpperCase();
+        });
+
+        // When leaving field / saving pasted text
+        input.addEventListener('change', function () {
+            this.value = this.value.toUpperCase();
+        });
+
+        });
+    </script>
     <script>
         // Configure Toastr
         toastr.options = {

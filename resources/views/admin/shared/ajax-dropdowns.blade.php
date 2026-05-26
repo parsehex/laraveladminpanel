@@ -193,6 +193,22 @@
 
         $(document).on('click', '[data-open-quick-create]', function () {
             quickCreateType = $(this).data('openQuickCreate');
+            console.log(quickCreateType,"endpoints");
+            if(quickCreateType == "model"){
+                $("#quick-create-name").addClass("caps");
+                document.querySelectorAll('.caps').forEach(input => {
+        // While typing
+                input.addEventListener('input', function () {
+                    this.value = this.value.toUpperCase();
+                });
+
+                // When leaving field / saving pasted text
+                input.addEventListener('change', function () {
+                    this.value = this.value.toUpperCase();
+                });
+
+                });
+            }
             quickCreateTarget = $(this).data('target')
                 ? $($(this).data('target'))
                 : $(this).closest('[data-quick-create-wrapper]').find('[data-ajax-dropdown]').first();

@@ -8,7 +8,7 @@
         <label for="{{ $prefix }}-model-number" class="block text-sm font-medium text-gray-700 mb-2">Model # <span class="text-red-500">*</span></label>
         <input type="text" id="{{ $prefix }}-model-number" name="model_number" value="{{ old('model_number', $model?->model_number) }}" required
                placeholder="Model #"
-               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+               class="caps w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         @error('model_number')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
         @enderror
