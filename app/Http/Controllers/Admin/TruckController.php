@@ -67,6 +67,7 @@ class TruckController extends Controller
     public function store(StoreTruckRequest $request)
     {
         $data = $request->validated();
+        $data['shipping_cost'] = $data['shipping_cost'] ?? 0;
         $data['created_by'] = $request->user()->id;
         $data['updated_by'] = $request->user()->id;
 
@@ -109,6 +110,7 @@ class TruckController extends Controller
     public function update(UpdateTruckRequest $request, Truck $truck)
     {
         $data = $request->validated();
+        $data['shipping_cost'] = $data['shipping_cost'] ?? 0;
         $data['updated_by'] = $request->user()->id;
 
         $truck->update($data);

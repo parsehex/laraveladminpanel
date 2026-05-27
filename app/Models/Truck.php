@@ -15,6 +15,7 @@ class Truck extends Model
         'name',
         'units_on_truck',
         'cost_of_truck',
+        'shipping_cost',
         'arrival_date',
         'status',
         'notes',
@@ -28,6 +29,7 @@ class Truck extends Model
             'arrival_date' => 'date',
             'units_on_truck' => 'integer',
             'cost_of_truck' => 'decimal:2',
+            'shipping_cost' => 'decimal:2',
         ];
     }
 

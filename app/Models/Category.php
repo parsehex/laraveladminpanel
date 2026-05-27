@@ -33,4 +33,9 @@ class Category extends Model
     {
         return $this->hasMany(\App\Models\Model::class, 'category_id');
     }
+
+    public function subcategories(): HasMany
+    {
+        return $this->hasMany(Subcategory::class);
+    }
 }

@@ -63,6 +63,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('dropdowns/categories', [DropdownController::class, 'categories'])
         ->middleware('permission:models.view|models.create|models.edit|appliance.create|appliance.edit')
         ->name('dropdowns.categories');
+    Route::get('dropdowns/subcategories', [DropdownController::class, 'subcategories'])
+        ->middleware('permission:appliance.create|appliance.edit')
+        ->name('dropdowns.subcategories');
     Route::get('dropdowns/models', [DropdownController::class, 'models'])
         ->middleware('permission:parts.view|parts.create|parts.edit|models.view|appliance.create|appliance.edit')
         ->name('dropdowns.models');
@@ -75,12 +78,18 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('dropdowns/categories', [DropdownController::class, 'storeCategory'])
         ->middleware('permission:category.create')
         ->name('dropdowns.categories.store');
+    Route::post('dropdowns/subcategories', [DropdownController::class, 'storeSubcategory'])
+        ->middleware('permission:category.create')
+        ->name('dropdowns.subcategories.store');
     Route::post('dropdowns/models', [DropdownController::class, 'storeModel'])
         ->middleware('permission:models.create')
         ->name('dropdowns.models.store');
     Route::post('dropdowns/brands', [DropdownController::class, 'storeBrand'])
         ->middleware('permission:models.create|models.edit|appliance.create|appliance.edit')
         ->name('dropdowns.brands.store');
+    Route::get('dropdowns/truck-model-info', [DropdownController::class, 'truckModelInfo'])
+        ->middleware('permission:appliance.create|appliance.edit')
+        ->name('dropdowns.truck-model-info');
     Route::post('dropdowns/kit-parts', [DropdownController::class, 'storeKitPart'])
         ->middleware('permission:kits.manage')
         ->name('dropdowns.kit-parts.store');
@@ -236,6 +245,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('trucks/{truck}/appliances', [TruckApplianceController::class, 'store'])
         ->middleware('permission:appliance.create')
         ->name('trucks.appliances.store');
+    Route::post('trucks/{truck}/cost-percent', [TruckApplianceController::class, 'setCostPercent'])
+        ->middleware('permission:appliance.edit')
+        ->name('trucks.cost-percent');
     Route::get('trucks/{truck}/appliances/export', [TruckApplianceController::class, 'export'])
         ->middleware('permission:trucks.view')
         ->name('trucks.appliances.export');

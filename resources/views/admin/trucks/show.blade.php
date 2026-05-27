@@ -44,6 +44,10 @@
                 <dd class="mt-1 text-sm text-gray-900">${{ number_format($truck->cost_of_truck, 2) }}</dd>
             </div>
             <div>
+                <dt class="text-sm font-medium text-gray-500">Shipping cost</dt>
+                <dd class="mt-1 text-sm text-gray-900">${{ number_format((float) $truck->shipping_cost, 2) }}</dd>
+            </div>
+            <div>
                 <dt class="text-sm font-medium text-gray-500">Arrival date</dt>
                 <dd class="mt-1 text-sm text-gray-900">{{ $truck->arrival_date ? $truck->arrival_date->format('Y-m-d') : '-' }}</dd>
             </div>
@@ -89,6 +93,23 @@
         </div>
         @endcanAccess
     </div>
+
+    @canAccess('appliance.edit')
+    <div class="order-1 bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-yellow-500 px-6 py-4">
+            <h2 class="text-xl font-semibold text-white">Set Our Cost % (e.g. 12 for 12% of MSRP)</h2>
+        </div>
+        <form method="POST" action="{{ route('admin.trucks.cost-percent', $truck) }}" class="p-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+            @csrf
+            <input type="number" step="0.01" name="cost_percent" placeholder="Enter % (e.g. 12)" required
+                   class="w-full sm:w-80 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+            <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700">Apply to This Truck</button>
+            @if(auth()->user()?->hasRole('admin') || auth()->user()?->role === 'admin')
+            <button type="submit" name="apply_all" value="1" class="rounded-md bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700">Apply to ALL Trucks</button>
+            @endif
+        </form>
+    </div>
+    @endcanAccess
 
     @canAccess('appliance.create')
     <div id="add-appliance" class="order-1 bg-white rounded-lg shadow overflow-hidden">
@@ -158,13 +179,14 @@
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><input type="checkbox" data-truck-select-all></th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sub-Category</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Label</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serial #</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Our Cost</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MSRP</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fuel Type</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receiving Condition</th>
@@ -181,13 +203,21 @@
                             <input type="checkbox" name="truck_print_ids[]" value="{{ $appliance->id }}" data-truck-appliance-checkbox>
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->category?->name ?? '-' }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->subcategory ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->unit_label ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->model?->model_number ?? '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->serial_number ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->brand ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->product_name ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->quantity ?? 1 }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${{ number_format((float) $appliance->price, 2) }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                            ${{ number_format((float) $appliance->price + (float) $appliance->total_parts_cost, 2) }}
+                            <button type="button" class="ml-1 text-blue-600" data-cost-toggle>?</button>
+                            <div class="hidden mt-1 border-t border-dashed border-gray-300 pt-1 text-xs text-gray-600" data-cost-details>
+                                <strong>Our Cost:</strong> ${{ number_format((float) $appliance->price, 2) }}<br>
+                                <strong>Parts:</strong> ${{ number_format((float) $appliance->total_parts_cost, 2) }}
+                            </div>
+                        </td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${{ number_format($appliance->msrp, 2) }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->fuel_type ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->receiving_condition ?: '-' }}</td>
@@ -230,7 +260,7 @@
                     </tr>
                     @canAccess('appliance.edit')
                     <tr id="appliance-edit-{{ $appliance->id }}" class="{{ $errors->any() && old('_form') === 'edit-appliance-'.$appliance->id ? '' : 'hidden' }} bg-gray-50">
-                        <td colspan="15" class="px-4 py-4">
+                        <td colspan="16" class="px-4 py-4">
                             <form method="POST" action="{{ route('admin.trucks.appliances.update', [$truck, $appliance]) }}" class="space-y-6">
                                 @csrf
                                 @method('PUT')
@@ -255,7 +285,7 @@
                     @endcanAccess
                     @empty
                     <tr>
-                        <td colspan="15" class="px-6 py-8 text-center text-gray-500">No appliances assigned to this truck.</td>
+                        <td colspan="16" class="px-6 py-8 text-center text-gray-500">No appliances assigned to this truck.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -369,6 +399,65 @@
             }, 150);
         }
     }
+
+    $('[data-cost-toggle]').on('click', function (event) {
+        event.stopPropagation();
+        $(this).siblings('[data-cost-details]').toggleClass('hidden');
+    });
+
+    function updateLegacyFormState($form) {
+        const category = $form.find('[data-legacy-category]').val();
+        const showSubcategory = category !== '';
+        const showFuel = ['Ranges', 'Dryers'].includes(category);
+
+        $form.find('[data-subcategory-container]').toggleClass('hidden', !showSubcategory);
+        $form.find('[data-fuel-type-container]').toggleClass('hidden', !showFuel);
+
+        if (!showSubcategory) {
+            $form.find('select[name="subcategory"]').val(null).trigger('change');
+        }
+
+        if (!showFuel) {
+            $form.find('select[name="fuel_type"]').val('N/A');
+        }
+    }
+
+    $('[data-appliance-form]').each(function () {
+        updateLegacyFormState($(this));
+    });
+
+    $('[data-legacy-category]').on('change', function () {
+        const $form = $(this).closest('[data-appliance-form]');
+        updateLegacyFormState($form);
+        $form.find('select[name="subcategory"]').val(null).trigger('change');
+    });
+
+    function applyModelInfo($form, modelNumber) {
+        const category = $form.find('[data-legacy-category]').val();
+
+        if (!modelNumber.length || !category) {
+            return;
+        }
+
+        $.getJSON('{{ route('admin.dropdowns.truck-model-info') }}', {
+            category: category,
+            model_number: modelNumber,
+        }).done(function (data) {
+            const suggestion = (data.suggestions || [])[0];
+
+            if (!suggestion) {
+                return;
+            }
+
+            $form.find('input[name="brand"]').val(suggestion.brand || '');
+            $form.find('input[name="product_name"]').val(suggestion.product_name || '');
+            $form.find('input[name="msrp"]').val(suggestion.msrp || '');
+        });
+    }
+
+    $(document).on('select2:select change', '[data-legacy-model-select]', function () {
+        applyModelInfo($(this).closest('[data-appliance-form]'), ($(this).val() || '').trim());
+    });
 
     function truckApplianceIds(onlySelected) {
         if (!onlySelected) {

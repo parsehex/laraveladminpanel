@@ -21,6 +21,7 @@ class TruckAppliance extends EloquentModel
         'truck_id',
         'unit_label',
         'category_id',
+        'subcategory',
         'model_id',
         'serial_number',
         'brand',
@@ -37,6 +38,9 @@ class TruckAppliance extends EloquentModel
         'sold_by',
         'sold_at',
         'photos',
+        'original_order_number',
+        'return_reason',
+        'return_problems',
         'created_by',
         'updated_by',
     ];

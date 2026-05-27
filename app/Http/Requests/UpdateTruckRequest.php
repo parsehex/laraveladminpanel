@@ -18,6 +18,7 @@ class UpdateTruckRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'units_on_truck' => ['required', 'integer', 'min:0'],
             'cost_of_truck' => ['required', 'numeric', 'min:0'],
+            'shipping_cost' => ['nullable', 'numeric', 'min:0'],
             'arrival_date' => ['nullable', 'date'],
             'status' => ['required', Rule::in(['active', 'inactive', 'breakdown'])],
             'notes' => ['nullable', 'string', 'max:5000'],

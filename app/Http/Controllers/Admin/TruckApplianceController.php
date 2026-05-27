@@ -27,16 +27,21 @@ class TruckApplianceController extends Controller
 
     public function store(StoreTruckApplianceRequest $request, Truck $truck)
     {
-        $data = $request->validated();
-        abort_unless((int) $data['truck_id'] === $truck->id, 403);
-
-        $data['unit_label'] = isset($data['unit_label']) ? $this->nextUnitLabel($truck) : '';
-        $data['created_by'] = $request->user()->id;
-        $data['updated_by'] = $request->user()->id;
+        $data = $this->legacyPayload($request, $truck);
 
         $this->syncBrand($data['brand'] ?? null, $request->user()->id);
 
-        $truck->appliances()->create($data);
+        $truck->appliances()->create([
+            ...$data,
+            'unit_label' => $this->nextUnitLabel($truck),
+            'quantity' => 1,
+            'price' => 0,
+            'photos' => [],
+            'created_by' => $request->user()->id,
+            'updated_by' => $request->user()->id,
+        ]);
+
+        $this->recalculatePrices($truck);
 
         return redirect()->route('admin.trucks.show', $truck)->with('success', __('Appliance added successfully.'));
     }
@@ -45,15 +50,14 @@ class TruckApplianceController extends Controller
     {
         abort_unless($appliance->truck_id === $truck->id, 404);
 
-        $data = $request->validated();
-        abort_unless((int) $data['truck_id'] === $truck->id, 403);
-
-        $data['unit_label'] = isset($data['unit_label']) ? ($appliance->unit_label ?: $this->nextUnitLabel($truck)) : '';
+        $data = $this->legacyPayload($request, $truck);
+        $data['price'] = 0;
         $data['updated_by'] = $request->user()->id;
 
         $this->syncBrand($data['brand'] ?? null, $request->user()->id);
 
         $appliance->update($data);
+        $this->recalculatePrices($truck);
 
         return redirect()->route('admin.trucks.show', $truck)->with('success', __('Appliance updated successfully.'));
     }
@@ -64,8 +68,40 @@ class TruckApplianceController extends Controller
         abort_unless($appliance->truck_id === $truck->id, 404);
 
         $appliance->delete();
+        $this->recalculatePrices($truck);
+        $this->renumberLabels($truck);
 
         return redirect()->route('admin.trucks.show', $truck)->with('success', __('Appliance removed successfully.'));
+    }
+
+    public function setCostPercent(Request $request, Truck $truck)
+    {
+        abort_unless($request->user()?->can('appliance.edit'), 403);
+
+        $data = $request->validate([
+            'cost_percent' => ['required', 'numeric'],
+            'apply_all' => ['nullable'],
+        ]);
+
+        $percent = (float) $data['cost_percent'] / 100;
+
+        if ($request->has('apply_all')) {
+            abort_unless($request->user()?->hasRole('admin') || $request->user()?->role === 'admin', 403);
+
+            Truck::query()->with('appliances')->each(function (Truck $truck) use ($percent) {
+                foreach ($truck->appliances as $appliance) {
+                    $appliance->update(['price' => (float) $appliance->msrp * $percent]);
+                }
+            });
+
+            return redirect()->route('admin.trucks.show', $truck)->with('success', 'Cost % applied to all trucks.');
+        }
+
+        foreach ($truck->appliances as $appliance) {
+            $appliance->update(['price' => (float) $appliance->msrp * $percent]);
+        }
+
+        return redirect()->route('admin.trucks.show', $truck)->with('success', 'Cost % applied to this truck.');
     }
 
     public function export(Request $request, Truck $truck)
@@ -234,6 +270,101 @@ class TruckApplianceController extends Controller
                 'updated_by' => $userId,
             ]
         );
+    }
+
+    private function legacyPayload(Request $request, Truck $truck): array
+    {
+        $data = $request->validated();
+        abort_unless((int) $data['truck_id'] === $truck->id, 403);
+
+        $categoryName = trim((string) $data['category']);
+        $modelNumber = $this->normalizeIdentifier((string) $data['model_number']);
+        $brand = trim((string) $data['brand']);
+        $productName = trim((string) ($data['product_name'] ?? ''));
+        $msrp = (float) ($data['msrp'] ?? 0);
+
+        $category = Category::query()->where('name', $categoryName)->first();
+
+        if (! $category) {
+            abort_unless($request->user()?->can('category.create'), 403);
+
+            $category = Category::create([
+                'name' => $categoryName,
+                'status' => 1,
+                'created_by' => $request->user()->id,
+                'updated_by' => $request->user()->id,
+            ]);
+        }
+
+        $model = ApplianceModel::firstOrCreate(
+            ['model_number' => $modelNumber],
+            [
+                'product_name' => $productName ?: null,
+                'brand' => $brand ?: null,
+                'category_id' => $category->id,
+                'msrp' => $msrp,
+                'status' => 1,
+                'created_by' => $request->user()->id,
+                'updated_by' => $request->user()->id,
+            ]
+        );
+
+        $fuelType = in_array($categoryName, ['Ranges', 'Dryers'], true)
+            ? trim((string) ($data['fuel_type'] ?? 'N/A'))
+            : 'N/A';
+
+        return [
+            'truck_id' => $truck->id,
+            'category_id' => $category->id,
+            'subcategory' => trim((string) ($data['subcategory'] ?? '')) ?: null,
+            'model_id' => $model->id,
+            'serial_number' => $this->normalizeIdentifier((string) $data['serial_number']),
+            'brand' => $brand,
+            'product_name' => $productName ?: null,
+            'msrp' => $msrp,
+            'receiving_condition' => $data['receiving_condition'],
+            'fuel_type' => $fuelType ?: 'N/A',
+            'total_parts_cost' => (float) ($data['total_parts_cost'] ?? 0),
+            'original_order_number' => trim((string) ($data['original_order_number'] ?? '')) ?: null,
+            'return_reason' => trim((string) ($data['return_reason'] ?? '')) ?: null,
+            'return_problems' => trim((string) ($data['return_problems'] ?? '')) ?: null,
+        ];
+    }
+
+    private function recalculatePrices(Truck $truck): void
+    {
+        $items = $truck->appliances()->get(['id', 'msrp']);
+        $totalMsrp = (float) $items->sum('msrp');
+
+        if ($totalMsrp > 0) {
+            $percentage = (float) $truck->cost_of_truck / $totalMsrp;
+
+            foreach ($items as $item) {
+                $item->update(['price' => $percentage * (float) $item->msrp]);
+            }
+
+            return;
+        }
+
+        $count = $items->count();
+        if ($count > 0) {
+            $price = (float) $truck->cost_of_truck / $count;
+            foreach ($items as $item) {
+                $item->update(['price' => $price]);
+            }
+        }
+    }
+
+    private function renumberLabels(Truck $truck): void
+    {
+        $number = 1;
+        $truck->appliances()
+            ->orderBy('id')
+            ->get()
+            ->each(function (TruckAppliance $appliance) use ($truck, &$number) {
+                $appliance->update(['unit_label' => $this->formatUnitLabel($truck, $number)]);
+                $number++;
+            });
     }
 
     private function normalizeIdentifier(string $value): string

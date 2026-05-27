@@ -18,18 +18,24 @@ class UpdateTruckApplianceRequest extends FormRequest
         return [
             'truck_id' => ['required', 'exists:trucks,id'],
             'unit_label' => ['nullable', 'string', 'max:255'],
-            'category_id' => ['required', 'exists:categories,id'],
-            'model_id' => ['required', 'exists:models,id'],
+            'category' => ['required', 'string', 'max:255'],
+            'subcategory' => ['nullable', 'string', 'max:255'],
+            'model_number' => ['required', 'string', 'max:255'],
+            'category_id' => ['nullable', 'exists:categories,id'],
+            'model_id' => ['nullable', 'exists:models,id'],
             'serial_number' => ['required', 'string', 'max:255'],
             'brand' => ['required', 'string', 'max:255'],
             'product_name' => ['nullable', 'string', 'max:255'],
             'quantity' => ['nullable', 'integer', 'min:0'],
             'price' => ['nullable', 'numeric', 'min:0'],
-            'msrp' => ['required', 'numeric', 'min:0'],
+            'msrp' => ['nullable', 'numeric', 'min:0'],
             'fuel_type' => ['nullable', 'string', 'max:255'],
             'receiving_condition' => ['required', Rule::in(TruckAppliance::RECEIVING_CONDITIONS)],
             'status' => ['nullable', Rule::in(\App\Http\Controllers\Admin\InventoryController::STATUSES)],
-            'total_parts_cost' => ['required', 'numeric', 'min:0'],
+            'total_parts_cost' => ['nullable', 'numeric', 'min:0'],
+            'original_order_number' => ['nullable', 'string', 'max:255'],
+            'return_reason' => ['nullable', 'string', 'max:255'],
+            'return_problems' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }

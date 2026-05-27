@@ -88,6 +88,14 @@
                 field: 'name',
                 placeholder: 'Search categories...'
             },
+            subcategory: {
+                list: '{{ route('admin.dropdowns.subcategories') }}',
+                store: '{{ route('admin.dropdowns.subcategories.store') }}',
+                title: 'Add Subcategory',
+                label: 'Subcategory Name',
+                field: 'name',
+                placeholder: 'Search subcategories...'
+            },
             model: {
                 list: '{{ route('admin.dropdowns.models') }}',
                 store: '{{ route('admin.dropdowns.models.store') }}',
@@ -167,11 +175,18 @@
                         dataType: 'json',
                         delay: 250,
                         data: function (params) {
-                            return {
+                            const payload = {
                                 q: params.term || '',
                                 page: params.page || 1,
                                 value_field: $select.data('valueField') || ''
                             };
+
+                            if (type === 'subcategory') {
+                                const categorySelector = $select.data('categorySource');
+                                payload.category = categorySelector ? $(categorySelector).val() : '';
+                            }
+
+                            return payload;
                         },
                         processResults: function (response) {
                             return {
@@ -213,6 +228,16 @@
                 ? $($(this).data('target'))
                 : $(this).closest('[data-quick-create-wrapper]').find('[data-ajax-dropdown]').first();
 
+            if (quickCreateType === 'subcategory') {
+                const categorySelector = quickCreateTarget.data('categorySource');
+                const category = categorySelector ? $(categorySelector).val() : '';
+
+                if (!category) {
+                    toastr.error('Please select a category first.');
+                    return;
+                }
+            }
+
             $('#quick-create-title').text(endpoints[quickCreateType].title);
             $('#quick-create-label').text(endpoints[quickCreateType].label);
             $('#quick-create-name').val('').attr('name', endpoints[quickCreateType].field).trigger('focus');
@@ -235,6 +260,16 @@
 
             if (quickCreateType === 'kit_part') {
                 payload.total_stock = $('#quick-create-stock').val();
+            }
+
+            if (quickCreateType === 'subcategory') {
+                const categorySelector = quickCreateTarget.data('categorySource');
+                payload.category = categorySelector ? $(categorySelector).val() : '';
+            }
+
+            if (quickCreateType === 'model') {
+                const categorySelector = quickCreateTarget.data('categorySource');
+                payload.category = categorySelector ? $(categorySelector).val() : '';
             }
 
             $.ajax({
