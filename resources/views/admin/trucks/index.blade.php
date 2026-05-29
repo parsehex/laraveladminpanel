@@ -4,6 +4,24 @@
 @section('page-title', 'Trucks')
 
 @section('content')
+@php
+    $applianceStatusClasses = [
+        'triage' => 'status-white',
+        '' => 'status-white',
+        'testing' => 'status-light-blue',
+        'ready' => 'status-blue',
+        'show room' => 'status-purple',
+        'holding' => 'status-pink',
+        'repair' => 'status-orange',
+        'holding for parts' => 'status-yellow',
+        'cleaning' => 'status-brown',
+        'demanufacture' => 'status-red',
+        'scrap' => 'status-black',
+        'quality control qc' => 'status-green',
+        'sold' => 'status-sold',
+        'breakdown' => 'status-red',
+    ];
+@endphp
 <div class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <h1 class="text-2xl font-bold text-gray-900">Trucks</h1>
@@ -99,40 +117,12 @@
                                 @forelse($truck->appliance_statuses as $item)
 
                                     @php
-                                        $status = $item['status'];
+                                        $status = $item['status'] ?: 'Triage';
                                         $count = $item['count'];
-
-                                        $classes = match(strtolower($status)) {
-
-                                            'triage' => 'bg-indigo-100 text-indigo-800',
-
-                                            'testing' => 'bg-blue-100 text-blue-800',
-
-                                            'repair' => 'bg-orange-100 text-orange-800',
-
-                                            'breakdown' => 'bg-red-100 text-red-800',
-
-                                            'demanufacture' => 'bg-pink-100 text-pink-800',
-
-                                            'cleaning' => 'bg-cyan-100 text-cyan-800',
-
-                                            'ready' => 'bg-green-100 text-green-800',
-
-                                            'scrap' => 'bg-gray-200 text-gray-800',
-
-                                            'show room' => 'bg-purple-100 text-purple-800',
-
-                                            'sold' => 'bg-emerald-100 text-emerald-800',
-
-                                            'holding for parts' => 'bg-yellow-100 text-yellow-800',
-
-                                            'holding' => 'bg-amber-100 text-amber-800',
-
-                                            default => 'bg-gray-100 text-gray-700',
-                                        };
+                                        $classes = $applianceStatusClasses[strtolower($status)] ?? 'status-white';
                                     @endphp
 
-                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $classes }}">
+                                    <span class="status-chip {{ $classes }}">
                                         {{ ucfirst($status) }} ({{ $count }})
                                     </span>
 
@@ -189,6 +179,35 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid rgba(15, 23, 42, 0.18);
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1.1;
+        min-height: 22px;
+    }
+
+    .status-white { background: #ffffff !important; color: #111827 !important; }
+    .status-light-blue { background: #d8f3ff !important; color: #075985 !important; }
+    .status-blue { background: #60a5fa !important; color: #ffffff !important; }
+    .status-purple { background: #a855f7 !important; color: #ffffff !important; }
+    .status-pink { background: #f472b6 !important; color: #ffffff !important; }
+    .status-orange { background: #fb923c !important; color: #111827 !important; }
+    .status-yellow { background: #fde047 !important; color: #111827 !important; }
+    .status-brown { background: #92400e !important; color: #ffffff !important; }
+    .status-red { background: #ef4444 !important; color: #ffffff !important; }
+    .status-black { background: #111827 !important; color: #ffffff !important; }
+    .status-green { background: #22c55e !important; color: #052e16 !important; }
+    .status-sold { background: #16a34a !important; color: #ffffff !important; }
+</style>
+@endpush
 
 @push('scripts')
 <script>

@@ -12,6 +12,21 @@
     $soldPrice = $appliance->sold_price !== null ? (float) $appliance->sold_price : null;
     $profit = $soldPrice !== null ? $soldPrice - $finalCost : null;
     $modelNumber = $appliance->model?->model_number ?? ('#'.$appliance->id);
+    $statusStyles = [
+        'Triage' => ['label' => 'None / White', 'class' => 'status-white'],
+        'Testing' => ['label' => 'Teal / Light Blue', 'class' => 'status-light-blue'],
+        'Ready' => ['label' => 'Blue', 'class' => 'status-blue'],
+        'Show Room' => ['label' => 'Purple', 'class' => 'status-purple'],
+        'Holding' => ['label' => 'Pink', 'class' => 'status-pink'],
+        'Repair' => ['label' => 'Orange', 'class' => 'status-orange'],
+        'Holding for parts' => ['label' => 'Yellow', 'class' => 'status-yellow'],
+        'Cleaning' => ['label' => 'Brown', 'class' => 'status-brown'],
+        'Demanufacture' => ['label' => 'Red', 'class' => 'status-red'],
+        'Scrap' => ['label' => 'Black', 'class' => 'status-black'],
+        'Quality Control QC' => ['label' => 'Green', 'class' => 'status-green'],
+        'Sold' => ['label' => 'Sold', 'class' => 'status-sold'],
+    ];
+    $statusClass = $statusStyles[$status]['class'] ?? 'status-white';
 @endphp
 
 <div class="inventory-detail-shell text-[11px] text-gray-900">
@@ -29,7 +44,7 @@
             <p><strong>Serial #:</strong> {{ $appliance->serial_number ?: '-' }}</p>
             <p><strong>Brand:</strong> {{ $appliance->brand ?: '-' }}</p>
             <p><strong>Category:</strong> {{ $appliance->category?->name ?? '-' }}</p>
-            <p><strong>Current Status:</strong> {{ $status }}</p>
+            <p><strong>Current Status:</strong> <span class="status-chip {{ $statusClass }}">{{ $status }}</span></p>
             <p><strong>Location:</strong> {{ $appliance->location ?: '-' }}</p>
             <p><strong>Total Cost:</strong> ${{ number_format($finalCost, 2) }}</p>
             <p><strong>Final Cost Valuation:</strong> ${{ number_format($finalCost, 2) }} <span class="text-gray-500">(Our Cost: ${{ number_format($baseCost, 2) }} + Parts Cost: ${{ number_format($partsCost, 2) }})</span></p>
@@ -76,8 +91,8 @@
     <section class="legacy-panel">
         <div class="legacy-panel-heading bg-blue-600">Actions</div>
         <div class="legacy-panel-body flex flex-wrap gap-1">
-            @foreach(['Testing' => 'bg-blue-600', 'Cleaning' => 'bg-cyan-600', 'Ready' => 'bg-purple-600', 'Repair' => 'bg-yellow-500 text-black', 'Demanufacture' => 'bg-red-600', 'Show Room' => 'bg-green-600'] as $action => $class)
-            <button type="button" class="legacy-btn {{ $class }}" data-status-shortcut="{{ $action }}">{{ $action }}</button>
+            @foreach(['Testing', 'Cleaning', 'Ready', 'Repair', 'Holding', 'Holding for parts', 'Demanufacture', 'Show Room', 'Quality Control QC'] as $action)
+            <button type="button" class="legacy-btn status-action {{ $statusStyles[$action]['class'] ?? 'status-white' }}" data-status-shortcut="{{ $action }}">{{ $action }}</button>
             @endforeach
         </div>
     </section>
@@ -125,16 +140,17 @@
                     </thead>
                     <tbody>
                         @forelse($appliance->statusHistories->sortByDesc('created_at') as $history)
-                        <tr>
-                            <td>{{ $history->status }}</td>
+                        @php($rowClass = $statusStyles[$history->status]['class'] ?? 'status-white')
+                        <tr class="status-row {{ $rowClass }}">
+                            <td><span class="status-chip {{ $rowClass }}">{{ $history->status }}</span></td>
                             <td>{{ $history->created_at?->format('Y-m-d H:i:s') }}</td>
                             <td>{{ $history->notes ?: 'N/A' }}</td>
                             <td>{{ $history->user?->name ?? '-' }}</td>
                             <td>{{ $history->parts_ordered ? 'Yes' : 'No' }}</td>
                         </tr>
                         @empty
-                        <tr>
-                            <td>{{ $status }}</td>
+                        <tr class="status-row {{ $statusClass }}">
+                            <td><span class="status-chip {{ $statusClass }}">{{ $status }}</span></td>
                             <td>{{ $appliance->updated_at?->format('Y-m-d H:i:s') }}</td>
                             <td>N/A</td>
                             <td>{{ $appliance->updater?->name ?? '-' }}</td>
@@ -338,6 +354,52 @@
         border: 1px solid #d8d8d8;
         background: #f4f9fb;
     }
+
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid rgba(15, 23, 42, 0.18);
+        border-radius: 999px;
+        padding: 3px 8px;
+        font-weight: 800;
+        line-height: 1.1;
+        min-height: 20px;
+    }
+
+    .status-action {
+        border: 1px solid rgba(15, 23, 42, 0.18);
+        box-shadow: none;
+    }
+
+    .legacy-table tr.status-row td {
+        font-weight: 600;
+    }
+
+    .legacy-table tr.status-row.status-white td { background: #ffffff; color: #111827; }
+    .legacy-table tr.status-row.status-light-blue td { background: #d8f3ff; color: #075985; }
+    .legacy-table tr.status-row.status-blue td { background: #bfdbfe; color: #1e3a8a; }
+    .legacy-table tr.status-row.status-purple td { background: #e9d5ff; color: #581c87; }
+    .legacy-table tr.status-row.status-pink td { background: #fbcfe8; color: #831843; }
+    .legacy-table tr.status-row.status-orange td { background: #fed7aa; color: #7c2d12; }
+    .legacy-table tr.status-row.status-yellow td { background: #fef08a; color: #713f12; }
+    .legacy-table tr.status-row.status-brown td { background: #d7b899; color: #422006; }
+    .legacy-table tr.status-row.status-red td { background: #fecaca; color: #7f1d1d; }
+    .legacy-table tr.status-row.status-black td { background: #111827; color: #ffffff; }
+    .legacy-table tr.status-row.status-green td { background: #bbf7d0; color: #14532d; }
+    .legacy-table tr.status-row.status-sold td { background: #dcfce7; color: #166534; }
+
+    .status-white { background: #ffffff !important; color: #111827 !important; }
+    .status-light-blue { background: #d8f3ff !important; color: #075985 !important; }
+    .status-blue { background: #60a5fa !important; color: #ffffff !important; }
+    .status-purple { background: #a855f7 !important; color: #ffffff !important; }
+    .status-pink { background: #f472b6 !important; color: #ffffff !important; }
+    .status-orange { background: #fb923c !important; color: #111827 !important; }
+    .status-yellow { background: #fde047 !important; color: #111827 !important; }
+    .status-brown { background: #92400e !important; color: #ffffff !important; }
+    .status-red { background: #ef4444 !important; color: #ffffff !important; }
+    .status-black { background: #111827 !important; color: #ffffff !important; }
+    .status-green { background: #22c55e !important; color: #052e16 !important; }
+    .status-sold { background: #16a34a !important; color: #ffffff !important; }
 
     .photo-panel-body {
         background: #f8fafc;

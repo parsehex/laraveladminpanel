@@ -38,6 +38,7 @@
 
     .select2-dropdown {
         border-color: #d1d5db;
+        z-index: 9999;
     }
 
     .select2-search--dropdown .select2-search__field {
@@ -45,6 +46,17 @@
         border-radius: 0.375rem;
         padding: 0.5rem 0.75rem;
         outline: none;
+    }
+
+    .select2-container--default .select2-results > .select2-results__options {
+        max-height: min(320px, 45vh) !important;
+        overflow-y: auto !important;
+        overscroll-behavior: contain;
+    }
+
+    .select2-results__option {
+        padding: 0.6rem 0.75rem;
+        white-space: normal;
     }
 </style>
 @endpush

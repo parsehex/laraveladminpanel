@@ -26,6 +26,7 @@ class InventoryController extends Controller
         'Ready',
         'Scrap',
         'Show Room',
+        'Quality Control QC',
         'Sold',
         'Holding for parts',
         'Holding',
