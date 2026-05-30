@@ -87,11 +87,16 @@ class TruckController extends Controller
         $perPage = in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 25;
         $appliances = $truck->appliances()
             ->with(['category', 'model'])
+            ->orderBy('status') 
             ->orderBy('id')
             ->paginate($perPage, ['*'], 'appliances_page')
             ->withQueryString();
 
-        $allAppliances = $truck->appliances()->with(['category', 'model'])->get();
+        $allAppliances = $truck->appliances()
+        ->with(['category', 'model'])
+        ->orderBy('status') 
+        ->orderBy('id')
+        ->get();
         $truck->setRelation('appliances', $allAppliances);
 
         $categoryIds = $allAppliances->pluck('category_id')->filter()->unique()->values();
