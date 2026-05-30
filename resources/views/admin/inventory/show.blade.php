@@ -7,7 +7,7 @@
 @php
     $status = $appliance->status ?: 'Triage';
     $baseCost = (float) $appliance->msrp;
-    $partsCost = (float) $appliance->total_parts_cost;
+    $partsCost = $appliance->signedPartsCost();
     $finalCost = $baseCost + $partsCost;
     $soldPrice = $appliance->sold_price !== null ? (float) $appliance->sold_price : null;
     $profit = $soldPrice !== null ? $soldPrice - $finalCost : null;
@@ -47,7 +47,7 @@
             <p><strong>Current Status:</strong> <span class="status-chip {{ $statusClass }}">{{ $status }}</span></p>
             <p><strong>Location:</strong> {{ $appliance->location ?: '-' }}</p>
             <p><strong>Total Cost:</strong> ${{ number_format($finalCost, 2) }}</p>
-            <p><strong>Final Cost Valuation:</strong> ${{ number_format($finalCost, 2) }} <span class="text-gray-500">(Our Cost: ${{ number_format($baseCost, 2) }} + Parts Cost: ${{ number_format($partsCost, 2) }})</span></p>
+            <p><strong>Final Cost Valuation:</strong> ${{ number_format($finalCost, 2) }} <span class="text-gray-500">(Our Cost: ${{ number_format($baseCost, 2) }} {{ $partsCost < 0 ? '-' : '+' }} Parts Cost: ${{ number_format(abs($partsCost), 2) }})</span></p>
             <p><strong>MSRP:</strong> ${{ number_format($appliance->msrp, 2) }}</p>
             @if($soldPrice !== null)
             <p><strong>Sold Price:</strong> ${{ number_format($appliance->sold_price, 2) }} <span class="text-gray-500">({{ $appliance->sold_by ?: 'Unknown' }}, {{ $appliance->sold_at?->format('Y-m-d H:i') }})</span></p>

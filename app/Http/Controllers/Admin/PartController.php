@@ -75,7 +75,8 @@ class PartController extends Controller
         ]);
 
         $handle = fopen($data['csv_file']->getRealPath(), 'r');
-        fgetcsv($handle);
+        $headers = fgetcsv($handle) ?: [];
+        $columns = $this->csvColumns($headers);
         $imported = 0;
         $updated = 0;
 
@@ -84,7 +85,7 @@ class PartController extends Controller
                 continue;
             }
 
-            $partNumber = $this->normalizeIdentifier((string) ($row[1] ?? ''));
+            $partNumber = $this->normalizeIdentifier((string) $this->csvValue($row, $columns, ['part_number', 'partnumber'], 1));
 
             if ($partNumber === '') {
                 continue;
@@ -92,12 +93,12 @@ class PartController extends Controller
 
             $payload = validator([
                 'part_number' => $partNumber,
-                'product_name' => null,
-                'model_compatibility' => trim((string) ($row[6] ?? '')) ?: null,
+                'product_name' => trim((string) $this->csvValue($row, $columns, ['product_name', 'product', 'name'], null)) ?: null,
+                'model_compatibility' => trim((string) $this->csvValue($row, $columns, ['models_it_applies_to', 'model_compatibility', 'models'], 6)) ?: null,
                 'total_stock' => 0,
-                'retail_price' => $row[2] ?? null,
-                'your_price' => $row[3] ?? null,
-                'cross_reference' => trim((string) ($row[5] ?? '')) ?: null,
+                'retail_price' => $this->csvValue($row, $columns, ['retail_price', 'retail'], 2),
+                'your_price' => $this->csvValue($row, $columns, ['your_price', 'cost'], 3),
+                'cross_reference' => trim((string) $this->csvValue($row, $columns, ['cross_reference_information', 'cross_reference'], 5)) ?: null,
             ], [
                 'part_number' => ['required', 'string', 'max:255'],
                 'product_name' => ['nullable', 'string', 'max:255'],
@@ -153,5 +154,29 @@ class PartController extends Controller
     private function normalizeIdentifier(string $value): string
     {
         return strtoupper(preg_replace('/[^A-Z0-9-]/', '', strtoupper(trim($value))) ?? '');
+    }
+
+    private function csvColumns(array $headers): array
+    {
+        $columns = [];
+
+        foreach ($headers as $index => $header) {
+            $key = strtolower(trim((string) $header));
+            $key = preg_replace('/[^a-z0-9]+/', '_', $key);
+            $columns[trim($key, '_')] = $index;
+        }
+
+        return $columns;
+    }
+
+    private function csvValue(array $row, array $columns, array $keys, ?int $fallbackIndex = null): mixed
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $columns)) {
+                return $row[$columns[$key]] ?? null;
+            }
+        }
+
+        return $fallbackIndex !== null ? ($row[$fallbackIndex] ?? null) : null;
     }
 }

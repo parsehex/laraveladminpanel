@@ -94,7 +94,7 @@
                     <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left">Model</th><th class="px-4 py-3 text-left">Serial</th><th class="px-4 py-3 text-right">Sold Price</th><th class="px-4 py-3 text-right">Cost</th><th class="px-4 py-3 text-right">Profit</th><th class="px-4 py-3 text-left">Sold By</th><th class="px-4 py-3 text-left">Sold Date</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
                     <tbody class="divide-y divide-gray-200">
                         @forelse($soldItems as $item)
-                        @php $cost = (float) $item->msrp + (float) $item->total_parts_cost; $profit = (float) ($item->sold_price ?? 0) - $cost; @endphp
+                        @php $cost = $item->totalCostUsing((float) $item->msrp); $profit = (float) ($item->sold_price ?? 0) - $cost; @endphp
                         <tr>
                             <td class="px-4 py-3">{{ $item->id }}</td><td class="px-4 py-3">{{ $item->model?->model_number ?? '-' }}</td><td class="px-4 py-3">{{ $item->serial_number }}</td><td class="px-4 py-3 text-right">${{ number_format($item->sold_price ?? 0, 2) }}</td><td class="px-4 py-3 text-right">${{ number_format($cost, 2) }}</td><td class="px-4 py-3 text-right">${{ number_format($profit, 2) }}</td><td class="px-4 py-3">{{ $item->sold_by ?: '-' }}</td><td class="px-4 py-3">{{ $item->sold_at?->format('Y-m-d H:i') ?: '-' }}</td>
                             <td class="px-4 py-3 text-right">

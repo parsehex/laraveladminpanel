@@ -59,7 +59,7 @@
             <div>
                 <label for="parts-csv" class="block text-sm font-medium text-gray-700 mb-1">CSV Upload</label>
                 <input id="parts-csv" type="file" name="csv_file" accept=".csv,text/csv" required class="rounded-md border border-gray-300 px-3 py-2 text-sm">
-                <p class="mt-1 max-w-3xl text-xs text-gray-500">Expected columns: URL (ignored), Part Number, Retail Price, Your Price, Images (ignored), Cross Reference Information, Models it applies to. Header row skipped.</p>
+                <p class="mt-1 max-w-3xl text-xs text-gray-500">Expected columns: URL (ignored), Part Number, Product Name, Retail Price, Your Price, Images (ignored), Cross Reference Information, Models it applies to. Header row skipped.</p>
             </div>
             <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Upload CSV</button>
             <a href="{{ asset('examples/parts-import-example.csv') }}" class="rounded-md bg-gray-600 px-4 py-2 text-white hover:bg-gray-700" download>Example CSV</a>

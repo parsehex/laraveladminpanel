@@ -213,11 +213,14 @@
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->product_name ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->quantity ?? 1 }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                            ${{ number_format((float) $appliance->price + (float) $appliance->total_parts_cost, 2) }}
+                            ${{ number_format($appliance->totalCostUsing((float) $appliance->price), 2) }}
                             <button type="button" class="ml-1 text-blue-600" data-cost-toggle>?</button>
                             <div class="hidden mt-1 border-t border-dashed border-gray-300 pt-1 text-xs text-gray-600" data-cost-details>
                                 <strong>Our Cost:</strong> ${{ number_format((float) $appliance->price, 2) }}<br>
-                                <strong>Parts:</strong> ${{ number_format((float) $appliance->total_parts_cost, 2) }}
+                                <strong>Parts:</strong> ${{ number_format($appliance->signedPartsCost(), 2) }}
+                                @if($appliance->usesNegativePartsCost())
+                                    <br><span class="font-semibold text-red-700">Demanufacture/Scrap parts cost is subtracted.</span>
+                                @endif
                             </div>
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${{ number_format($appliance->msrp, 2) }}</td>

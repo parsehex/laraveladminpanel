@@ -160,7 +160,7 @@
                     @forelse($items as $item)
                     @php
                         $status = $item->status ?: 'Triage';
-                        $totalCost = (float) $item->msrp + (float) $item->total_parts_cost;
+                        $totalCost = $item->totalCostUsing((float) $item->msrp);
                         $statusClass = $statusClasses[$status] ?? 'appliance-status-white';
                     @endphp
                     <tr class="appliance-status-row {{ $statusClass }}">

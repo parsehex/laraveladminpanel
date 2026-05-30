@@ -107,7 +107,7 @@ class InventoryController extends Controller
             $baseInventoryRows = DB::table('truck_appliances')
                 ->selectRaw("$statusExpression as current_status")
                 ->selectRaw('COALESCE(msrp, 0) as msrp')
-                ->selectRaw('COALESCE(total_parts_cost, 0) as total_parts_cost')
+                ->selectRaw("CASE WHEN $statusExpression IN ('Demanufacture', 'Scrap') THEN -COALESCE(total_parts_cost, 0) ELSE COALESCE(total_parts_cost, 0) END as total_parts_cost")
                 ->whereNull('deleted_at');
 
             $inventoryData = DB::query()
@@ -117,7 +117,7 @@ class InventoryController extends Controller
                 ->selectRaw('SUM(msrp) as total_base_cost')
                 ->selectRaw('SUM(total_parts_cost) as total_parts_cost')
                 ->selectRaw('SUM(msrp + total_parts_cost) as total_inventory_value')
-                ->whereNotIn('current_status', ['Sold', 'Demanufacture', 'Show Room'])
+                ->whereNotIn('current_status', ['Sold', 'Show Room'])
                 ->groupBy('current_status')
                 ->orderBy('current_status')
                 ->get();

@@ -90,4 +90,21 @@ class TruckAppliance extends EloquentModel
     {
         return $this->hasMany(AppliancePart::class, 'truck_appliance_id');
     }
+
+    public function usesNegativePartsCost(): bool
+    {
+        return in_array($this->status, ['Demanufacture', 'Scrap'], true);
+    }
+
+    public function signedPartsCost(): float
+    {
+        $partsCost = (float) $this->total_parts_cost;
+
+        return $this->usesNegativePartsCost() ? -$partsCost : $partsCost;
+    }
+
+    public function totalCostUsing(float $baseCost): float
+    {
+        return $baseCost + $this->signedPartsCost();
+    }
 }

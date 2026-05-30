@@ -227,7 +227,7 @@
     @forelse($items as $item)
         @php
             $baseCost = (float) ($item->msrp ?? 0);
-            $partsCost = (float) ($item->parts->sum('cost') ?: $item->total_parts_cost);
+            $partsCost = $item->signedPartsCost();
             $inventoryValue = $baseCost + $partsCost;
             $ourPrice = $baseCost * 0.7;
             $soldPrice = $item->sold_price !== null ? (float) $item->sold_price : null;

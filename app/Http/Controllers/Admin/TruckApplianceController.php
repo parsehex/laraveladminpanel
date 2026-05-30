@@ -117,7 +117,7 @@ class TruckApplianceController extends Controller
 
         return response()->streamDownload(function () use ($truck) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Unit Label', 'Category', 'Brand', 'Model #', 'Product Name', 'Quantity', 'Our Cost', 'Serial #', 'Receiving Condition', 'MSRP', 'Fuel Type']);
+            fputcsv($handle, ['Unit Label', 'Category', 'Brand', 'Model #', 'Product Name', 'Quantity', 'Our Cost', 'Serial #', 'Receiving Condition', 'MSRP', 'Fuel Type', 'Status', 'Total Parts Cost']);
             $fallbackUnitNumber = $this->maxUnitNumber($truck) + 1;
 
             $appliances = $truck->appliances->sortBy(function (TruckAppliance $appliance) {
@@ -145,6 +145,8 @@ class TruckApplianceController extends Controller
                     $appliance->receiving_condition,
                     $appliance->msrp,
                     $appliance->fuel_type,
+                    $appliance->status,
+                    $appliance->total_parts_cost,
                 ]);
             }
 
@@ -161,11 +163,12 @@ class TruckApplianceController extends Controller
         ]);
 
         $handle = fopen($data['csv_file']->getRealPath(), 'r');
-        fgetcsv($handle);
+        $headers = fgetcsv($handle) ?: [];
+        $columns = $this->csvColumns($headers);
         $imported = 0;
         $updated = 0;
 
-        DB::transaction(function () use ($handle, $truck, $request, &$imported, &$updated) {
+        DB::transaction(function () use ($handle, $columns, $truck, $request, &$imported, &$updated) {
             $nextUnitNumber = $this->maxUnitNumber($truck) + 1;
 
             while (($row = fgetcsv($handle)) !== false) {
@@ -173,21 +176,23 @@ class TruckApplianceController extends Controller
                     continue;
                 }
 
-                $unitLabel = trim((string) ($row[0] ?? ''));
+                $unitLabel = trim((string) $this->csvValue($row, $columns, ['unit_label'], 0));
                 if ($unitLabel === '') {
                     $unitLabel = $this->formatUnitLabel($truck, $nextUnitNumber);
                     $nextUnitNumber++;
                 }
-                $categoryName = trim((string) ($row[1] ?? ''));
-                $brand = trim((string) ($row[2] ?? ''));
-                $modelNumber = $this->normalizeIdentifier((string) ($row[3] ?? ''));
-                $productName = trim((string) ($row[4] ?? ''));
-                $quantity = (int) ($row[5] ?? 0);
-                $ourCost = (float) ($row[6] ?? 0);
-                $serialNumber = $this->normalizeIdentifier((string) ($row[7] ?? ''));
-                $receivingCondition = trim((string) ($row[8] ?? ''));
-                $msrp = (float) ($row[9] ?? 0);
-                $fuelType = trim((string) ($row[10] ?? ''));
+                $categoryName = trim((string) $this->csvValue($row, $columns, ['category'], 1));
+                $brand = trim((string) $this->csvValue($row, $columns, ['brand'], 2));
+                $modelNumber = $this->normalizeIdentifier((string) $this->csvValue($row, $columns, ['model', 'model_number', 'model_'], 3));
+                $productName = trim((string) $this->csvValue($row, $columns, ['product_name', 'product'], 4));
+                $quantity = (int) $this->csvValue($row, $columns, ['quantity'], 5);
+                $ourCost = (float) $this->csvValue($row, $columns, ['our_cost', 'cost'], 6);
+                $serialNumber = $this->normalizeIdentifier((string) $this->csvValue($row, $columns, ['serial', 'serial_number'], 7));
+                $receivingCondition = trim((string) $this->csvValue($row, $columns, ['receiving_condition'], 8));
+                $msrp = (float) $this->csvValue($row, $columns, ['msrp'], 9);
+                $fuelType = trim((string) $this->csvValue($row, $columns, ['fuel_type'], 10));
+                $status = trim((string) $this->csvValue($row, $columns, ['status'], null));
+                $totalPartsCost = (float) ($this->csvValue($row, $columns, ['total_parts_cost', 'parts_cost'], null) ?? 0);
 
                 $category = $categoryName !== ''
                     ? Category::firstOrCreate(
@@ -213,9 +218,13 @@ class TruckApplianceController extends Controller
                 validator([
                     'msrp' => $msrp,
                     'receiving_condition' => $receivingCondition ?: null,
+                    'status' => $status ?: null,
+                    'total_parts_cost' => $totalPartsCost,
                 ], [
                     'msrp' => ['required', 'numeric', 'min:0'],
                     'receiving_condition' => ['nullable', Rule::in(TruckAppliance::RECEIVING_CONDITIONS)],
+                    'status' => ['nullable', Rule::in(InventoryController::STATUSES)],
+                    'total_parts_cost' => ['nullable', 'numeric', 'min:0'],
                 ])->validate();
 
                 $this->syncBrand($brand, $request->user()->id);
@@ -232,6 +241,8 @@ class TruckApplianceController extends Controller
                     'msrp' => $msrp,
                     'fuel_type' => $fuelType ?: null,
                     'receiving_condition' => $receivingCondition ?: null,
+                    'status' => $status ?: null,
+                    'total_parts_cost' => $totalPartsCost,
                     'updated_by' => $request->user()->id,
                 ];
 
@@ -392,5 +403,29 @@ class TruckApplianceController extends Controller
     private function formatUnitLabel(Truck $truck, int $number): string
     {
         return trim((string) $truck->name).'-'.sprintf('%03d', $number);
+    }
+
+    private function csvColumns(array $headers): array
+    {
+        $columns = [];
+
+        foreach ($headers as $index => $header) {
+            $key = strtolower(trim((string) $header));
+            $key = preg_replace('/[^a-z0-9]+/', '_', $key);
+            $columns[trim($key, '_')] = $index;
+        }
+
+        return $columns;
+    }
+
+    private function csvValue(array $row, array $columns, array $keys, ?int $fallbackIndex = null): mixed
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $columns)) {
+                return $row[$columns[$key]] ?? null;
+            }
+        }
+
+        return $fallbackIndex !== null ? ($row[$fallbackIndex] ?? null) : null;
     }
 }
