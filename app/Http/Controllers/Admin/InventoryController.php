@@ -40,7 +40,7 @@ class InventoryController extends Controller
     public function index(Request $request)
     {
         $query = TruckAppliance::query()
-            ->with(['truck', 'category', 'model'])
+            ->with(['truck', 'category', 'model', 'statusHistories'])
             ->latest('id');
 
         $this->applyFilters($query, $request);
@@ -87,6 +87,14 @@ class InventoryController extends Controller
             ->orderBy('brand')
             ->pluck('brand');
 
+        $subcategories = TruckAppliance::query()
+            ->whereNotNull('subcategory')
+            ->where('subcategory', '<>', '')
+            ->selectRaw('MIN(subcategory) as subcategory')
+            ->groupBy(DB::raw('LOWER(TRIM(subcategory))'))
+            ->orderBy('subcategory')
+            ->pluck('subcategory');
+
         $categories = TruckAppliance::query()
             ->with('category:id,name')
             ->whereNotNull('category_id')
@@ -103,12 +111,34 @@ class InventoryController extends Controller
 
         if ($showAdminValue) {
             $statusExpression = "COALESCE(NULLIF(status, ''), 'Triage')";
+            $costDate = $request->date('cost_date');
 
             $baseInventoryRows = DB::table('truck_appliances')
                 ->selectRaw("$statusExpression as current_status")
-                ->selectRaw('COALESCE(msrp, 0) as msrp')
+                ->selectRaw('COALESCE(price, 0) as msrp')
                 ->selectRaw("CASE WHEN $statusExpression IN ('Demanufacture', 'Scrap') THEN -COALESCE(total_parts_cost, 0) ELSE COALESCE(total_parts_cost, 0) END as total_parts_cost")
                 ->whereNull('deleted_at');
+
+            if ($costDate) {
+                $endOfDate = $costDate->copy()->endOfDay();
+                $latestStatusRows = DB::table('inventory_status_histories')
+                    ->select('truck_appliance_id', 'status')
+                    ->selectRaw('ROW_NUMBER() OVER(PARTITION BY truck_appliance_id ORDER BY created_at DESC) as row_number')
+                    ->where('created_at', '<=', $endOfDate);
+
+                $rankedStatusRows = DB::query()
+                    ->fromSub($latestStatusRows, 'ranked_status')
+                    ->where('row_number', 1);
+
+                $baseInventoryRows = DB::table('truck_appliances')
+                    ->joinSub($rankedStatusRows, 'latest_status', function ($join) {
+                        $join->on('latest_status.truck_appliance_id', '=', 'truck_appliances.id');
+                    })
+                    ->selectRaw("latest_status.status as current_status")
+                    ->selectRaw('COALESCE(truck_appliances.price, 0) as msrp')
+                    ->selectRaw("CASE WHEN latest_status.status IN ('Demanufacture', 'Scrap') THEN -COALESCE(truck_appliances.total_parts_cost, 0) ELSE COALESCE(truck_appliances.total_parts_cost, 0) END as total_parts_cost")
+                    ->whereNull('truck_appliances.deleted_at');
+            }
 
             $inventoryData = DB::query()
                 ->fromSub($baseInventoryRows, 'inventory_rows')
@@ -129,6 +159,7 @@ class InventoryController extends Controller
             'items' => $items,
             'brands' => $brands,
             'categories' => $categories,
+            'subcategories' => $subcategories,
             'statuses' => self::STATUSES,
             'inventoryData' => $inventoryData,
             'totalInventoryValue' => $totalInventoryValue,
@@ -154,6 +185,21 @@ class InventoryController extends Controller
         abort_if($items->isEmpty(), 404);
 
         return view('admin.inventory.stickers', compact('items'));
+    }
+
+    public function destroy(Request $request, TruckAppliance $appliance)
+    {
+        abort_unless($request->user()?->hasRole('admin') || $request->user()?->role === 'admin', 403);
+
+        $truck = $appliance->truck;
+        $appliance->delete();
+
+        if ($truck) {
+            $this->recalculateTruckPrices($truck);
+            $this->renumberTruckLabels($truck);
+        }
+
+        return back()->with('success', __('Appliance deleted from inventory.'));
     }
 
     public function show(TruckAppliance $appliance)
@@ -477,5 +523,39 @@ class InventoryController extends Controller
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->integer('category_id'));
         }
+
+        if ($request->filled('sub_category')) {
+            $query->where('subcategory', 'like', '%'.$request->string('sub_category')->trim().'%');
+        }
+    }
+
+    private function recalculateTruckPrices(Truck $truck): void
+    {
+        $items = $truck->appliances()->get(['id', 'msrp']);
+        $totalMsrp = (float) $items->sum('msrp');
+
+        if ($totalMsrp > 0) {
+            $percentage = (float) $truck->cost_of_truck / $totalMsrp;
+            foreach ($items as $item) {
+                $item->update(['price' => $percentage * (float) $item->msrp]);
+            }
+            return;
+        }
+
+        if ($items->count() > 0) {
+            $price = (float) $truck->cost_of_truck / $items->count();
+            foreach ($items as $item) {
+                $item->update(['price' => $price]);
+            }
+        }
+    }
+
+    private function renumberTruckLabels(Truck $truck): void
+    {
+        $number = 1;
+        $truck->appliances()->orderBy('id')->get()->each(function (TruckAppliance $appliance) use ($truck, &$number) {
+            $appliance->update(['unit_label' => trim((string) $truck->name).'-'.sprintf('%03d', $number)]);
+            $number++;
+        });
     }
 }

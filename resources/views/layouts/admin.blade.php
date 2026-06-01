@@ -13,6 +13,34 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Toastr CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <style>
+        .sticky-action {
+            position: sticky;
+            right: 0;
+            z-index: 20;
+            background: #fff;
+            box-shadow: -8px 0 12px -12px rgba(15, 23, 42, 0.45);
+        }
+
+        thead .sticky-action {
+            z-index: 30;
+            background: #f9fafb;
+        }
+
+        .overflow-x-auto table th:last-child,
+        .overflow-x-auto table td:last-child {
+            position: sticky;
+            right: 0;
+            z-index: 15;
+            background: inherit;
+            box-shadow: -8px 0 12px -12px rgba(15, 23, 42, 0.45);
+        }
+
+        .overflow-x-auto table thead th:last-child {
+            z-index: 25;
+            background: #f9fafb;
+        }
+    </style>
     
     @stack('styles')
 </head>

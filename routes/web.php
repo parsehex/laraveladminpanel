@@ -206,6 +206,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('inventory/{appliance}/photos', [InventoryController::class, 'destroyPhoto'])
         ->middleware('permission:appliance.edit')
         ->name('inventory.photos.destroy');
+    Route::delete('inventory/{appliance}', [InventoryController::class, 'destroy'])
+        ->middleware('permission:appliance.delete')
+        ->name('inventory.destroy');
 
     Route::get('parts', [PartController::class, 'index'])
         ->middleware('permission:parts.view')

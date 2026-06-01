@@ -68,9 +68,15 @@
     </div>
 
     <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="p-4 flex gap-6">
-            <a href="{{ route('admin.sales.index', array_merge(request()->except('page'), ['view' => 'normal'])) }}" class="{{ $view === 'normal' ? 'font-bold text-blue-700' : 'text-gray-700' }}">Normal Sales</a>
-            <a href="{{ route('admin.sales.index', array_merge(request()->except('page'), ['view' => 'custom'])) }}" class="{{ $view === 'custom' ? 'font-bold text-blue-700' : 'text-gray-700' }}">Custom Sales</a>
+        <div class="border-b border-gray-200 bg-gray-50 px-4 pt-4">
+            <nav class="-mb-px flex gap-2" aria-label="Sales tabs">
+                <a href="{{ route('admin.sales.index', array_merge(request()->except('page'), ['view' => 'normal'])) }}" class="inline-flex items-center rounded-t-lg border px-4 py-2 text-sm font-semibold {{ $view === 'normal' ? 'border-blue-200 border-b-white bg-white text-blue-700 shadow-sm' : 'border-transparent bg-gray-100 text-gray-600 hover:bg-white hover:text-gray-900' }}">
+                    <i class="fas fa-cash-register mr-2"></i>Normal Sales
+                </a>
+                <a href="{{ route('admin.sales.index', array_merge(request()->except('page'), ['view' => 'custom'])) }}" class="inline-flex items-center rounded-t-lg border px-4 py-2 text-sm font-semibold {{ $view === 'custom' ? 'border-blue-200 border-b-white bg-white text-blue-700 shadow-sm' : 'border-transparent bg-gray-100 text-gray-600 hover:bg-white hover:text-gray-900' }}">
+                    <i class="fas fa-file-invoice-dollar mr-2"></i>Custom Sales
+                </a>
+            </nav>
         </div>
         <div class="bg-blue-600 px-6 py-4">
             <h2 class="text-xl font-semibold text-white">Sold Items</h2>
@@ -91,13 +97,13 @@
             @if($view === 'normal')
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left">Model</th><th class="px-4 py-3 text-left">Serial</th><th class="px-4 py-3 text-right">Sold Price</th><th class="px-4 py-3 text-right">Cost</th><th class="px-4 py-3 text-right">Profit</th><th class="px-4 py-3 text-left">Sold By</th><th class="px-4 py-3 text-left">Sold Date</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+                    <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left">Model</th><th class="px-4 py-3 text-left">Serial</th><th class="px-4 py-3 text-right">Sold Price</th><th class="px-4 py-3 text-right">Cost</th><th class="px-4 py-3 text-right">Profit</th><th class="px-4 py-3 text-left">Sold By</th><th class="px-4 py-3 text-left">Sold Date</th><th class="sticky-action px-4 py-3 text-right">Actions</th></tr></thead>
                     <tbody class="divide-y divide-gray-200">
                         @forelse($soldItems as $item)
                         @php $cost = $item->totalCostUsing((float) $item->msrp); $profit = (float) ($item->sold_price ?? 0) - $cost; @endphp
                         <tr>
                             <td class="px-4 py-3">{{ $item->id }}</td><td class="px-4 py-3">{{ $item->model?->model_number ?? '-' }}</td><td class="px-4 py-3">{{ $item->serial_number }}</td><td class="px-4 py-3 text-right">${{ number_format($item->sold_price ?? 0, 2) }}</td><td class="px-4 py-3 text-right">${{ number_format($cost, 2) }}</td><td class="px-4 py-3 text-right">${{ number_format($profit, 2) }}</td><td class="px-4 py-3">{{ $item->sold_by ?: '-' }}</td><td class="px-4 py-3">{{ $item->sold_at?->format('Y-m-d H:i') ?: '-' }}</td>
-                            <td class="px-4 py-3 text-right">
+                            <td class="sticky-action px-4 py-3 text-right">
                                 <a href="{{ route('admin.inventory.show', $item) }}" class="text-blue-600">View</a>
                                 @canAccess('sales.edit')
                                 <button class="text-yellow-600 ml-2" data-edit-sale data-action="{{ route('admin.sales.sold-price.update', $item) }}" data-price="{{ $item->sold_price }}" data-sold-by="{{ $item->sold_by }}">Edit Price</button>

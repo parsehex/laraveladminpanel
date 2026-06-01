@@ -29,9 +29,9 @@
     $statusClass = $statusStyles[$status]['class'] ?? 'status-white';
 @endphp
 
-<div class="inventory-detail-shell text-[11px] text-gray-900">
+<div class="inventory-detail-shell text-[13px] text-gray-900">
     <div class="flex items-center justify-between mb-3">
-        <h1 class="text-xl font-semibold text-gray-900">Appliance Details: {{ $modelNumber }}</h1>
+        <h1 class="text-2xl font-semibold text-gray-900">Appliance Details: {{ $modelNumber }}</h1>
         <a href="{{ url()->previous() !== url()->current() ? url()->previous() : route('admin.inventory.index') }}" class="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-xs">Back</a>
     </div>
 
