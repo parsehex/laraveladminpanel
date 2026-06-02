@@ -18,13 +18,14 @@
             position: sticky;
             right: 0;
             z-index: 20;
-            background: #fff;
+            background-color: #fff;
+            background-clip: padding-box;
             box-shadow: -8px 0 12px -12px rgba(15, 23, 42, 0.45);
         }
 
         thead .sticky-action {
             z-index: 30;
-            background: #f9fafb;
+            background-color: #f9fafb;
         }
 
         .overflow-x-auto table th:last-child,
@@ -32,13 +33,35 @@
             position: sticky;
             right: 0;
             z-index: 15;
-            background: inherit;
+            background-color: #fff;
+            background-clip: padding-box;
             box-shadow: -8px 0 12px -12px rgba(15, 23, 42, 0.45);
         }
 
         .overflow-x-auto table thead th:last-child {
             z-index: 25;
-            background: #f9fafb;
+            background-color: #f9fafb;
+        }
+
+        @media (max-width: 640px) {
+            main {
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+            }
+
+            .overflow-x-auto table th:last-child,
+            .overflow-x-auto table td:last-child,
+            .sticky-action {
+                min-width: 108px;
+                max-width: 132px;
+            }
+
+            .overflow-x-auto table td:last-child a,
+            .overflow-x-auto table td:last-child button,
+            .sticky-action a,
+            .sticky-action button {
+                margin-bottom: 0.25rem;
+            }
         }
     </style>
     

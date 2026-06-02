@@ -61,7 +61,14 @@ class PartController extends Controller
         $data['created_by'] = $request->user()->id;
         $data['updated_by'] = $request->user()->id;
 
-        Part::create($data);
+        $part = Part::withTrashed()->where('part_number', $data['part_number'])->first();
+
+        if ($part?->trashed()) {
+            $part->restore();
+            $part->update($data);
+        } else {
+            Part::create($data);
+        }
 
         return redirect()->route('admin.parts.index')->with('success', __('Part created successfully.'));
     }
@@ -109,13 +116,19 @@ class PartController extends Controller
                 'cross_reference' => ['nullable', 'string', 'max:255'],
             ])->validate();
 
-            $part = Part::query()->where('part_number', $payload['part_number'])->first();
+            $part = Part::withTrashed()->where('part_number', $payload['part_number'])->first();
             $payload['total_stock'] = $payload['total_stock'] ?? 0;
             $payload['updated_by'] = $request->user()->id;
 
             if ($part) {
+                if ($part->trashed()) {
+                    $part->restore();
+                    $payload['created_by'] = $part->created_by ?: $request->user()->id;
+                    $imported++;
+                } else {
+                    $updated++;
+                }
                 $part->update($payload);
-                $updated++;
             } else {
                 $payload['created_by'] = $request->user()->id;
                 Part::create($payload);

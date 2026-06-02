@@ -22,6 +22,9 @@
 
     html {
         scroll-behavior: smooth;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
     }
 
     body {
@@ -32,6 +35,9 @@
             linear-gradient(135deg, #f8fafc 0%, #eef4fb 100%);
         text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
     }
 
     ::selection {
@@ -235,15 +241,38 @@
 
     main {
         min-width: 0;
+        max-width: 100%;
     }
 
     main > * {
         min-width: 0;
+        max-width: 100%;
+    }
+
+    .app-shell,
+    .app-shell > *,
+    .app-shell .flex-1,
+    main .space-y-6,
+    main form,
+    main fieldset,
+    main .grid,
+    main .flex {
+        min-width: 0;
+    }
+
+    main .bg-white.rounded-lg,
+    main .bg-white.rounded-md,
+    main .shadow,
+    main .rounded-lg,
+    main .rounded-md {
+        max-width: 100%;
     }
 
     .overflow-x-auto {
         -webkit-overflow-scrolling: touch;
         scrollbar-width: thin;
+        max-width: 100%;
+        overscroll-behavior-x: contain;
     }
 
     .overflow-x-auto > table {
@@ -265,6 +294,20 @@
     main a[class*="border"],
     main button[class*="border"] {
         min-height: 2.5rem;
+    }
+
+    .select2-container,
+    .select2-selection,
+    .select2-dropdown {
+        max-width: 100% !important;
+    }
+
+    .select2-dropdown {
+        z-index: 100000 !important;
+    }
+
+    .swal2-popup {
+        max-width: calc(100vw - 1.5rem) !important;
     }
 
     @media (max-width: 1023px) {
@@ -346,6 +389,21 @@
             flex: 1 1 10rem;
         }
 
+        main form[class*="grid"],
+        main .grid[class*="md:grid-cols"],
+        main .grid[class*="lg:grid-cols"],
+        main .grid[class*="xl:grid-cols"] {
+            grid-template-columns: minmax(0, 1fr) !important;
+        }
+
+        main form[class*="grid"] > *,
+        main .grid[class*="md:grid-cols"] > *,
+        main .grid[class*="lg:grid-cols"] > *,
+        main .grid[class*="xl:grid-cols"] > * {
+            grid-column: auto / span 1 !important;
+            min-width: 0;
+        }
+
         main input:not([type="checkbox"]):not([type="radio"]),
         main select,
         main textarea {
@@ -379,6 +437,11 @@
             padding: 0.7rem 0.85rem !important;
         }
 
+        td:last-child,
+        th:last-child {
+            white-space: normal !important;
+        }
+
         .toast-top-right {
             top: 0.75rem !important;
             right: 0.75rem !important;
@@ -400,6 +463,20 @@
         main .inline-flex,
         main .flex {
             min-width: 0;
+        }
+
+        main .flex-wrap > a[class*="bg-"],
+        main .flex-wrap > button[class*="bg-"],
+        main .flex-wrap > form,
+        main .flex-wrap > label {
+            flex: 1 1 100%;
+        }
+
+        main .flex-wrap > form > button,
+        main .flex-wrap > form > a,
+        main .flex-wrap > a[class*="bg-"],
+        main .flex-wrap > button[class*="bg-"] {
+            width: 100%;
         }
 
         main .space-x-2 > :not([hidden]) ~ :not([hidden]),

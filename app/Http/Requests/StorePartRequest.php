@@ -15,7 +15,7 @@ class StorePartRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'part_number' => ['required', 'string', 'max:255', Rule::unique('parts', 'part_number')->ignore(null, 'id')],
+            'part_number' => ['required', 'string', 'max:255', Rule::unique('parts', 'part_number')->whereNull('deleted_at')],
             'product_name' => ['nullable', 'string', 'max:255'],
             'model_compatibility' => ['nullable', 'string', 'max:255'],
             'total_stock' => ['nullable', 'integer', 'min:0'],

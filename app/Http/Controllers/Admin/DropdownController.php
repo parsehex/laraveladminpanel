@@ -290,12 +290,21 @@ class DropdownController extends Controller
             'total_stock' => ['nullable', 'integer', 'min:0'],
         ]);
 
-        $part = Part::create([
+        $payload = [
             'part_number' => trim($data['part_name']),
             'total_stock' => $data['total_stock'] ?? 0,
             'created_by' => $request->user()->id,
             'updated_by' => $request->user()->id,
-        ]);
+        ];
+
+        $part = Part::withTrashed()->where('part_number', $payload['part_number'])->first();
+
+        if ($part?->trashed()) {
+            $part->restore();
+            $part->update($payload);
+        } else {
+            $part = Part::create($payload);
+        }
 
         return response()->json([
             'message' => __('Part added successfully.'),
