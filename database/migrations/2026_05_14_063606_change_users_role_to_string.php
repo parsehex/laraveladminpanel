@@ -11,7 +11,11 @@ return new class extends Migration
     {
         $driver = Schema::getConnection()->getDriverName();
 
-        if ($driver === 'mysql') {
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check');
+            DB::statement("ALTER TABLE users ALTER COLUMN role TYPE VARCHAR(64)");
+            DB::statement("ALTER TABLE users ALTER COLUMN role SET DEFAULT 'user'");
+        } elseif ($driver === 'mysql') {
             DB::statement("ALTER TABLE users MODIFY role VARCHAR(64) NOT NULL DEFAULT 'user'");
         } else {
             Schema::table('users', function (Blueprint $table) {
@@ -24,7 +28,11 @@ return new class extends Migration
     {
         $driver = Schema::getConnection()->getDriverName();
 
-        if ($driver === 'mysql') {
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check');
+            DB::statement("ALTER TABLE users ALTER COLUMN role TYPE VARCHAR(16)");
+            DB::statement("ALTER TABLE users ALTER COLUMN role SET DEFAULT 'user'");
+        } elseif ($driver === 'mysql') {
             DB::statement("ALTER TABLE users MODIFY role ENUM('admin','user') NOT NULL DEFAULT 'user'");
         } else {
             Schema::table('users', function (Blueprint $table) {

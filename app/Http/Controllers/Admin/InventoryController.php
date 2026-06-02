@@ -179,8 +179,9 @@ class InventoryController extends Controller
         $items = TruckAppliance::query()
             ->with(['truck', 'model'])
             ->whereIn('id', $ids->all())
-            ->orderByRaw('FIELD(id, '.$ids->implode(',').')')
-            ->get();
+            ->get()
+            ->sortBy(fn (TruckAppliance $item) => $ids->search($item->id))
+            ->values();
 
         abort_if($items->isEmpty(), 404);
 

@@ -58,11 +58,22 @@
         padding: 0.6rem 0.75rem;
         white-space: normal;
     }
+
+    #quick-create-modal {
+        padding: 1rem;
+    }
+
+    #quick-create-modal .quick-create-dialog {
+        width: min(28rem, calc(100vw - 2rem));
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+        flex: 0 0 auto;
+    }
 </style>
 @endpush
 
 <div id="quick-create-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-40 px-4">
-    <div class="w-full max-w-md rounded-lg bg-white shadow-lg">
+    <div class="quick-create-dialog rounded-lg bg-white shadow-lg">
         <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
             <h3 id="quick-create-title" class="text-lg font-semibold text-gray-900">Add Item</h3>
             <button type="button" class="text-gray-500 hover:text-gray-700" data-close-quick-create>
