@@ -77,7 +77,7 @@ class DropdownController extends Controller
         return response()->json([
             'data' => $models->getCollection()->map(fn (Model $model) => [
                 'id' => $valueField === 'id' ? $model->id : $model->model_number,
-                'text' => $model->model_number.($model->product_name ? ' - '.$model->product_name : ''),
+                'text' => $model->model_number.($model->product_name ? ' - '.$model->product_name : '').' ($'.number_format((float) $model->msrp, 2).')',
             ])->values(),
             'next_page' => $models->hasMorePages() ? $models->currentPage() + 1 : null,
         ]);
@@ -109,6 +109,7 @@ class DropdownController extends Controller
                 'brand' => $model->brand,
                 'product_name' => $model->product_name,
                 'msrp' => $model->msrp,
+                'category' => $model->category?->name,
             ])->values(),
         ]);
     }
@@ -188,7 +189,14 @@ class DropdownController extends Controller
         abort_unless($request->user()?->can('models.create'), 403);
 
         $data = $request->validate([
-            'model_number' => ['required', 'string', 'max:255', Rule::unique('models', 'model_number')],
+            'model_number' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('models', 'model_number')
+                    ->where(fn ($query) => $query->where('msrp', number_format((float) $request->input('msrp', 0), 2, '.', ''))->whereNull('deleted_at')),
+            ],
+            'msrp' => ['nullable', 'numeric', 'min:0'],
             'category' => ['nullable', 'exists:categories,name'],
         ]);
         $categoryId = ! empty($data['category'])
@@ -198,6 +206,7 @@ class DropdownController extends Controller
         $model = Model::create([
             'model_number' => $data['model_number'],
             'category_id' => $categoryId,
+            'msrp' => number_format((float) ($data['msrp'] ?? 0), 2, '.', ''),
             'status' => 1,
             'created_by' => $request->user()->id,
             'updated_by' => $request->user()->id,
@@ -208,7 +217,7 @@ class DropdownController extends Controller
             'item' => [
                 'id' => $model->id,
                 'value' => $model->model_number,
-                'text' => $model->model_number,
+                'text' => $model->model_number.' ($'.number_format((float) $model->msrp, 2).')',
             ],
         ], 201);
     }

@@ -58,11 +58,31 @@
         padding: 0.6rem 0.75rem;
         white-space: normal;
     }
+
+    #quick-create-modal {
+        padding: 1rem !important;
+    }
+
+    #quick-create-modal .quick-create-dialog {
+        width: min(28rem, calc(100vw - 2rem)) !important;
+        min-width: 0 !important;
+        max-width: 28rem !important;
+        max-height: calc(100vh - 2rem) !important;
+        overflow-y: auto !important;
+        flex: 0 0 auto !important;
+        align-self: center !important;
+    }
+
+    @media (max-width: 480px) {
+        #quick-create-modal .quick-create-dialog {
+            width: min(24rem, calc(100vw - 1.5rem)) !important;
+        }
+    }
 </style>
 @endpush
 
 <div id="quick-create-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-40 px-4">
-    <div class="w-full max-w-md rounded-lg bg-white shadow-lg">
+    <div class="quick-create-dialog rounded-lg bg-white shadow-lg">
         <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
             <h3 id="quick-create-title" class="text-lg font-semibold text-gray-900">Add Item</h3>
             <button type="button" class="text-gray-500 hover:text-gray-700" data-close-quick-create>
@@ -78,6 +98,10 @@
             <div id="quick-create-stock-wrapper" class="hidden">
                 <label for="quick-create-stock" class="mb-2 block text-sm font-medium text-gray-700">Total Stock</label>
                 <input type="number" min="0" id="quick-create-stock" class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500">
+            </div>
+            <div id="quick-create-msrp-wrapper" class="hidden">
+                <label for="quick-create-msrp" class="mb-2 block text-sm font-medium text-gray-700">MSRP</label>
+                <input type="number" min="0" step="0.01" id="quick-create-msrp" class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500">
             </div>
             <div class="flex justify-end gap-2">
                 <button type="button" class="rounded-md bg-gray-500 px-4 py-2 text-white hover:bg-gray-600" data-close-quick-create>Cancel</button>
@@ -254,7 +278,9 @@
             $('#quick-create-label').text(endpoints[quickCreateType].label);
             $('#quick-create-name').val('').attr('name', endpoints[quickCreateType].field).trigger('focus');
             $('#quick-create-stock').val('0');
+            $('#quick-create-msrp').val('0.00');
             $('#quick-create-stock-wrapper').toggleClass('hidden', quickCreateType !== 'kit_part');
+            $('#quick-create-msrp-wrapper').toggleClass('hidden', quickCreateType !== 'model');
             $('#quick-create-error').addClass('hidden').text('');
             $('#quick-create-modal').removeClass('hidden').addClass('flex');
         });
@@ -272,6 +298,10 @@
 
             if (quickCreateType === 'kit_part') {
                 payload.total_stock = $('#quick-create-stock').val();
+            }
+
+            if (quickCreateType === 'model') {
+                payload.msrp = $('#quick-create-msrp').val();
             }
 
             if (quickCreateType === 'subcategory') {

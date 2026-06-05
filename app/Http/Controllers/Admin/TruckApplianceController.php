@@ -202,7 +202,10 @@ class TruckApplianceController extends Controller
                     : null;
                 $model = $modelNumber !== ''
                     ? ApplianceModel::firstOrCreate(
-                        ['model_number' => $modelNumber],
+                        [
+                            'model_number' => $modelNumber,
+                            'msrp' => number_format($msrp, 2, '.', ''),
+                        ],
                         [
                             'product_name' => $productName ?: null,
                             'brand' => $brand ?: null,
@@ -308,7 +311,10 @@ class TruckApplianceController extends Controller
         }
 
         $model = ApplianceModel::firstOrCreate(
-            ['model_number' => $modelNumber],
+            [
+                'model_number' => $modelNumber,
+                'msrp' => number_format($msrp, 2, '.', ''),
+            ],
             [
                 'product_name' => $productName ?: null,
                 'brand' => $brand ?: null,

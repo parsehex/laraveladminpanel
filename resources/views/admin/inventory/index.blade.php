@@ -181,19 +181,21 @@
         <div class="bg-blue-600 px-6 py-4">
             <h2 class="text-xl font-semibold text-white">Current Inventory List</h2>
         </div>
-        <div class="overflow-x-auto">
+        <div class="wide-table-shell" data-wide-table>
+            <div class="wide-table-top-scroll" data-wide-table-top-scroll><div></div></div>
+        <div class="wide-table-scroll overflow-x-auto" data-wide-table-scroll>
             <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead class="bg-gray-50 sticky-table-head">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><input type="checkbox" data-select-all></th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Truck</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Label</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model #</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serial #</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SubCategory</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Date/Time</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Sold Price</th>
@@ -210,15 +212,15 @@
                     <tr class="appliance-status-row {{ $statusClass }}">
                         <td class="px-4 py-3"><input type="checkbox" name="print_ids[]" value="{{ $item->id }}"></td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->truck?->name ?? '-' }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="appliance-status-chip {{ $statusClass }}">{{ $status }}</span>
+                        </td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->unit_label ?: 'N/A' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->model?->model_number ?? '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->serial_number ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->brand ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->category?->name ?? '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->subcategory ?: '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <span class="appliance-status-chip {{ $statusClass }}">{{ $status }}</span>
-                        </td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->statusHistories?->sortByDesc('created_at')->first()?->created_at?->format('Y-m-d H:i:s') ?? 'N/A' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">${{ number_format($totalCost, 2) }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">${{ number_format((float) ($item->sold_price ?? 0), 2) }}</td>
@@ -247,6 +249,7 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
         </div>
         <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div class="text-sm text-gray-600">
@@ -317,6 +320,35 @@
     .appliance-status-chip.appliance-status-black { background: #111827 !important; color: #ffffff !important; }
     .appliance-status-chip.appliance-status-green { background: #16a34a !important; color: #052e16 !important; }
     .appliance-status-chip.appliance-status-sold { background: #059669 !important; color: #ffffff !important; }
+
+    .wide-table-shell {
+        position: relative;
+    }
+
+    .wide-table-scroll {
+        max-height: 72vh;
+        overflow: auto;
+    }
+
+    .wide-table-top-scroll {
+        height: 16px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+        background: #f8fafc;
+    }
+
+    .wide-table-top-scroll > div {
+        height: 1px;
+    }
+
+    .sticky-table-head th {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: #f8fafc !important;
+        box-shadow: inset 0 -1px 0 rgba(226, 232, 240, 0.95);
+    }
 </style>
 @endpush
 
@@ -414,6 +446,28 @@
 
     $('[data-print-page-stickers]').on('click', function () {
         openStickerPrint(currentPageInventoryIds());
+    });
+
+    $('[data-wide-table]').each(function () {
+        const $shell = $(this);
+        const $main = $shell.find('[data-wide-table-scroll]');
+        const $top = $shell.find('[data-wide-table-top-scroll]');
+        const table = $main.find('table').get(0);
+
+        function syncWidth() {
+            $top.children().first().width(table ? table.scrollWidth : 0);
+        }
+
+        $main.on('scroll', function () {
+            $top.scrollLeft($main.scrollLeft());
+        });
+
+        $top.on('scroll', function () {
+            $main.scrollLeft($top.scrollLeft());
+        });
+
+        syncWidth();
+        $(window).on('resize', syncWidth);
     });
 </script>
 @endpush
