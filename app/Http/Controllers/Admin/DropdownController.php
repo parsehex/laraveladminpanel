@@ -77,7 +77,7 @@ class DropdownController extends Controller
         return response()->json([
             'data' => $models->getCollection()->map(fn (Model $model) => [
                 'id' => $valueField === 'id' ? $model->id : $model->model_number,
-                'text' => $model->model_number.($model->product_name ? ' - '.$model->product_name : '').' ($'.number_format((float) $model->msrp, 2).')',
+                'text' => $model->model_number,//.($model->product_name ? ' - '.$model->product_name : '').' ($'.number_format((float) $model->msrp, 2).')',
             ])->values(),
             'next_page' => $models->hasMorePages() ? $models->currentPage() + 1 : null,
         ]);
