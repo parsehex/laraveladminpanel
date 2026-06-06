@@ -92,7 +92,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total MSRP</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Arrival</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Truck Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Appliance Statuses</th>
+                        <th class="truck-status-breakdown-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Appliance Statuses</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created by</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -111,8 +111,8 @@
                                 {{ ucfirst($truck->status) }}
                             </span>
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="flex flex-wrap gap-1">
+                        <td class="truck-status-breakdown-cell px-6 py-4">
+                            <div class="truck-status-breakdown">
 
                                 @forelse($truck->appliance_statuses as $item)
 
@@ -185,6 +185,7 @@
     .status-chip {
         display: inline-flex;
         align-items: center;
+        flex: 0 0 auto;
         border: 1px solid rgba(15, 23, 42, 0.18);
         border-radius: 999px;
         padding: 4px 8px;
@@ -192,6 +193,24 @@
         font-weight: 800;
         line-height: 1.1;
         min-height: 22px;
+        white-space: nowrap;
+    }
+
+    .truck-status-breakdown-cell {
+        min-width: 21rem;
+        width: 21rem;
+        max-width: 21rem;
+    }
+
+    .truck-status-breakdown {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.25rem;
+        max-width: 100%;
+    }
+
+    .truck-status-breakdown .status-chip {
+        justify-content: center;
     }
 
     .status-white { background: #ffffff !important; color: #111827 !important; }
