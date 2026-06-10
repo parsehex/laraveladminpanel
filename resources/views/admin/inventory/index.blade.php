@@ -110,8 +110,8 @@
     </div>
     @endif
 
-    <div class="bg-white rounded-lg shadow p-6">
-        <form method="GET" action="{{ route('admin.inventory.index') }}" class="relative z-30 grid grid-cols-1 lg:grid-cols-12 gap-4">
+    <div class="inventory-filter-card bg-white rounded-lg shadow p-6">
+        <form method="GET" action="{{ route('admin.inventory.index') }}" class="relative grid grid-cols-1 lg:grid-cols-12 gap-4">
             <div class="lg:col-span-3">
                 <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
                 <input type="text" id="search" name="search" value="{{ request('search') }}" placeholder="Model, serial, product..."
@@ -144,7 +144,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="lg:col-span-2">
+            <div class="lg:col-span-1">
                 <label for="limit" class="block text-sm font-medium text-gray-700 mb-1">Rows</label>
                 <select id="limit" name="limit" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     @foreach([25, 50, 100, 250, 500, 1000] as $option)
@@ -153,14 +153,14 @@
                     <option value="all" @selected(request('limit') === 'all')>All</option>
                 </select>
             </div>
-            <div class="lg:col-span-1">
+            <div class="lg:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <div class="relative z-[99999]" data-status-filter>
+                <div class="relative" data-status-filter>
                     <button type="button" class="w-full min-h-[42px] px-3 py-2 border border-gray-300 rounded-md text-left bg-white text-gray-800 shadow-sm flex items-center justify-between gap-2 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <span class="truncate">{{ count($selectedStatuses) ? count($selectedStatuses).' selected' : 'Select status' }}</span>
                         <i class="fas fa-chevron-down text-xs text-blue-600"></i>
                     </button>
-                    <div class="hidden absolute right-0 top-full z-[99999] mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-gray-200 bg-white p-2 shadow-2xl ring-1 ring-black/5 max-h-72 overflow-y-auto">
+                    <div class="status-filter-menu hidden w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-gray-200 bg-white p-2 shadow-2xl ring-1 ring-black/5 max-h-72 overflow-y-auto">
                         @foreach($statuses as $status)
                         <label class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700">
                             <input type="checkbox" name="status[]" value="{{ $status }}" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" @checked(in_array($status, $selectedStatuses, true))>
@@ -321,8 +321,22 @@
     .appliance-status-chip.appliance-status-green { background: #16a34a !important; color: #052e16 !important; }
     .appliance-status-chip.appliance-status-sold { background: #059669 !important; color: #ffffff !important; }
 
+    .inventory-filter-card {
+        position: relative;
+        z-index: 100000;
+        overflow: visible !important;
+    }
+
+    .status-filter-menu {
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        right: 0;
+        z-index: 100001;
+    }
+
     .wide-table-shell {
         position: relative;
+        z-index: 1;
     }
 
     .wide-table-scroll {
@@ -360,7 +374,11 @@
 
     $('[data-status-filter] > button').on('click', function (event) {
         event.stopPropagation();
-        $(this).siblings('div').toggleClass('hidden');
+        const $filter = $(this).closest('[data-status-filter]');
+        const $menu = $filter.children('.status-filter-menu');
+
+        $('.status-filter-menu').not($menu).addClass('hidden');
+        $menu.toggleClass('hidden');
     });
 
     $('[data-status-filter]').on('click', function (event) {
@@ -368,7 +386,7 @@
     });
 
     $(document).on('click', function () {
-        $('[data-status-filter] > div').addClass('hidden');
+        $('.status-filter-menu').addClass('hidden');
     });
 
     $('[data-select-all]').on('change', function () {

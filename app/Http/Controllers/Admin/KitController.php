@@ -264,10 +264,10 @@ class KitController extends Controller
             'platform' => ['nullable', Rule::in(['amazon', 'shopify'])],
         ]);
 
-        $column = $data['platform'] ? $data['platform'].'_stock' : 'current_stock';
+        $column = isset($data['platform']) ? @$data['platform'].'_stock' : 'current_stock';
         KitInventory::query()->where('part_name', $data['part_name'])->increment($column, $data['adjustment']);
 
-        if (! $data['platform']) {
+        if (! @$data['platform']) {
             Part::query()
                 ->where('part_number', $data['part_name'])
                 ->increment('total_stock', $data['adjustment']);
