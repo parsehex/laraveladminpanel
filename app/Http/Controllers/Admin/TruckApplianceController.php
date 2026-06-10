@@ -117,7 +117,7 @@ class TruckApplianceController extends Controller
 
         return response()->streamDownload(function () use ($truck) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Unit Label', 'Category', 'Brand', 'Model #', 'Product Name', 'Quantity', 'Our Cost', 'Serial #', 'Receiving Condition', 'MSRP', 'Fuel Type', 'Status', 'Total Parts Cost']);
+            fputcsv($handle, ['Unit Label', 'Category', 'Sub-Category', 'Brand', 'Model #', 'Product Name', 'Quantity', 'Our Cost', 'Serial #', 'Receiving Condition', 'MSRP', 'Fuel Type', 'Status', 'Total Parts Cost']);
             $fallbackUnitNumber = $this->maxUnitNumber($truck) + 1;
 
             $appliances = $truck->appliances->sortBy(function (TruckAppliance $appliance) {
@@ -136,6 +136,7 @@ class TruckApplianceController extends Controller
                 fputcsv($handle, [
                     $unitLabel,
                     $appliance->category?->name ?? '',
+                    $appliance->subcategory,
                     $appliance->brand,
                     $appliance->model?->model_number ?? '',
                     $appliance->product_name,
@@ -182,6 +183,7 @@ class TruckApplianceController extends Controller
                     $nextUnitNumber++;
                 }
                 $categoryName = trim((string) $this->csvValue($row, $columns, ['category'], 1));
+                $subcategory = trim((string) $this->csvValue($row, $columns, ['subcategory', 'sub_category'], null));
                 $brand = trim((string) $this->csvValue($row, $columns, ['brand'], 2));
                 $modelNumber = $this->normalizeIdentifier((string) $this->csvValue($row, $columns, ['model', 'model_number', 'model_'], 3));
                 $productName = trim((string) $this->csvValue($row, $columns, ['product_name', 'product'], 4));
@@ -201,18 +203,7 @@ class TruckApplianceController extends Controller
                     )
                     : null;
                 $model = $modelNumber !== ''
-                    ? ApplianceModel::firstOrCreate(
-                        ['model_number' => $modelNumber],
-                        [
-                            'product_name' => $productName ?: null,
-                            'brand' => $brand ?: null,
-                            'category_id' => $category?->id,
-                            'msrp' => $msrp,
-                            'status' => 1,
-                            'created_by' => $request->user()->id,
-                            'updated_by' => $request->user()->id,
-                        ]
-                    )
+                    ? $this->resolveModel($modelNumber, $msrp, $productName, $brand, $category?->id, $request->user()->id)
                     : null;
 
                 validator([
@@ -232,6 +223,7 @@ class TruckApplianceController extends Controller
                 $payload = [
                     'unit_label' => $unitLabel ?: null,
                     'category_id' => $category?->id,
+                    'subcategory' => $subcategory ?: null,
                     'model_id' => $model?->id,
                     'serial_number' => $serialNumber ?: null,
                     'brand' => $brand ?: null,
@@ -307,18 +299,7 @@ class TruckApplianceController extends Controller
             ]);
         }
 
-        $model = ApplianceModel::firstOrCreate(
-            ['model_number' => $modelNumber],
-            [
-                'product_name' => $productName ?: null,
-                'brand' => $brand ?: null,
-                'category_id' => $category->id,
-                'msrp' => $msrp,
-                'status' => 1,
-                'created_by' => $request->user()->id,
-                'updated_by' => $request->user()->id,
-            ]
-        );
+        $model = $this->resolveModel($modelNumber, $msrp, $productName, $brand, $category->id, $request->user()->id);
 
         $fuelType = in_array($categoryName, ['Ranges', 'Dryers'], true)
             ? trim((string) ($data['fuel_type'] ?? 'N/A'))
@@ -364,6 +345,47 @@ class TruckApplianceController extends Controller
                 $item->update(['price' => $price]);
             }
         }
+    }
+
+    private function resolveModel(string $modelNumber, float $msrp, ?string $productName, ?string $brand, ?int $categoryId, int $userId): ApplianceModel
+    {
+        $model = ApplianceModel::query()
+            ->where('model_number', $modelNumber)
+            ->get()
+            ->first(fn (ApplianceModel $model) => abs((float) $model->msrp - $msrp) < 0.005);
+
+        if ($model) {
+            $updates = ['updated_by' => $userId];
+
+            if (! $model->product_name && $productName) {
+                $updates['product_name'] = $productName;
+            }
+
+            if (! $model->brand && $brand) {
+                $updates['brand'] = $brand;
+            }
+
+            if (! $model->category_id && $categoryId) {
+                $updates['category_id'] = $categoryId;
+            }
+
+            if (count($updates) > 1) {
+                $model->update($updates);
+            }
+
+            return $model;
+        }
+
+        return ApplianceModel::query()->create([
+            'model_number' => $modelNumber,
+            'product_name' => $productName ?: null,
+            'brand' => $brand ?: null,
+            'category_id' => $categoryId,
+            'msrp' => number_format($msrp, 2, '.', ''),
+            'status' => 1,
+            'created_by' => $userId,
+            'updated_by' => $userId,
+        ]);
     }
 
     private function renumberLabels(Truck $truck): void

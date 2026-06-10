@@ -26,6 +26,9 @@ class TruckController extends Controller
         $query = Truck::query()
             ->with('creator', 'appliances')
             ->withSum('appliances as total_appliance_msrp', 'msrp')
+            ->withSum(['appliances as revenue_to_date' => function ($query) {
+                $query->where('status', 'Sold');
+            }], 'sold_price')
             ->latest();
 
         if ($request->filled('search')) {

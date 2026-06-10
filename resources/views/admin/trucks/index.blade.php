@@ -92,7 +92,8 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total MSRP</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Arrival</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Truck Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Appliance Statuses</th>
+                        <th class="truck-status-breakdown-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Breakdown</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue to Date</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created by</th>
                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -111,8 +112,8 @@
                                 {{ ucfirst($truck->status) }}
                             </span>
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="flex flex-wrap gap-1">
+                        <td class="truck-status-breakdown-cell px-6 py-4">
+                            <div class="truck-status-breakdown">
 
                                 @forelse($truck->appliance_statuses as $item)
 
@@ -134,6 +135,7 @@
 
                             </div>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${{ number_format((float) ($truck->revenue_to_date ?? 0), 2) }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {{ $truck->creator?->name ?? '-' }}
                         </td>
@@ -167,7 +169,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="px-6 py-8 text-center text-gray-500">No trucks found.</td>
+                        <td colspan="11" class="px-6 py-8 text-center text-gray-500">No trucks found.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -185,27 +187,47 @@
     .status-chip {
         display: inline-flex;
         align-items: center;
-        border: 1px solid rgba(15, 23, 42, 0.18);
+        flex: 0 0 auto;
+        border: 0;
         border-radius: 999px;
-        padding: 4px 8px;
-        font-size: 11px;
+        padding: 7px 12px;
+        font-size: 12px;
         font-weight: 800;
-        line-height: 1.1;
-        min-height: 22px;
+        line-height: 1;
+        min-height: 28px;
+        white-space: nowrap;
     }
 
-    .status-white { background: #ffffff !important; color: #111827 !important; }
-    .status-light-blue { background: #d8f3ff !important; color: #075985 !important; }
-    .status-blue { background: #60a5fa !important; color: #ffffff !important; }
-    .status-purple { background: #a855f7 !important; color: #ffffff !important; }
-    .status-pink { background: #f472b6 !important; color: #ffffff !important; }
-    .status-orange { background: #fb923c !important; color: #111827 !important; }
-    .status-yellow { background: #fde047 !important; color: #111827 !important; }
-    .status-brown { background: #92400e !important; color: #ffffff !important; }
-    .status-red { background: #ef4444 !important; color: #ffffff !important; }
-    .status-black { background: #111827 !important; color: #ffffff !important; }
-    .status-green { background: #22c55e !important; color: #052e16 !important; }
-    .status-sold { background: #16a34a !important; color: #ffffff !important; }
+    .truck-status-breakdown-cell {
+        min-width: 34rem;
+        width: 34rem;
+        max-width: 34rem;
+    }
+
+    .truck-status-breakdown {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.6rem 0.75rem;
+        max-width: 100%;
+    }
+
+    .truck-status-breakdown .status-chip {
+        justify-content: flex-start;
+    }
+
+    .status-white { background: #e5e7eb !important; color: #111827 !important; }
+    .status-light-blue { background: #d8f3ff !important; color: #111827 !important; }
+    .status-blue { background: #cfe3ff !important; color: #111827 !important; }
+    .status-purple { background: #dcfce7 !important; color: #111827 !important; }
+    .status-pink { background: #fecdd3 !important; color: #111827 !important; }
+    .status-orange { background: #fed7aa !important; color: #111827 !important; }
+    .status-yellow { background: #fef3c7 !important; color: #111827 !important; }
+    .status-brown { background: #fde68a !important; color: #111827 !important; }
+    .status-red { background: #fecdd3 !important; color: #111827 !important; }
+    .status-black { background: #d1d5db !important; color: #111827 !important; }
+    .status-green { background: #dcfce7 !important; color: #111827 !important; }
+    .status-sold { background: #cffafe !important; color: #111827 !important; }
 </style>
 @endpush
 

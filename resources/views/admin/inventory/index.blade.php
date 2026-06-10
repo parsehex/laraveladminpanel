@@ -110,8 +110,8 @@
     </div>
     @endif
 
-    <div class="bg-white rounded-lg shadow p-6">
-        <form method="GET" action="{{ route('admin.inventory.index') }}" class="relative z-30 grid grid-cols-1 lg:grid-cols-12 gap-4">
+    <div class="inventory-filter-card bg-white rounded-lg shadow p-6">
+        <form method="GET" action="{{ route('admin.inventory.index') }}" class="relative grid grid-cols-1 lg:grid-cols-12 gap-4">
             <div class="lg:col-span-3">
                 <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
                 <input type="text" id="search" name="search" value="{{ request('search') }}" placeholder="Model, serial, product..."
@@ -144,7 +144,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="lg:col-span-2">
+            <div class="lg:col-span-1">
                 <label for="limit" class="block text-sm font-medium text-gray-700 mb-1">Rows</label>
                 <select id="limit" name="limit" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     @foreach([25, 50, 100, 250, 500, 1000] as $option)
@@ -153,14 +153,14 @@
                     <option value="all" @selected(request('limit') === 'all')>All</option>
                 </select>
             </div>
-            <div class="lg:col-span-1">
+            <div class="lg:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <div class="relative z-[99999]" data-status-filter>
+                <div class="relative" data-status-filter>
                     <button type="button" class="w-full min-h-[42px] px-3 py-2 border border-gray-300 rounded-md text-left bg-white text-gray-800 shadow-sm flex items-center justify-between gap-2 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <span class="truncate">{{ count($selectedStatuses) ? count($selectedStatuses).' selected' : 'Select status' }}</span>
                         <i class="fas fa-chevron-down text-xs text-blue-600"></i>
                     </button>
-                    <div class="hidden absolute right-0 top-full z-[99999] mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-gray-200 bg-white p-2 shadow-2xl ring-1 ring-black/5 max-h-72 overflow-y-auto">
+                    <div class="status-filter-menu hidden w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-gray-200 bg-white p-2 shadow-2xl ring-1 ring-black/5 max-h-72 overflow-y-auto">
                         @foreach($statuses as $status)
                         <label class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700">
                             <input type="checkbox" name="status[]" value="{{ $status }}" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" @checked(in_array($status, $selectedStatuses, true))>
@@ -181,19 +181,21 @@
         <div class="bg-blue-600 px-6 py-4">
             <h2 class="text-xl font-semibold text-white">Current Inventory List</h2>
         </div>
-        <div class="overflow-x-auto">
+        <div class="wide-table-shell" data-wide-table>
+            <div class="wide-table-top-scroll" data-wide-table-top-scroll><div></div></div>
+        <div class="wide-table-scroll overflow-x-auto" data-wide-table-scroll>
             <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead class="bg-gray-50 sticky-table-head">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><input type="checkbox" data-select-all></th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Truck</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Label</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model #</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serial #</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SubCategory</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Date/Time</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Sold Price</th>
@@ -210,15 +212,15 @@
                     <tr class="appliance-status-row {{ $statusClass }}">
                         <td class="px-4 py-3"><input type="checkbox" name="print_ids[]" value="{{ $item->id }}"></td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->truck?->name ?? '-' }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="appliance-status-chip {{ $statusClass }}">{{ $status }}</span>
+                        </td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->unit_label ?: 'N/A' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->model?->model_number ?? '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->serial_number ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->brand ?: '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->category?->name ?? '-' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->subcategory ?: '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            <span class="appliance-status-chip {{ $statusClass }}">{{ $status }}</span>
-                        </td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->statusHistories?->sortByDesc('created_at')->first()?->created_at?->format('Y-m-d H:i:s') ?? 'N/A' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">${{ number_format($totalCost, 2) }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">${{ number_format((float) ($item->sold_price ?? 0), 2) }}</td>
@@ -247,6 +249,7 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
         </div>
         <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div class="text-sm text-gray-600">
@@ -317,6 +320,49 @@
     .appliance-status-chip.appliance-status-black { background: #111827 !important; color: #ffffff !important; }
     .appliance-status-chip.appliance-status-green { background: #16a34a !important; color: #052e16 !important; }
     .appliance-status-chip.appliance-status-sold { background: #059669 !important; color: #ffffff !important; }
+
+    .inventory-filter-card {
+        position: relative;
+        z-index: 100000;
+        overflow: visible !important;
+    }
+
+    .status-filter-menu {
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        right: 0;
+        z-index: 100001;
+    }
+
+    .wide-table-shell {
+        position: relative;
+        z-index: 1;
+    }
+
+    .wide-table-scroll {
+        max-height: 72vh;
+        overflow: auto;
+    }
+
+    .wide-table-top-scroll {
+        height: 16px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+        background: #f8fafc;
+    }
+
+    .wide-table-top-scroll > div {
+        height: 1px;
+    }
+
+    .sticky-table-head th {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: #f8fafc !important;
+        box-shadow: inset 0 -1px 0 rgba(226, 232, 240, 0.95);
+    }
 </style>
 @endpush
 
@@ -328,7 +374,11 @@
 
     $('[data-status-filter] > button').on('click', function (event) {
         event.stopPropagation();
-        $(this).siblings('div').toggleClass('hidden');
+        const $filter = $(this).closest('[data-status-filter]');
+        const $menu = $filter.children('.status-filter-menu');
+
+        $('.status-filter-menu').not($menu).addClass('hidden');
+        $menu.toggleClass('hidden');
     });
 
     $('[data-status-filter]').on('click', function (event) {
@@ -336,7 +386,7 @@
     });
 
     $(document).on('click', function () {
-        $('[data-status-filter] > div').addClass('hidden');
+        $('.status-filter-menu').addClass('hidden');
     });
 
     $('[data-select-all]').on('change', function () {
@@ -414,6 +464,28 @@
 
     $('[data-print-page-stickers]').on('click', function () {
         openStickerPrint(currentPageInventoryIds());
+    });
+
+    $('[data-wide-table]').each(function () {
+        const $shell = $(this);
+        const $main = $shell.find('[data-wide-table-scroll]');
+        const $top = $shell.find('[data-wide-table-top-scroll]');
+        const table = $main.find('table').get(0);
+
+        function syncWidth() {
+            $top.children().first().width(table ? table.scrollWidth : 0);
+        }
+
+        $main.on('scroll', function () {
+            $top.scrollLeft($main.scrollLeft());
+        });
+
+        $top.on('scroll', function () {
+            $main.scrollLeft($top.scrollLeft());
+        });
+
+        syncWidth();
+        $(window).on('resize', syncWidth);
     });
 </script>
 @endpush

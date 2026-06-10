@@ -71,7 +71,7 @@ class ModelController extends Controller
         $this->authorize('create', Model::class);
 
         $data = $request->validated();
-        $data['msrp'] = $data['msrp'] ?? 0;
+        $data['msrp'] = number_format((float) ($data['msrp'] ?? 0), 2, '.', '');
         $data['status'] = 1;
         $data['created_by'] = $request->user()->id;
         $data['updated_by'] = $request->user()->id;
@@ -139,7 +139,7 @@ class ModelController extends Controller
         $partCount = 0;
         $fileErrors = [];
         $model = Model::firstOrCreate(
-            ['model_number' => $baseModel],
+            ['model_number' => $baseModel, 'msrp' => '0.00'],
             [
                 'variations' => [],
                 'status' => 1,
@@ -270,7 +270,7 @@ class ModelController extends Controller
         $this->authorize('update', $model);
 
         $data = $request->validated();
-        $data['msrp'] = $data['msrp'] ?? 0;
+        $data['msrp'] = number_format((float) ($data['msrp'] ?? 0), 2, '.', '');
         $data['updated_by'] = $request->user()->id;
 
         $this->syncBrand($data['brand'] ?? null, $request->user()->id);

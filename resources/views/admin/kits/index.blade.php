@@ -187,7 +187,7 @@
     @if($canManage)
         @include('admin.kits.partials.assignments-table', ['title' => 'Completed Assignments', 'headerClass' => 'bg-emerald-600', 'rows' => $completedAssignments, 'showConfirm' => false, 'canManage' => $canManage, 'completed' => true])
 
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="space-y-6">
             <div class="bg-white rounded-lg shadow overflow-hidden">
                 <div class="bg-gray-600 px-6 py-4"><h2 class="text-xl font-semibold text-white">Completed Kits</h2></div>
                 <div class="p-6 space-y-5">
