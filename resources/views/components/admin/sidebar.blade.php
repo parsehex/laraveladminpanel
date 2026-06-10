@@ -68,13 +68,13 @@
         </a>
         @endcanAccess
         
-        <!-- @canAccess('kits.view')
+        @canAccess('kits.view')
         <a href="{{ route('admin.kits.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.kits.*') ? 'is-active' : '' }}">
             <i class="fas fa-toolbox mr-3 w-5 text-center"></i>
             <span>Kits</span>
         </a>
-        @endcanAccess -->
+        @endcanAccess
 
         @canAccess('users.view')
         <a href="{{ route('admin.users.index') }}" @click="sidebarOpen = false"
