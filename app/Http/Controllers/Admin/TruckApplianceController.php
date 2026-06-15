@@ -7,7 +7,7 @@ use App\Http\Requests\StoreTruckApplianceRequest;
 use App\Http\Requests\UpdateTruckApplianceRequest;
 use App\Models\Brand;
 use App\Models\Category;
-use App\Models\SubCategory;
+use App\Models\Subcategory;
 use App\Models\Model as ApplianceModel;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
@@ -205,7 +205,7 @@ class TruckApplianceController extends Controller
                     )
                     : null;
                 $categoryId = Category::where("name",$categoryName)->first(['id','name']);
-                $subCategory = $categoryId?->id ? SubCategory::firstOrCreate(
+                $subCategory = $categoryId?->id ? Subcategory::firstOrCreate(
                     ['name' => $subcategory ,'category_id' => $categoryId?->id],
                     ['status' => 1, 'created_by' => $request->user()->id, 'updated_by' => $request->user()->id]
                 ) : null ;
