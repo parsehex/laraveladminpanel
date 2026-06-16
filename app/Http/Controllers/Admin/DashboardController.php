@@ -17,9 +17,9 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         if($request->period){
-            abort(503);
+            [$from, $to, $periodLabel] = $this->resolvePeriod($request);
         }
-        [$from, $to, $periodLabel] = $this->resolvePeriod($request);
+        
 
         $stats = [
             'total_users' => User::count(),
@@ -106,7 +106,6 @@ class DashboardController extends Controller
             'suggestion' => ['required', 'string', 'max:2000'],
             'urgency' => ['required', 'in:low,normal,high'],
         ]);
-        abort(503);
         Suggestion::create([
             'user_id' => $request->user()->id,
             'username' => $request->user()->name,
@@ -123,7 +122,6 @@ class DashboardController extends Controller
         $data = $request->validate([
             'response' => ['required', 'string', 'max:1000'],
         ]);
-        abort(503);
 
         $responses = $suggestion->responses ?? [];
         $responses[] = [
@@ -139,7 +137,6 @@ class DashboardController extends Controller
 
     public function completeSuggestion(Request $request, Suggestion $suggestion)
     {
-        abort(503);
 
         abort_unless($request->user()?->isStaff(), 403);
 
