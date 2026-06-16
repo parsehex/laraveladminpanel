@@ -4,6 +4,27 @@
 @section('page-title', 'Sales Tracking')
 
 @section('content')
+@php
+    $sort = $sort ?? request('sort', 'sold_date');
+    $direction = $direction ?? request('direction', 'desc');
+    $sortLink = function (string $column) use ($sort, $direction) {
+        $nextDirection = $sort === $column && $direction === 'asc' ? 'desc' : 'asc';
+
+        return route('admin.sales.index', array_merge(request()->except('page'), [
+            'sort' => $column,
+            'direction' => $nextDirection,
+        ]));
+    };
+    $sortArrow = function (string $column) use ($sort, $direction) {
+        if ($sort !== $column) {
+            return '<i class="fas fa-sort ml-1 text-gray-400"></i>';
+        }
+
+        return $direction === 'asc'
+            ? '<i class="fas fa-sort-up ml-1 text-blue-600"></i>'
+            : '<i class="fas fa-sort-down ml-1 text-blue-600"></i>';
+    };
+@endphp
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-gray-900">Sales Tracking</h1>
@@ -97,7 +118,7 @@
             @if($view === 'normal')
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left">Model</th><th class="px-4 py-3 text-left">Serial</th><th class="px-4 py-3 text-right">Sold Price</th><th class="px-4 py-3 text-right">Cost</th><th class="px-4 py-3 text-right">Profit</th><th class="px-4 py-3 text-left">Sold By</th><th class="px-4 py-3 text-left">Sold Date</th><th class="sticky-action px-4 py-3 text-right">Actions</th></tr></thead>
+                    <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left">Model</th><th class="px-4 py-3 text-left">Serial</th><th class="px-4 py-3 text-right"><a href="{{ $sortLink('sold_price') }}" class="inline-flex items-center justify-end text-gray-700 hover:text-blue-700">Sold Price {!! $sortArrow('sold_price') !!}</a></th><th class="px-4 py-3 text-right">Cost</th><th class="px-4 py-3 text-right">Profit</th><th class="px-4 py-3 text-left">Sold By</th><th class="px-4 py-3 text-left"><a href="{{ $sortLink('sold_date') }}" class="inline-flex items-center text-gray-700 hover:text-blue-700">Sold Date {!! $sortArrow('sold_date') !!}</a></th><th class="sticky-action px-4 py-3 text-right">Actions</th></tr></thead>
                     <tbody class="divide-y divide-gray-200">
                         @forelse($soldItems as $item)
                         @php $cost = $item->totalCostUsing((float) $item->msrp); $profit = (float) ($item->sold_price ?? 0) - $cost; @endphp
@@ -120,7 +141,7 @@
             @else
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left">Model</th><th class="px-4 py-3 text-left">Serial</th><th class="px-4 py-3 text-right">Sold</th><th class="px-4 py-3 text-right">Estimated</th><th class="px-4 py-3 text-right">Profit</th><th class="px-4 py-3 text-left">Sold By</th><th class="px-4 py-3 text-left">Date</th></tr></thead>
+                    <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left">Model</th><th class="px-4 py-3 text-left">Serial</th><th class="px-4 py-3 text-right"><a href="{{ $sortLink('sold_price') }}" class="inline-flex items-center justify-end text-gray-700 hover:text-blue-700">Sold Price {!! $sortArrow('sold_price') !!}</a></th><th class="px-4 py-3 text-right">Estimated</th><th class="px-4 py-3 text-right">Profit</th><th class="px-4 py-3 text-left">Sold By</th><th class="px-4 py-3 text-left"><a href="{{ $sortLink('sold_date') }}" class="inline-flex items-center text-gray-700 hover:text-blue-700">Sold Date {!! $sortArrow('sold_date') !!}</a></th></tr></thead>
                     <tbody class="divide-y divide-gray-200">
                         @forelse($customSales as $sale)
                         <tr><td class="px-4 py-3">{{ $sale->id }}</td><td class="px-4 py-3">{{ $sale->model_number }}</td><td class="px-4 py-3">{{ $sale->serial_number }}</td><td class="px-4 py-3 text-right">${{ number_format($sale->sold_price, 2) }}</td><td class="px-4 py-3 text-right">${{ number_format($sale->estimated_price, 2) }}</td><td class="px-4 py-3 text-right">${{ number_format($sale->sold_price - $sale->estimated_price, 2) }}</td><td class="px-4 py-3">{{ $sale->sold_by }}</td><td class="px-4 py-3">{{ $sale->created_at?->format('Y-m-d H:i') }}</td></tr>

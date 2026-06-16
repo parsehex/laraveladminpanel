@@ -25,11 +25,14 @@ class SalesController extends Controller
         $search = $request->string('search')->trim();
         $limit = $request->get('limit', 25);
         $limit = $limit === 'all' ? 'all' : max(1, (int) $limit);
+        $sort = in_array($request->get('sort'), ['sold_price', 'sold_date'], true)
+            ? $request->get('sort')
+            : 'sold_date';
+        $direction = $request->get('direction') === 'asc' ? 'asc' : 'desc';
 
         $normalQuery = TruckAppliance::query()
             ->with(['model'])
-            ->where('status', 'Sold')
-            ->latest('id');
+            ->where('status', 'Sold');
 
         if ($search->isNotEmpty()) {
             $normalQuery->where(function (Builder $query) use ($search) {
@@ -38,7 +41,7 @@ class SalesController extends Controller
             });
         }
 
-        $customQuery = CustomSale::query()->latest('id');
+        $customQuery = CustomSale::query();
 
         if ($search->isNotEmpty()) {
             $customQuery->where(function (Builder $query) use ($search) {
@@ -46,6 +49,12 @@ class SalesController extends Controller
                     ->orWhere('serial_number', 'like', '%'.$search.'%');
             });
         }
+
+        $normalSortColumn = $sort === 'sold_price' ? 'sold_price' : 'sold_at';
+        $customSortColumn = $sort === 'sold_price' ? 'sold_price' : 'created_at';
+
+        $normalQuery->orderBy($normalSortColumn, $direction)->orderByDesc('id');
+        $customQuery->orderBy($customSortColumn, $direction)->orderByDesc('id');
 
         $normalRows = (clone $normalQuery)->get();
         $customRows = (clone $customQuery)->get();
@@ -68,6 +77,8 @@ class SalesController extends Controller
             'limit' => $limit,
             'soldItems' => $soldItems,
             'customSales' => $customSales,
+            'sort' => $sort,
+            'direction' => $direction,
             'totalSales' => $view === 'normal' ? $normalSales : $customSalesTotal,
             'totalCost' => $view === 'normal' ? $normalCost : $customCost,
             'totalProfit' => $view === 'normal' ? $normalSales - $normalCost : $customSalesTotal - $customCost,
