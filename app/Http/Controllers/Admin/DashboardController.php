@@ -16,10 +16,7 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        if($request->period){
-            [$from, $to, $periodLabel] = $this->resolvePeriod($request);
-        }
-        
+        [$from, $to, $periodLabel] = $this->resolvePeriod($request);
 
         $stats = [
             'total_users' => User::count(),
