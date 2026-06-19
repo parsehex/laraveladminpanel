@@ -12,7 +12,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             UserSeeder::class,
             CategorySeeder::class,
-            TruckSeeder::class,
+            // TruckSeeder::class,
         ]);
     }
 }

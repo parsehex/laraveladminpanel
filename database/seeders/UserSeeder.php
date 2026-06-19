@@ -24,29 +24,29 @@ class UserSeeder extends Seeder
         $admin->syncRoles(['admin']);
         $admin->syncPermissions([]);
 
-        User::factory(20)->create()->each(function (User $user) {
-            $roleName = match ($user->role) {
-                'admin', 'Admin' => 'admin',
-                'technician' => 'technician',
-                'kit_assigner' => 'kit_assigner',
-                default => 'user',
-            };
-            if (Role::where('name', $roleName)->exists()) {
-                $user->syncRoles([$roleName]);
-            }
-        });
+        // User::factory(20)->create()->each(function (User $user) {
+        //     $roleName = match ($user->role) {
+        //         'admin', 'Admin' => 'admin',
+        //         'technician' => 'technician',
+        //         'kit_assigner' => 'kit_assigner',
+        //         default => 'user',
+        //     };
+        //     if (Role::where('name', $roleName)->exists()) {
+        //         $user->syncRoles([$roleName]);
+        //     }
+        // });
 
-        $testUser = User::firstOrCreate(
-            ['email' => 'user@example.com'],
-            [
-                'name' => 'Test User',
-                'password' => 'password',
-                'role' => 'user',
-                'status' => 'active',
-            ]
-        );
-        $testUser->forceFill(['role' => 'user', 'name' => 'Test User', 'status' => 'active'])->save();
-        $testUser->syncRoles(['user']);
+        // $testUser = User::firstOrCreate(
+        //     ['email' => 'user@example.com'],
+        //     [
+        //         'name' => 'Test User',
+        //         'password' => 'password',
+        //         'role' => 'user',
+        //         'status' => 'active',
+        //     ]
+        // );
+        // $testUser->forceFill(['role' => 'user', 'name' => 'Test User', 'status' => 'active'])->save();
+        // $testUser->syncRoles(['user']);
 
         // $super = User::firstOrCreate(
         //     ['email' => 'superadmin@example.com'],

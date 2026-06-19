@@ -8,7 +8,7 @@
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
             <div>
-                <h2 class="text-xl font-semibold text-gray-900">Admin Profile</h2>
+                <h2 class="text-xl font-semibold text-gray-900">Profile</h2>
                 <p class="text-sm text-gray-500">Update your display name and review account details.</p>
             </div>
             <a href="{{ route('admin.profile.password.edit') }}" class="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
@@ -31,7 +31,7 @@
             </div>
 
             <div class="flex items-center justify-end space-x-3">
-                <a href="{{ route('admin.dashboard') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">Cancel</a>
+                <a href="{{ route(\App\Support\PanelRedirector::routeNameFor(auth()->user())) }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">Cancel</a>
                 <x-form.button type="submit" variant="primary"><i class="fas fa-save mr-2"></i>Update Profile</x-form.button>
             </div>
         </form>

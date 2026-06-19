@@ -7,12 +7,14 @@ use App\Http\Requests\StoreTruckApplianceRequest;
 use App\Http\Requests\UpdateTruckApplianceRequest;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\Subcategory;
 use App\Models\Model as ApplianceModel;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+
 
 class TruckApplianceController extends Controller
 {
@@ -183,7 +185,7 @@ class TruckApplianceController extends Controller
                     $nextUnitNumber++;
                 }
                 $categoryName = trim((string) $this->csvValue($row, $columns, ['category'], 1));
-                $subcategory = trim((string) $this->csvValue($row, $columns, ['subcategory', 'sub_category'], null));
+                $subcategory = trim((string) $this->csvValue($row, $columns, ['sub_category'], null));
                 $brand = trim((string) $this->csvValue($row, $columns, ['brand'], 2));
                 $modelNumber = $this->normalizeIdentifier((string) $this->csvValue($row, $columns, ['model', 'model_number', 'model_'], 3));
                 $productName = trim((string) $this->csvValue($row, $columns, ['product_name', 'product'], 4));
@@ -202,6 +204,11 @@ class TruckApplianceController extends Controller
                         ['status' => 1, 'created_by' => $request->user()->id, 'updated_by' => $request->user()->id]
                     )
                     : null;
+                $categoryId = Category::where("name",$categoryName)->first(['id','name']);
+                $subCategory = $categoryId?->id ? Subcategory::firstOrCreate(
+                    ['name' => $subcategory ,'category_id' => $categoryId?->id],
+                    ['status' => 1, 'created_by' => $request->user()->id, 'updated_by' => $request->user()->id]
+                ) : null ;
                 $model = $modelNumber !== ''
                     ? $this->resolveModel($modelNumber, $msrp, $productName, $brand, $category?->id, $request->user()->id)
                     : null;

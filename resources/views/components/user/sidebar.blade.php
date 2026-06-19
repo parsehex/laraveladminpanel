@@ -45,13 +45,13 @@
         </a>
         @endcanAccess
         
-        <!-- @canAccess('deliveries.view')
+        @canAccess('deliveries.view')
         <a href="{{ route('admin.deliveries.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.deliveries.*') ? 'is-active' : '' }}">
             <i class="fas fa-route mr-3 w-5 text-center"></i>
             <span>Deliveries</span>
         </a>
-        @endcanAccess -->
+        @endcanAccess
 
         @canAccess('sales.view')
         <a href="{{ route('admin.sales.index') }}" @click="sidebarOpen = false"
@@ -69,13 +69,13 @@
         </a>
         @endcanAccess
 
-        <!-- @canAccess('kits.view')
+        @canAccess('kits.view')
         <a href="{{ route('admin.kits.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.kits.*') ? 'is-active' : '' }}">
             <i class="fas fa-toolbox mr-3 w-5 text-center"></i>
             <span>Kits</span>
         </a>
-        @endcanAccess -->
+        @endcanAccess
        
 
         <a href="{{ route('admin.profile.edit') }}" @click="sidebarOpen = false"

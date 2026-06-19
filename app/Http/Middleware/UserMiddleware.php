@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\PanelRedirector;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,7 +16,7 @@ class UserMiddleware
         }
 
         if (auth()->user()->isStaff()) {
-            return redirect()->route('admin.dashboard');
+            return redirect()->route(PanelRedirector::routeNameFor(auth()->user()));
         }
 
         return $next($request);
