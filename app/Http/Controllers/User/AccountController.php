@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AccountRequest;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Models\User;
+use App\Support\PanelRedirector;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
 use Log;
@@ -96,7 +97,7 @@ class AccountController extends Controller
 
         $user->update($data);
 
-        return redirect()->route('admin.dashboard')
+        return redirect()->route(PanelRedirector::routeNameFor($user))
             ->with('success', 'User updated successfully.');
     }
 }

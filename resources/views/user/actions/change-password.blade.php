@@ -8,7 +8,7 @@
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-xl font-semibold text-gray-900">Change Password</h2>
-            <a href="{{ route('admin.dashboard') }}" class="text-gray-600 hover:text-gray-900">
+            <a href="{{ route(\App\Support\PanelRedirector::routeNameFor(auth()->user())) }}" class="text-gray-600 hover:text-gray-900">
                 <i class="fas fa-arrow-left mr-1"></i> Back to dashboard
             </a>
         </div>
@@ -30,7 +30,7 @@
                 placeholder="Leave blank to keep current password" />
             
             <div class="flex items-center justify-end space-x-3">
-                <a href="{{ route('admin.dashboard') }}"
+                <a href="{{ route(\App\Support\PanelRedirector::routeNameFor(auth()->user())) }}"
                    class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">
                     Cancel
                 </a>

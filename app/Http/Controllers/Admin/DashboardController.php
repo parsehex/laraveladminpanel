@@ -17,6 +17,12 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         [$from, $to, $periodLabel] = $this->resolvePeriod($request);
+        $canViewExecutiveDashboard = $this->canViewExecutiveDashboard($request->user());
+        $productionRows = $canViewExecutiveDashboard ? $this->productionRows($from, $to) : collect();
+        $productionTotals = [
+            'total_units' => (int) $productionRows->sum('total_units'),
+            'total_msrp' => (float) $productionRows->sum('total_msrp'),
+        ];
 
         $stats = [
             'total_users' => User::count(),
@@ -90,7 +96,10 @@ class DashboardController extends Controller
             'activityRows' => $activityRows,
             'holdingForParts' => $holdingForParts,
             'suggestions' => $suggestions,
-            'period' => $request->get('period', 'daily'),
+            'productionRows' => $productionRows,
+            'productionTotals' => $productionTotals,
+            'canViewExecutiveDashboard' => $canViewExecutiveDashboard,
+            'period' => $request->get('period', 'weekly'),
             'periodLabel' => $periodLabel,
             'from' => $from,
             'to' => $to,
@@ -149,7 +158,7 @@ class DashboardController extends Controller
     private function resolvePeriod(Request $request): array
     {
 
-        $period = $request->get('period', 'daily');
+        $period = $request->get('period', 'weekly');
         $now = now();
 
         if ($period === 'custom' && $request->filled(['from', 'to'])) {
@@ -160,11 +169,39 @@ class DashboardController extends Controller
         }
 
         return match ($period) {
-            'weekly' => [$now->copy()->startOfWeek(), $now->copy()->endOfWeek(), 'This week'],
-            'monthly' => [$now->copy()->startOfMonth(), $now->copy()->endOfMonth(), 'This month'],
-            'all' => [Carbon::create(2000, 1, 1)->startOfDay(), $now->copy()->endOfDay(), 'All time'],
-            default => [$now->copy()->startOfDay(), $now->copy()->endOfDay(), 'Today'],
+            'daily' => [$now->copy()->subDay()->startOfDay(), $now->copy()->endOfDay(), 'Last 1 day'],
+            'monthly' => [$now->copy()->subDays(30)->startOfDay(), $now->copy()->endOfDay(), 'Last 30 days'],
+            'all' => [Carbon::create(1970, 1, 1)->startOfDay(), $now->copy()->endOfDay(), 'All time'],
+            default => [$now->copy()->subDays(7)->startOfDay(), $now->copy()->endOfDay(), 'Last 7 days'],
         };
+    }
+
+    private function canViewExecutiveDashboard(User $user): bool
+    {
+        return $user->isSuperAdmin()
+            || $user->hasRole('admin')
+            || in_array($user->role, ['admin', 'Admin', 'Super Admin'], true);
+    }
+
+    private function productionRows(Carbon $from, Carbon $to)
+    {
+        return InventoryStatusHistory::query()
+            ->join('truck_appliances', 'truck_appliances.id', '=', 'inventory_status_histories.truck_appliance_id')
+            ->join('users', 'users.id', '=', 'inventory_status_histories.user_id')
+            ->whereBetween('inventory_status_histories.created_at', [$from, $to])
+            ->whereIn('inventory_status_histories.status', ['Repair', 'Testing', 'Cleaning'])
+            ->groupBy('users.id', 'users.name')
+            ->select('users.id', 'users.name as username')
+            ->selectRaw("COUNT(CASE WHEN inventory_status_histories.status = 'Repair' THEN 1 END) as units_repaired")
+            ->selectRaw("COALESCE(SUM(CASE WHEN inventory_status_histories.status = 'Repair' THEN COALESCE(truck_appliances.msrp, 0) ELSE 0 END), 0) as msrp_repaired")
+            ->selectRaw("COUNT(CASE WHEN inventory_status_histories.status = 'Testing' THEN 1 END) as units_tested")
+            ->selectRaw("COALESCE(SUM(CASE WHEN inventory_status_histories.status = 'Testing' THEN COALESCE(truck_appliances.msrp, 0) ELSE 0 END), 0) as msrp_tested")
+            ->selectRaw("COUNT(CASE WHEN inventory_status_histories.status = 'Cleaning' THEN 1 END) as units_cleaned")
+            ->selectRaw("COALESCE(SUM(CASE WHEN inventory_status_histories.status = 'Cleaning' THEN COALESCE(truck_appliances.msrp, 0) ELSE 0 END), 0) as msrp_cleaned")
+            ->selectRaw('COUNT(*) as total_units')
+            ->selectRaw('COALESCE(SUM(COALESCE(truck_appliances.msrp, 0)), 0) as total_msrp')
+            ->orderByDesc('total_msrp')
+            ->get();
     }
 
     private function statusCount(User $user, string $status, Carbon $from, Carbon $to): int

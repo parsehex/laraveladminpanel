@@ -16,6 +16,10 @@ class AdminMiddleware
 
         $user = auth()->user();
 
+        if ($request->routeIs('admin.profile.*')) {
+            return $next($request);
+        }
+
         if (! $user->isStaff() && $user->getAllPermissions()->isEmpty()) {
             abort(403, 'You do not have permission to access '.$this->routeLabel($request).'.');
         }

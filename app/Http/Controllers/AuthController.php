@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PanelRedirector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -34,12 +35,9 @@ class AuthController extends Controller
                 ]);
             }
 
-            // Staff and permission-based panel users share the admin namespace.
-            if ($user->isAdmin() || $user->getAllPermissions()->isNotEmpty()) {
-                return redirect('/admin/dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
-            }
-
-            return redirect('/admin/dashboard')->with('success', 'Welcome back, ' . $user->name . '!');
+            return redirect()
+                ->route(PanelRedirector::routeNameFor($user))
+                ->with('success', 'Welcome back, '.$user->name.'!');
         }
 
         throw ValidationException::withMessages([

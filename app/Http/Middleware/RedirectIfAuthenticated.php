@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\PanelRedirector;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -22,11 +23,7 @@ class RedirectIfAuthenticated
             if (Auth::guard($guard)->check()) {
                 $user = Auth::guard($guard)->user();
 
-                if ($user?->isStaff() || $user?->getAllPermissions()->isNotEmpty()) {
-                    return redirect()->route('admin.dashboard');
-                }
-
-                return redirect()->route('admin.dashboard');
+                return redirect()->route(PanelRedirector::routeNameFor($user));
             }
         }
 
