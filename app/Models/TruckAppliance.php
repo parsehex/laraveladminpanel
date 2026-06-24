@@ -107,4 +107,11 @@ class TruckAppliance extends EloquentModel
     {
         return $baseCost + $this->signedPartsCost();
     }
+
+    public function salesCost(): float
+    {
+        $price = (float) $this->price;
+
+        return $price > 0 ? $price : (float) $this->msrp * 0.7;
+    }
 }
