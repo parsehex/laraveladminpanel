@@ -18,6 +18,7 @@ class RolePermissionSeeder extends Seeder
 
         $definitions = [
             ['name' => 'admin.dashboard', 'module_name' => 'dashboard', 'description' => 'Access admin dashboard'],
+            ['name' => 'executive-dashboard.view', 'module_name' => 'executive dashboard', 'description' => 'View executive dashboard'],
             ['name' => 'users.view', 'module_name' => 'users', 'description' => 'List users'],
             ['name' => 'users.create', 'module_name' => 'users', 'description' => 'Create users'],
             ['name' => 'users.edit', 'module_name' => 'users', 'description' => 'Edit users'],
@@ -31,6 +32,10 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'parts.create', 'module_name' => 'parts', 'description' => 'Create parts'],
             ['name' => 'parts.edit', 'module_name' => 'parts', 'description' => 'Edit parts'],
             ['name' => 'parts.delete', 'module_name' => 'parts', 'description' => 'Delete parts'],
+            ['name' => 'kit-parts.view', 'module_name' => 'kit parts', 'description' => 'List kit parts'],
+            ['name' => 'kit-parts.create', 'module_name' => 'kit parts', 'description' => 'Create kit parts'],
+            ['name' => 'kit-parts.edit', 'module_name' => 'kit parts', 'description' => 'Edit kit parts'],
+            ['name' => 'kit-parts.delete', 'module_name' => 'kit parts', 'description' => 'Delete kit parts'],
             ['name' => 'models.view', 'module_name' => 'models', 'description' => 'List models'],
             ['name' => 'models.create', 'module_name' => 'models', 'description' => 'Create models'],
             ['name' => 'models.edit', 'module_name' => 'models', 'description' => 'Edit models'],

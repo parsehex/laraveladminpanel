@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\KitCatalogPart;
 use App\Models\Model;
-use App\Models\Part;
 use App\Models\Subcategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -137,7 +137,7 @@ class DropdownController extends Controller
     {
         $search = $request->string('q')->trim();
 
-        $parts = Part::query()
+        $parts = KitCatalogPart::query()
             ->when($search->isNotEmpty(), function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('part_number', 'like', '%'.$search.'%')
@@ -149,7 +149,7 @@ class DropdownController extends Controller
             ->paginate(20);
 
         return response()->json([
-            'data' => $parts->getCollection()->map(fn (Part $part) => [
+            'data' => $parts->getCollection()->map(fn (KitCatalogPart $part) => [
                 'id' => $part->part_number,
                 'text' => $part->part_number.($part->product_name ? ' - '.$part->product_name : '').' (stock: '.$part->total_stock.', cost: $'.number_format($this->partCost($part), 2).')',
                 'value' => $part->part_number,
@@ -292,10 +292,10 @@ class DropdownController extends Controller
 
     public function storeKitPart(Request $request): JsonResponse
     {
-        abort_unless($request->user()?->can('kits.manage'), 403);
+        abort_unless($request->user()?->can('kits.manage') || $request->user()?->can('kit-parts.create'), 403);
 
         $data = $request->validate([
-            'part_name' => ['required', 'string', 'max:255', Rule::unique('parts', 'part_number')->whereNull('deleted_at')],
+            'part_name' => ['required', 'string', 'max:255', Rule::unique('kit_catalog_parts', 'part_number')->whereNull('deleted_at')],
             'total_stock' => ['nullable', 'integer', 'min:0'],
         ]);
 
@@ -306,13 +306,13 @@ class DropdownController extends Controller
             'updated_by' => $request->user()->id,
         ];
 
-        $part = Part::withTrashed()->where('part_number', $payload['part_number'])->first();
+        $part = KitCatalogPart::withTrashed()->where('part_number', $payload['part_number'])->first();
 
         if ($part?->trashed()) {
             $part->restore();
             $part->update($payload);
         } else {
-            $part = Part::create($payload);
+            $part = KitCatalogPart::create($payload);
         }
 
         return response()->json([
@@ -327,7 +327,7 @@ class DropdownController extends Controller
         ], 201);
     }
 
-    private function partCost(Part $part): float
+    private function partCost(KitCatalogPart $part): float
     {
         $yourPrice = (float) $part->your_price;
 

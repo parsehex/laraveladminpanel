@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DeliveryController;
 use App\Http\Controllers\Admin\DropdownController;
 use App\Http\Controllers\Admin\InventoryController;
+use App\Http\Controllers\Admin\KitCatalogPartController;
 use App\Http\Controllers\Admin\KitController;
 use App\Http\Controllers\Admin\ModelController;
 use App\Http\Controllers\Admin\PartController;
@@ -42,6 +43,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])
         ->middleware('permission:admin.dashboard')
         ->name('dashboard');
+    Route::get('/executive-dashboard', [AdminDashboardController::class, 'executive'])
+        ->middleware('permission:executive-dashboard.view')
+        ->name('executive-dashboard.index');
     Route::get('/profile', [ProfileController::class, 'edit'])
         ->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])
@@ -73,7 +77,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->middleware('permission:models.view|models.create|models.edit|appliance.create|appliance.edit')
         ->name('dropdowns.brands');
     Route::get('dropdowns/kit-parts', [DropdownController::class, 'kitParts'])
-        ->middleware('permission:kits.view|kits.manage')
+        ->middleware('permission:kits.view|kits.manage|kit-parts.view')
         ->name('dropdowns.kit-parts');
     Route::post('dropdowns/categories', [DropdownController::class, 'storeCategory'])
         ->middleware('permission:category.create')
@@ -91,7 +95,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->middleware('permission:appliance.create|appliance.edit')
         ->name('dropdowns.truck-model-info');
     Route::post('dropdowns/kit-parts', [DropdownController::class, 'storeKitPart'])
-        ->middleware('permission:kits.manage')
+        ->middleware('permission:kits.manage|kit-parts.create')
         ->name('dropdowns.kit-parts.store');
 
     Route::resource('users', UserController::class);
@@ -225,6 +229,22 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::delete('parts/{part}', [PartController::class, 'destroy'])
         ->middleware('permission:parts.delete')
         ->name('parts.destroy');
+
+    Route::get('kit-parts', [KitCatalogPartController::class, 'index'])
+        ->middleware('permission:kit-parts.view')
+        ->name('kit-parts.index');
+    Route::post('kit-parts', [KitCatalogPartController::class, 'store'])
+        ->middleware('permission:kit-parts.create')
+        ->name('kit-parts.store');
+    Route::post('kit-parts/import', [KitCatalogPartController::class, 'import'])
+        ->middleware('permission:kit-parts.create')
+        ->name('kit-parts.import');
+    Route::put('kit-parts/{kitPart}', [KitCatalogPartController::class, 'update'])
+        ->middleware('permission:kit-parts.edit')
+        ->name('kit-parts.update');
+    Route::delete('kit-parts/{kitPart}', [KitCatalogPartController::class, 'destroy'])
+        ->middleware('permission:kit-parts.delete')
+        ->name('kit-parts.destroy');
 
     Route::get('models', [ModelController::class, 'index'])
         ->middleware('permission:models.view')

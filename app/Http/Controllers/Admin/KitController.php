@@ -5,10 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Kit;
 use App\Models\KitAssignment;
+use App\Models\KitCatalogPart;
 use App\Models\KitInventory;
 use App\Models\KitMessage;
 use App\Models\KitPart;
-use App\Models\Part;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -187,7 +187,7 @@ class KitController extends Controller
             $assignment->load('kit.parts');
 
             foreach ($assignment->kit->parts as $part) {
-                Part::query()
+                KitCatalogPart::query()
                     ->where('part_number', $part->part_name)
                     ->decrement('total_stock', $assignment->quantity * $part->quantity_per_kit);
 
@@ -240,7 +240,7 @@ class KitController extends Controller
                 $assignment->load('kit.parts');
 
                 foreach ($assignment->kit->parts as $part) {
-                    Part::query()
+                    KitCatalogPart::query()
                         ->where('part_number', $part->part_name)
                         ->increment('total_stock', $assignment->quantity * $part->quantity_per_kit);
 
@@ -268,7 +268,7 @@ class KitController extends Controller
         KitInventory::query()->where('part_name', $data['part_name'])->increment($column, $data['adjustment']);
 
         if (! @$data['platform']) {
-            Part::query()
+            KitCatalogPart::query()
                 ->where('part_number', $data['part_name'])
                 ->increment('total_stock', $data['adjustment']);
         }
@@ -305,7 +305,7 @@ class KitController extends Controller
             'min_level' => $data['min_level'] ?? 0,
         ]);
 
-        Part::firstOrCreate(
+        KitCatalogPart::firstOrCreate(
             ['part_number' => trim($data['part_name'])],
             [
                 'total_stock' => $data['initial_stock'] ?? 0,
@@ -363,11 +363,11 @@ class KitController extends Controller
         $this->assertPartQuantitiesWithinStock($parts);
 
         foreach ($parts as $partName => $quantity) {
-            $part = Part::query()->where('part_number', $partName)->first();
+            $part = KitCatalogPart::query()->where('part_number', $partName)->first();
 
             if (! $part) {
                 throw ValidationException::withMessages([
-                    'part_name' => "The selected part '{$partName}' does not exist in parts.",
+                    'part_name' => "The selected part '{$partName}' does not exist in kit parts.",
                 ]);
             }
 
@@ -415,11 +415,11 @@ class KitController extends Controller
     private function assertPartQuantitiesWithinStock(array $parts): void
     {
         foreach ($parts as $partName => $quantity) {
-            $part = Part::query()->where('part_number', $partName)->first();
+            $part = KitCatalogPart::query()->where('part_number', $partName)->first();
 
             if (! $part) {
                 throw ValidationException::withMessages([
-                    'part_name' => "The selected part '{$partName}' does not exist in parts.",
+                    'part_name' => "The selected part '{$partName}' does not exist in kit parts.",
                 ]);
             }
 
@@ -436,7 +436,7 @@ class KitController extends Controller
         $kit->loadMissing('parts');
 
         foreach ($kit->parts as $part) {
-            $catalogPart = Part::query()->where('part_number', $part->part_name)->first();
+            $catalogPart = KitCatalogPart::query()->where('part_number', $part->part_name)->first();
             $available = $catalogPart?->total_stock ?? 0;
             $required = $kitQuantity * $part->quantity_per_kit;
 
@@ -457,7 +457,7 @@ class KitController extends Controller
     {
         $kit->loadMissing('parts');
         $partNumbers = $kit->parts->pluck('part_name')->filter()->values();
-        $catalogParts = Part::query()
+        $catalogParts = KitCatalogPart::query()
             ->whereIn('part_number', $partNumbers)
             ->get()
             ->keyBy('part_number');
@@ -492,7 +492,7 @@ class KitController extends Controller
         ];
     }
 
-    private function partCost(Part $part): float
+    private function partCost(KitCatalogPart $part): float
     {
         $yourPrice = (float) $part->your_price;
 
