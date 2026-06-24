@@ -46,8 +46,8 @@
             <p><strong>Category:</strong> {{ $appliance->category?->name ?? '-' }}</p>
             <p><strong>Current Status:</strong> <span class="status-chip {{ $statusClass }}">{{ $status }}</span></p>
             <p><strong>Location:</strong> {{ $appliance->location ?: '-' }}</p>
-            <p><strong>Total Cost:</strong> ${{ number_format($finalCost, 2) }}</p>
-            <p><strong>Final Cost Valuation:</strong> ${{ number_format($finalCost, 2) }} <span class="text-gray-500">(Our Cost: ${{ number_format($baseCost, 2) }} {{ $partsCost < 0 ? '-' : '+' }} Parts Cost: ${{ number_format(abs($partsCost), 2) }})</span></p>
+            <p><strong>Total Cost:</strong> ${{ number_format(0, 2) }}</p>
+            <p><strong>Final Cost Valuation:</strong>${{ number_format($appliance->price, 2) }} <span class="text-gray-500">(Our Cost: ${{ number_format($appliance->price, 2) }} {{ $partsCost < 0 ? '-' : '+' }} Parts Cost: ${{ number_format(abs($partsCost), 2) }})</span></p>
             <p><strong>MSRP:</strong> ${{ number_format($appliance->msrp, 2) }}</p>
             @if($soldPrice !== null)
             <p><strong>Sold Price:</strong> ${{ number_format($appliance->sold_price, 2) }} <span class="text-gray-500">({{ $appliance->sold_by ?: 'Unknown' }}, {{ $appliance->sold_at?->format('Y-m-d H:i') }})</span></p>
@@ -112,7 +112,7 @@
                 <textarea name="notes" placeholder="Notes" class="legacy-input min-h-12">{{ old('notes') }}</textarea>
                 <div id="sold-price-row" class="hidden">
                     <label class="block mb-1">Sold Price <span class="text-gray-500">(optional)</span></label>
-                    <input type="number" step="0.01" min="0" name="sold_price" value="{{ old('sold_price', $appliance->sold_price) }}" placeholder="Sold Price (excl. taxes)" class="legacy-input max-w-xs">
+                    <input type="number" required step="0.01" min="0" name="sold_price" value="{{ old('sold_price', $appliance->sold_price) }}" placeholder="Sold Price (excl. taxes)" class="legacy-input max-w-xs">
                 </div>
                 <label class="hidden items-center gap-2" id="parts-ordered-row">
                     <input type="checkbox" name="parts_ordered" value="1" @checked(old('parts_ordered'))>
