@@ -60,7 +60,7 @@ class SalesController extends Controller
         $customRows = (clone $customQuery)->get();
 
         $normalSales = (float) $normalRows->sum(fn (TruckAppliance $item) => (float) ($item->sold_price ?? 0));
-        $normalCost = (float) $normalRows->sum(fn (TruckAppliance $item) => $item->totalCostUsing((float) $item->msrp));
+        $normalCost = (float) $normalRows->sum(fn (TruckAppliance $item) => $item->salesCost());
         $customSalesTotal = (float) $customRows->sum('sold_price');
         $customCost = (float) $customRows->sum('estimated_price');
 
@@ -138,7 +138,7 @@ class SalesController extends Controller
             ]);
         });
 
-        $cost = $appliance->totalCostUsing((float) $appliance->msrp);
+        $cost = $appliance->salesCost();
 
         return back()->with('success', __('Item marked as sold. Profit: $:profit', [
             'profit' => number_format((float) $data['sold_price'] - $cost, 2),

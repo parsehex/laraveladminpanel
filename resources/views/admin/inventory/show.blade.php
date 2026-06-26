@@ -10,7 +10,7 @@
     $partsCost = $appliance->signedPartsCost();
     $finalCost = $baseCost + $partsCost;
     $soldPrice = $appliance->sold_price !== null ? (float) $appliance->sold_price : null;
-    $profit = $soldPrice !== null ? $soldPrice - $finalCost : null;
+    $cost = $appliance->salesCost(); $profit = (float) ($appliance->sold_price ?? 0) - $cost;
     $modelNumber = $appliance->model?->model_number ?? ('#'.$appliance->id);
     $statusStyles = [
         'Triage' => ['label' => 'None / White', 'class' => 'status-white'],
