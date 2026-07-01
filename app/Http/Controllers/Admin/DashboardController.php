@@ -17,12 +17,6 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         [$from, $to, $periodLabel] = $this->resolvePeriod($request);
-        $canViewExecutiveDashboard = $this->canViewExecutiveDashboard($request->user());
-        $productionRows = $canViewExecutiveDashboard ? $this->productionRows($from, $to) : collect();
-        $productionTotals = [
-            'total_units' => (int) $productionRows->sum('total_units'),
-            'total_msrp' => (float) $productionRows->sum('total_msrp'),
-        ];
 
         $stats = [
             'total_users' => User::count(),
@@ -96,9 +90,25 @@ class DashboardController extends Controller
             'activityRows' => $activityRows,
             'holdingForParts' => $holdingForParts,
             'suggestions' => $suggestions,
+            'period' => $request->get('period', 'weekly'),
+            'periodLabel' => $periodLabel,
+            'from' => $from,
+            'to' => $to,
+        ]);
+    }
+
+    public function executive(Request $request)
+    {
+        [$from, $to, $periodLabel] = $this->resolvePeriod($request);
+        $productionRows = $this->productionRows($from, $to);
+        $productionTotals = [
+            'total_units' => (int) $productionRows->sum('total_units'),
+            'total_msrp' => (float) $productionRows->sum('total_msrp'),
+        ];
+
+        return view('admin.executive-dashboard', [
             'productionRows' => $productionRows,
             'productionTotals' => $productionTotals,
-            'canViewExecutiveDashboard' => $canViewExecutiveDashboard,
             'period' => $request->get('period', 'weekly'),
             'periodLabel' => $periodLabel,
             'from' => $from,
@@ -174,13 +184,6 @@ class DashboardController extends Controller
             'all' => [Carbon::create(1970, 1, 1)->startOfDay(), $now->copy()->endOfDay(), 'All time'],
             default => [$now->copy()->subDays(7)->startOfDay(), $now->copy()->endOfDay(), 'Last 7 days'],
         };
-    }
-
-    private function canViewExecutiveDashboard(User $user): bool
-    {
-        return $user->isSuperAdmin()
-            || $user->hasRole('admin')
-            || in_array($user->role, ['admin', 'Admin', 'Super Admin'], true);
     }
 
     private function productionRows(Carbon $from, Carbon $to)

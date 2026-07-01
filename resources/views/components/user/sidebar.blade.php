@@ -21,6 +21,14 @@
         </a>
         @endcanAccess
 
+        @canAccess('executive-dashboard.view')
+        <a href="{{ route('admin.executive-dashboard.index') }}" @click="sidebarOpen = false"
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.executive-dashboard.*') ? 'is-active' : '' }}">
+            <i class="fas fa-chart-line mr-3 w-5 text-center"></i>
+            <span>Executive Dashboard</span>
+        </a>
+        @endcanAccess
+
         @canAccess('trucks.view')
         <a href="{{ route('admin.trucks.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.trucks.*') ? 'is-active' : '' }}">
@@ -34,6 +42,14 @@
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.parts.*') ? 'is-active' : '' }}">
             <i class="fas fa-cogs mr-3 w-5 text-center"></i>
             <span>Parts</span>
+        </a>
+        @endcanAccess
+
+        @canAccess('kit-parts.view')
+        <a href="{{ route('admin.kit-parts.index') }}" @click="sidebarOpen = false"
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.kit-parts.*') ? 'is-active' : '' }}">
+            <i class="fas fa-screwdriver-wrench mr-3 w-5 text-center"></i>
+            <span>Kit Parts</span>
         </a>
         @endcanAccess
 

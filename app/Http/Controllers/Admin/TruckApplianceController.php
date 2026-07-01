@@ -190,13 +190,13 @@ class TruckApplianceController extends Controller
                 $modelNumber = $this->normalizeIdentifier((string) $this->csvValue($row, $columns, ['model', 'model_number', 'model_'], 3));
                 $productName = trim((string) $this->csvValue($row, $columns, ['product_name', 'product'], 4));
                 $quantity = (int) $this->csvValue($row, $columns, ['quantity'], 5);
-                $ourCost = (float) $this->csvValue($row, $columns, ['our_cost', 'cost'], 6);
+                $ourCost = $this->csvMoney($this->csvValue($row, $columns, ['our_cost', 'cost'], 6));
                 $serialNumber = $this->normalizeIdentifier((string) $this->csvValue($row, $columns, ['serial', 'serial_number'], 7));
                 $receivingCondition = trim((string) $this->csvValue($row, $columns, ['receiving_condition'], 8));
-                $msrp = (float) $this->csvValue($row, $columns, ['msrp'], 9);
+                $msrp = $this->csvMoney($this->csvValue($row, $columns, ['msrp'], 9));
                 $fuelType = trim((string) $this->csvValue($row, $columns, ['fuel_type'], 10));
                 $status = trim((string) $this->csvValue($row, $columns, ['status'], null));
-                $totalPartsCost = (float) ($this->csvValue($row, $columns, ['total_parts_cost', 'parts_cost'], null) ?? 0);
+                $totalPartsCost = $this->csvMoney($this->csvValue($row, $columns, ['total_parts_cost', 'parts_cost'], null));
 
                 $category = $categoryName !== ''
                     ? Category::firstOrCreate(
@@ -456,5 +456,12 @@ class TruckApplianceController extends Controller
         }
 
         return $fallbackIndex !== null ? ($row[$fallbackIndex] ?? null) : null;
+    }
+
+    private function csvMoney(mixed $value): float
+    {
+        $normalized = preg_replace('/[^0-9.\-]/', '', (string) $value);
+
+        return $normalized === '' || $normalized === '-' ? 0.0 : (float) $normalized;
     }
 }
