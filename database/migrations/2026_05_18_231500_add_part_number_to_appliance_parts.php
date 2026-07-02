@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('appliance_parts', function (Blueprint $table) {
             if (! Schema::hasColumn('appliance_parts', 'part_number')) {
-                $table->string('part_number', 32)->nullable()->after('description')->unique();
+                $table->string('part_number', 32)->nullable()->unique();
             }
         });
     }

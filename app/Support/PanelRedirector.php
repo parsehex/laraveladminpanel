@@ -11,9 +11,11 @@ class PanelRedirector
      */
     private const DESTINATIONS = [
         ['permission' => 'admin.dashboard', 'route' => 'admin.dashboard'],
+        ['permission' => 'executive-dashboard.view', 'route' => 'admin.executive-dashboard.index'],
         ['permission' => 'trucks.view', 'route' => 'admin.trucks.index'],
         ['permission' => 'inventory.view', 'route' => 'admin.inventory.index'],
         ['permission' => 'parts.view', 'route' => 'admin.parts.index'],
+        ['permission' => 'kit-parts.view', 'route' => 'admin.kit-parts.index'],
         ['permission' => 'models.view', 'route' => 'admin.models.index'],
         ['permission' => 'sales.view', 'route' => 'admin.sales.index'],
         ['permission' => 'deliveries.view', 'route' => 'admin.deliveries.index'],

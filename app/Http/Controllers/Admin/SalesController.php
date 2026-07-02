@@ -36,8 +36,8 @@ class SalesController extends Controller
 
         if ($search->isNotEmpty()) {
             $normalQuery->where(function (Builder $query) use ($search) {
-                $query->where('serial_number', 'like', '%'.$search.'%')
-                    ->orWhereHas('model', fn (Builder $modelQuery) => $modelQuery->where('model_number', 'like', '%'.$search.'%'));
+                $query->whereLike('serial_number', '%'.$search.'%')
+                    ->orWhereHas('model', fn (Builder $modelQuery) => $modelQuery->whereLike('model_number', '%'.$search.'%'));
             });
         }
 
@@ -45,8 +45,8 @@ class SalesController extends Controller
 
         if ($search->isNotEmpty()) {
             $customQuery->where(function (Builder $query) use ($search) {
-                $query->where('model_number', 'like', '%'.$search.'%')
-                    ->orWhere('serial_number', 'like', '%'.$search.'%');
+                $query->whereLike('model_number', '%'.$search.'%')
+                    ->orWhereLike('serial_number', '%'.$search.'%');
             });
         }
 

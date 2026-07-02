@@ -19,7 +19,7 @@ class RoleController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->string('search');
-            $query->where('name', 'like', '%'.$search.'%');
+            $query->whereLike('name', '%'.$search.'%');
         }
 
         $roles = $query->orderBy('name')->paginate(15)->withQueryString();

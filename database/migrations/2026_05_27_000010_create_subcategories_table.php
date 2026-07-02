@@ -16,7 +16,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('category_id')->constrained('categories')->cascadeOnDelete();
             $table->string('name');
-            $table->unsignedTinyInteger('status')->default(1);
+            $table->smallInteger('status')->default(1);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();

@@ -233,10 +233,10 @@ class InventoryController extends Controller
 
         $parts = Part::query()
             ->where(function (Builder $query) use ($search) {
-                $query->where('part_number', 'like', '%'.$search.'%')
-                    ->orWhere('product_name', 'like', '%'.$search.'%')
-                    ->orWhere('model_compatibility', 'like', '%'.$search.'%')
-                    ->orWhere('cross_reference', 'like', '%'.$search.'%');
+                $query->whereLike('part_number', '%'.$search.'%')
+                    ->orWhereLike('product_name', '%'.$search.'%')
+                    ->orWhereLike('model_compatibility', '%'.$search.'%')
+                    ->orWhereLike('cross_reference', '%'.$search.'%');
             })
             ->orderBy('part_number')
             ->limit(10)
@@ -489,9 +489,9 @@ class InventoryController extends Controller
             $search = $request->string('search')->trim();
 
             $query->where(function (Builder $query) use ($search) {
-                $query->where('serial_number', 'like', '%'.$search.'%')
-                    ->orWhere('product_name', 'like', '%'.$search.'%')
-                    ->orWhereHas('model', fn (Builder $modelQuery) => $modelQuery->where('model_number', 'like', '%'.$search.'%'));
+                $query->whereLike('serial_number', '%'.$search.'%')
+                    ->orWhereLike('product_name', '%'.$search.'%')
+                    ->orWhereHas('model', fn (Builder $modelQuery) => $modelQuery->whereLike('model_number', '%'.$search.'%'));
             });
         }
 
@@ -518,7 +518,7 @@ class InventoryController extends Controller
         }
 
         if ($request->filled('brand')) {
-            $query->where('brand', 'like', '%'.$request->string('brand')->trim().'%');
+            $query->whereLike('brand', '%'.$request->string('brand')->trim().'%');
         }
 
         if ($request->filled('category_id')) {
@@ -526,7 +526,7 @@ class InventoryController extends Controller
         }
 
         if ($request->filled('sub_category')) {
-            $query->where('subcategory', 'like', '%'.$request->string('sub_category')->trim().'%');
+            $query->whereLike('subcategory', '%'.$request->string('sub_category')->trim().'%');
         }
     }
 

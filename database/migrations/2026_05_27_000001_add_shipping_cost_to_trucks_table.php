@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('trucks', function (Blueprint $table) {
             if (! Schema::hasColumn('trucks', 'shipping_cost')) {
-                $table->decimal('shipping_cost', 12, 2)->default(0)->after('cost_of_truck');
+                $table->decimal('shipping_cost', 12, 2)->default(0);
             }
         });
     }

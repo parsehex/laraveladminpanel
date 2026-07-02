@@ -72,7 +72,7 @@ class RolePermissionSeeder extends Seeder
 
         /*
         | Replace all roles so lowercase names (admin, user, …) are not merged with
-        | legacy PascalCase rows under MySQL's default case-insensitive unique index on `name`.
+        | legacy PascalCase rows under case-insensitive collations or legacy data constraints.
         */
         Schema::disableForeignKeyConstraints();
         try {

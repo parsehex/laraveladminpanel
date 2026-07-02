@@ -12,7 +12,7 @@ return new class extends Migration
         Schema::create('brands', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
-            $table->tinyInteger('status')->default(1)->comment('1: Active, 0: Inactive');
+            $table->smallInteger('status')->default(1)->comment('1: Active, 0: Inactive');
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('deleted_by')->nullable()->constrained('users')->nullOnDelete();

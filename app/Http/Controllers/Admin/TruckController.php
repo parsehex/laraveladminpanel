@@ -34,7 +34,7 @@ class TruckController extends Controller
         if ($request->filled('search')) {
             $search = $request->string('search')->trim();
 
-            $query->where('name', 'like', '%' . $search . '%');
+            $query->whereLike('name', '%' . $search . '%');
         }
 
         if ($request->filled('status')) {

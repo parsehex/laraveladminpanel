@@ -28,13 +28,13 @@ class PartController extends Controller
         if ($request->filled('search')) {
             $search = $request->string('search')->trim();
             if($request->filled('is_from_model_section')){
-                $query->where('model_compatibility', 'like', '%'.$search.'%');
+                $query->whereLike('model_compatibility', '%'.$search.'%');
             }else{
                 $query->where(function ($query) use ($search) {
-                    $query->where('part_number', 'like', '%'.$search.'%')
-                        ->orWhere('product_name', 'like', '%'.$search.'%')
-                        ->orWhere('model_compatibility', 'like', '%'.$search.'%')
-                        ->orWhere('cross_reference', 'like', '%'.$search.'%');
+                    $query->whereLike('part_number', '%'.$search.'%')
+                        ->orWhereLike('product_name', '%'.$search.'%')
+                        ->orWhereLike('model_compatibility', '%'.$search.'%')
+                        ->orWhereLike('cross_reference', '%'.$search.'%');
                 });
             }
         }

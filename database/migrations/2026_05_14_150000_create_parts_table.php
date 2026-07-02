@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('part_number')->unique();
             $table->string('product_name')->nullable();
             $table->string('model_compatibility')->nullable();
-            $table->unsignedInteger('total_stock')->default(0);
+            $table->integer('total_stock')->default(0);
             $table->decimal('retail_price', 12, 2)->default(0);
             $table->decimal('your_price', 12, 2)->default(0);
             $table->string('cross_reference')->nullable();

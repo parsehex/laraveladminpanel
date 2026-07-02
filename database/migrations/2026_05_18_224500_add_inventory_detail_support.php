@@ -10,19 +10,19 @@ return new class extends Migration
     {
         Schema::table('truck_appliances', function (Blueprint $table) {
             if (! Schema::hasColumn('truck_appliances', 'location')) {
-                $table->string('location')->nullable()->after('status');
+                $table->string('location')->nullable();
             }
 
             if (! Schema::hasColumn('truck_appliances', 'sold_price')) {
-                $table->decimal('sold_price', 10, 2)->nullable()->after('total_parts_cost');
+                $table->decimal('sold_price', 10, 2)->nullable();
             }
 
             if (! Schema::hasColumn('truck_appliances', 'sold_by')) {
-                $table->string('sold_by')->nullable()->after('sold_price');
+                $table->string('sold_by')->nullable();
             }
 
             if (! Schema::hasColumn('truck_appliances', 'sold_at')) {
-                $table->timestamp('sold_at')->nullable()->after('sold_by');
+                $table->timestamp('sold_at')->nullable();
             }
         });
 

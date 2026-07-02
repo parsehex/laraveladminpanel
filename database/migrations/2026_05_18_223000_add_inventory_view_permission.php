@@ -7,13 +7,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $permissionId = DB::table('permissions')->where([
-            'name' => 'inventory.view',
-            'guard_name' => 'web',
-        ])->value('id');
-
-        if (! $permissionId) {
-            $permissionId = DB::table('permissions')->insertGetId([
+        DB::table('permissions')->updateOrInsert(
+            [
+                'name' => 'inventory.view',
+                'guard_name' => 'web',
+            ],
+            [
                 'name' => 'inventory.view',
                 'guard_name' => 'web',
                 'module_name' => 'inventory',
@@ -21,8 +20,13 @@ return new class extends Migration
                 'description' => 'List inventory',
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
-        }
+            ]
+        );
+
+        $permissionId = DB::table('permissions')->where([
+            'name' => 'inventory.view',
+            'guard_name' => 'web',
+        ])->value('id');
 
         DB::table('roles')
             ->whereIn('name', ['admin', 'technician', 'kit_assigner'])

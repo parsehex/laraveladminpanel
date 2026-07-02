@@ -12,7 +12,6 @@ return new class extends Migration
             if (! Schema::hasColumn('appliance_parts', 'part_id')) {
                 $table->foreignId('part_id')
                     ->nullable()
-                    ->after('truck_appliance_id')
                     ->constrained('parts')
                     ->nullOnDelete();
             }

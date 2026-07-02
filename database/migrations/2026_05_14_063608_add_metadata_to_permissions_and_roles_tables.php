@@ -12,15 +12,15 @@ return new class extends Migration
         $rolesTable = config('permission.table_names.roles') ?: 'roles';
 
         Schema::table($permissionsTable, function (Blueprint $table) {
-            $table->string('module_name', 120)->nullable()->after('guard_name')->index();
-            $table->string('slug', 191)->nullable()->after('module_name')->unique();
-            $table->text('description')->nullable()->after('slug');
-            $table->foreignId('created_by')->nullable()->after('description')->constrained('users')->nullOnDelete();
+            $table->string('module_name', 120)->nullable()->index();
+            $table->string('slug', 191)->nullable()->unique();
+            $table->text('description')->nullable();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
         });
 
         Schema::table($rolesTable, function (Blueprint $table) {
-            $table->text('description')->nullable()->after('guard_name');
-            $table->foreignId('created_by')->nullable()->after('description')->constrained('users')->nullOnDelete();
+            $table->text('description')->nullable();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
         });
     }
 

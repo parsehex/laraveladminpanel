@@ -10,37 +10,37 @@ return new class extends Migration
     {
         Schema::table('truck_appliances', function (Blueprint $table) {
             if (! Schema::hasColumn('truck_appliances', 'unit_label')) {
-                $table->string('unit_label')->nullable()->after('truck_id');
+                $table->string('unit_label')->nullable();
             }
             if (! Schema::hasColumn('truck_appliances', 'quantity')) {
-                $table->integer('quantity')->default(1)->after('product_name');
+                $table->integer('quantity')->default(1);
             }
             if (! Schema::hasColumn('truck_appliances', 'price')) {
-                $table->decimal('price', 10, 2)->default(0)->after('quantity');
+                $table->decimal('price', 10, 2)->default(0);
             }
             if (! Schema::hasColumn('truck_appliances', 'fuel_type')) {
-                $table->string('fuel_type')->nullable()->after('msrp');
+                $table->string('fuel_type')->nullable();
             }
         });
 
         Schema::table('models', function (Blueprint $table) {
             if (! Schema::hasColumn('models', 'variations')) {
-                $table->json('variations')->nullable()->after('msrp');
+                $table->json('variations')->nullable();
             }
         });
 
         Schema::table('parts', function (Blueprint $table) {
             if (! Schema::hasColumn('parts', 'diagram_name')) {
-                $table->string('diagram_name')->nullable()->after('cross_reference');
+                $table->string('diagram_name')->nullable();
             }
             if (! Schema::hasColumn('parts', 'image_url')) {
-                $table->text('image_url')->nullable()->after('diagram_name');
+                $table->text('image_url')->nullable();
             }
             if (! Schema::hasColumn('parts', 'make')) {
-                $table->string('make')->nullable()->after('image_url');
+                $table->string('make')->nullable();
             }
             if (! Schema::hasColumn('parts', 'item')) {
-                $table->string('item')->nullable()->after('make');
+                $table->string('item')->nullable();
             }
         });
 

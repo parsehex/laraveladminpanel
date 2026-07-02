@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('trucks', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->unsignedInteger('units_on_truck')->default(0);
+            $table->integer('units_on_truck')->default(0);
             $table->decimal('cost_of_truck', 12, 2)->default(0);
             $table->date('arrival_date');
             $table->string('status', 20)->default('active');

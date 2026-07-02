@@ -42,9 +42,9 @@ class ModelController extends Controller
         if ($request->filled('search')) {
             $search = $request->string('search')->trim();
             $query->where(function ($query) use ($search) {
-                $query->where('model_number', 'like', '%'.$search.'%')
-                    ->orWhere('product_name', 'like', '%'.$search.'%')
-                    ->orWhere('brand', 'like', '%'.$search.'%');
+                $query->whereLike('model_number', '%'.$search.'%')
+                    ->orWhereLike('product_name', '%'.$search.'%')
+                    ->orWhereLike('brand', '%'.$search.'%');
             });
         }
 
@@ -101,7 +101,7 @@ class ModelController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->string('search')->trim();
-            $query->where('model_number', 'like', '%'.$search.'%');
+            $query->whereLike('model_number', '%'.$search.'%');
         }
 
         return response()->streamDownload(function () use ($query) {

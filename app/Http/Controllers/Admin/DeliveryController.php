@@ -27,8 +27,8 @@ class DeliveryController extends Controller
 
         if ($search->isNotEmpty()) {
             $query->where(function (Builder $query) use ($search) {
-                $query->where('customer_name', 'like', '%'.$search.'%')
-                    ->orWhere('customer_number', 'like', '%'.$search.'%');
+                $query->whereLike('customer_name', '%'.$search.'%')
+                    ->orWhereLike('customer_number', '%'.$search.'%');
             });
         }
 

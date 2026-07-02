@@ -20,7 +20,7 @@ class DropdownController extends Controller
 
         $categories = Category::query()
             ->where('status', 1)
-            ->when($search->isNotEmpty(), fn ($query) => $query->where('name', 'like', '%'.$search.'%'))
+            ->when($search->isNotEmpty(), fn ($query) => $query->whereLike('name', '%'.$search.'%'))
             ->orderBy('name')
             ->paginate(20);
 
@@ -44,7 +44,7 @@ class DropdownController extends Controller
             ->with('category')
             ->where('status', 1)
             ->when($category !== '', fn ($query) => $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('name', $category)))
-            ->when($search->isNotEmpty(), fn ($query) => $query->where('name', 'like', '%'.$search.'%'))
+            ->when($search->isNotEmpty(), fn ($query) => $query->whereLike('name', '%'.$search.'%'))
             ->orderBy('name')
             ->paginate(20);
 
@@ -67,8 +67,8 @@ class DropdownController extends Controller
             ->where('status', 1)
             ->when($search->isNotEmpty(), function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
-                    $query->where('model_number', 'like', '%'.$search.'%')
-                        ->orWhere('product_name', 'like', '%'.$search.'%');
+                    $query->whereLike('model_number', '%'.$search.'%')
+                        ->orWhereLike('product_name', '%'.$search.'%');
                 });
             })
             ->orderBy('model_number')
@@ -95,7 +95,7 @@ class DropdownController extends Controller
             ->when($category !== '', fn ($query) => $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('name', $category)))
             ->when($modelNumber !== '', function ($query) use ($modelNumber, $partial) {
                 $partial
-                    ? $query->where('model_number', 'like', $modelNumber.'%')
+                    ? $query->whereLike('model_number', $modelNumber.'%')
                     : $query->where('model_number', $modelNumber);
             })
             ->orderBy('model_number')
@@ -120,7 +120,7 @@ class DropdownController extends Controller
 
         $brands = Brand::query()
             ->where('status', 1)
-            ->when($search->isNotEmpty(), fn ($query) => $query->where('name', 'like', '%'.$search.'%'))
+            ->when($search->isNotEmpty(), fn ($query) => $query->whereLike('name', '%'.$search.'%'))
             ->orderBy('name')
             ->paginate(20);
 
@@ -140,9 +140,9 @@ class DropdownController extends Controller
         $parts = KitCatalogPart::query()
             ->when($search->isNotEmpty(), function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
-                    $query->where('part_number', 'like', '%'.$search.'%')
-                        ->orWhere('product_name', 'like', '%'.$search.'%')
-                        ->orWhere('model_compatibility', 'like', '%'.$search.'%');
+                    $query->whereLike('part_number', '%'.$search.'%')
+                        ->orWhereLike('product_name', '%'.$search.'%')
+                        ->orWhereLike('model_compatibility', '%'.$search.'%');
                 });
             })
             ->orderBy('part_number')

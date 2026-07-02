@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('truck_appliances', function (Blueprint $table) {
             if (! Schema::hasColumn('truck_appliances', 'photos')) {
-                $table->json('photos')->nullable()->after('sold_at');
+                $table->json('photos')->nullable();
             }
         });
 

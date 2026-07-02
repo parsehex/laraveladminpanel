@@ -15,8 +15,9 @@ return new class extends Migration
 
         $ids = [];
         foreach ($permissions as $name => $description) {
-            $ids[$name] = DB::table('permissions')->where(['name' => $name, 'guard_name' => 'web'])->value('id')
-                ?: DB::table('permissions')->insertGetId([
+            DB::table('permissions')->updateOrInsert(
+                ['name' => $name, 'guard_name' => 'web'],
+                [
                     'name' => $name,
                     'guard_name' => 'web',
                     'module_name' => 'sales',
@@ -24,7 +25,10 @@ return new class extends Migration
                     'description' => $description,
                     'created_at' => now(),
                     'updated_at' => now(),
-                ]);
+                ]
+            );
+
+            $ids[$name] = DB::table('permissions')->where(['name' => $name, 'guard_name' => 'web'])->value('id');
         }
 
         $rolePermissions = [
