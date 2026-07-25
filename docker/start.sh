@@ -13,6 +13,9 @@ mkdir -p bootstrap/cache
 
 chmod -R 775 storage bootstrap/cache
 
+php artisan migrate --force
+php artisan db:seed --force
+
 php artisan package:discover --ansi
 
 php artisan config:cache
