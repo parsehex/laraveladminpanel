@@ -16,6 +16,4 @@ storage/framework/sessions
 
 .env
 
-.env.*
-
 README.md
