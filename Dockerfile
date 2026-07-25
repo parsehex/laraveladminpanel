@@ -5,10 +5,24 @@ FROM composer:2 AS vendor
 
 WORKDIR /app
 
-# Copy the entire project first because composer autoload
-# references app/helpers.php
+# Copy the entire project
 COPY . .
 
+# Create .env for artisan during composer install
+RUN cp .env.example .env
+
+# Create Laravel writable directories
+RUN mkdir -p \
+    storage/framework/cache \
+    storage/framework/cache/data \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs \
+    bootstrap/cache
+
+RUN chmod -R 775 storage bootstrap/cache
+
+# Install PHP dependencies
 RUN composer install \
     --no-dev \
     --prefer-dist \
@@ -17,7 +31,7 @@ RUN composer install \
     --optimize-autoloader
 
 # ==================================================
-# Stage 2 - Build Vite Assets
+# Stage 2 - Build Frontend Assets
 # ==================================================
 FROM node:22-alpine AS frontend
 
@@ -75,20 +89,18 @@ COPY docker/start.sh /start.sh
 
 RUN chmod +x /start.sh
 
-# Create Laravel writable directories
+# Ensure writable directories exist
 RUN mkdir -p \
     storage/framework/cache \
+    storage/framework/cache/data \
     storage/framework/sessions \
     storage/framework/views \
+    storage/logs \
     bootstrap/cache
 
-RUN chown -R www-data:www-data \
-    storage \
-    bootstrap/cache
+RUN chown -R www-data:www-data storage bootstrap/cache
 
-RUN chmod -R 775 \
-    storage \
-    bootstrap/cache
+RUN chmod -R 775 storage bootstrap/cache
 
 EXPOSE 10000
 
