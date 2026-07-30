@@ -15,8 +15,7 @@ chown -R www-data:www-data storage bootstrap/cache
 
 chmod -R 775 storage bootstrap/cache
 
-php artisan migrate --force
-php artisan db:seed --force
+php artisan migrate
 
 php artisan package:discover --ansi
 
