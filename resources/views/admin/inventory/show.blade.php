@@ -111,7 +111,7 @@
                 </select>
                 <textarea name="notes" placeholder="Notes" class="legacy-input min-h-12">{{ old('notes') }}</textarea>
                 <div id="sold-price-row" class="hidden">
-                    <label class="block mb-1">Sold Price <span class="text-gray-500">(optional)</span></label>
+                    <label class="block mb-1">Sold Price <span class="text-gray-500"></span></label>
                     <input type="number" step="0.01" min="0" name="sold_price" value="{{ old('sold_price', $appliance->sold_price) }}" placeholder="Sold Price (excl. taxes)" class="legacy-input max-w-xs">
                 </div>
                 <label class="hidden items-center gap-2" id="parts-ordered-row">
