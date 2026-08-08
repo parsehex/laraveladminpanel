@@ -165,7 +165,7 @@
                  <div class="barcode-wrap">
                     <svg
                         class="barcode"
-                        data-value="{{ $item->id }}"
+                        data-value="{{ $item->model?->model_number ?? '' }}"
                     ></svg>
                 </div>
             </div>
