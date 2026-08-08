@@ -65,9 +65,9 @@
         }
 
         .barcode {
-            width: 48mm;
+            width: 100%;
             height: 13mm;
-            max-width: 100%;
+            display: block;
         }
         .details {
             width: 100%;
