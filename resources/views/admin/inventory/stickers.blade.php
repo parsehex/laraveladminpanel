@@ -57,6 +57,18 @@
             width: 38mm;
             height: 38mm;
         }
+        .barcode-wrap {
+            width: 100%;
+            margin-top: 2mm;
+            padding-top: 1.5mm;
+            text-align: center;
+        }
+
+        .barcode {
+            width: 48mm;
+            height: 13mm;
+            max-width: 100%;
+        }
         .details {
             width: 100%;
             display: grid;
@@ -126,6 +138,7 @@
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 </head>
 <body>
 @foreach($items as $item)
@@ -149,6 +162,12 @@
                     <span class="meta-label">Truck</span>
                     <span class="meta-value">{{ $item->truck?->name ?? 'N/A' }}</span>
                 </div>
+                 <div class="barcode-wrap">
+                    <svg
+                        class="barcode"
+                        data-value="{{ $item->id }}"
+                    ></svg>
+                </div>
             </div>
             <div class="footer-code">Appliance ID: {{ $item->id }}</div>
         </div>
@@ -166,6 +185,23 @@
                 correctLevel: QRCode.CorrectLevel.M
             });
         });
+
+         document.querySelectorAll('.barcode').forEach(function (element) {
+            const value = element.dataset.value;
+
+            if (value) {
+                JsBarcode(element, value, {
+                    format: 'CODE128',
+                    width: 1.5,
+                    height: 40,
+                    displayValue: true,
+                    fontSize: 10,
+                    margin: 0,
+                    textMargin: 2
+                });
+            }
+        });
+
 
         setTimeout(function () {
             window.print();
