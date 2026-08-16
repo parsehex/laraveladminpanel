@@ -9,27 +9,14 @@ WORKDIR /app
 COPY . .
 
 # Create .env for artisan during composer install
-RUN cp .env.example .env
-
-# Create Laravel writable directories
-RUN mkdir -p \
-    storage/framework/cache \
-    storage/framework/cache/data \
-    storage/framework/sessions \
-    storage/framework/views \
-    storage/logs \
-    bootstrap/cache
-
-RUN chmod -R 775 storage bootstrap/cache
-
-# Install PHP dependencies
-RUN composer install \
+RUN cp .env.example .env && composer install \
     --no-dev \
     --prefer-dist \
     --no-interaction \
     --no-progress \
     --optimize-autoloader \
-    --no-scripts
+    --no-scripts \
+    && rm .env
 
 # ==================================================
 # Stage 2 - Build Frontend Assets
