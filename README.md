@@ -20,8 +20,8 @@ A complete Laravel 11 project with multi-authentication system featuring Admin a
 1. **Clone and Install Dependencies**
 
 ```bash
-git clone https://github.com/Lakshu96/Laravel-Admin-panel-With-role-base
-cd Laravel-Admin-panel-With-role-base
+git clone https://github.com/Bensappliances/laraveladminpanel
+cd laraveladminpanel
 composer install
 ```
 
@@ -58,7 +58,7 @@ php artisan serve
 
 ## Demo Credentials
 
--   **Admin**: admin@example.com / password
+-   **Admin**: admin@yopmail.com / admin@123
 -   **User**: user@example.com / password
 
 ## Project Structure
