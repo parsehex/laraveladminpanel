@@ -68,7 +68,9 @@
     @stack('styles')
 </head>
 <body class="bg-gray-100">
-    <div x-data="{ sidebarOpen: false }" x-effect="document.body.classList.toggle('overflow-hidden', sidebarOpen)" class="flex h-screen flex-col overflow-hidden">
+    <div x-data="{ sidebarOpen: false, sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === '1' }"
+         x-effect="document.body.classList.toggle('overflow-hidden', sidebarOpen); localStorage.setItem('sidebarCollapsed', sidebarCollapsed ? '1' : '0')"
+         class="flex h-screen flex-col overflow-hidden">
         <div class="app-shell flex min-h-0 flex-1 overflow-hidden">
             <div x-cloak x-show="sidebarOpen" x-transition.opacity @click="sidebarOpen = false" class="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-sm lg:hidden"></div>
 
