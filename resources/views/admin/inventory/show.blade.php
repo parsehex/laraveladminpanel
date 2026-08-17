@@ -1,9 +1,5 @@
 @extends('layouts.admin')
 
-@section('title', 'Appliance Details')
-@section('page-title', 'Appliance Details')
-
-@section('content')
 @php
     $status = $appliance->status ?: 'Triage';
     $baseCost = (float) $appliance->msrp;
@@ -12,6 +8,9 @@
     $soldPrice = $appliance->sold_price !== null ? (float) $appliance->sold_price : null;
     $cost = $appliance->salesCost(); $profit = (float) ($appliance->sold_price ?? 0) - $cost;
     $modelNumber = $appliance->model?->model_number ?? ('#'.$appliance->id);
+    $heading = trim(implode(' ', array_filter([$appliance->brand, $modelNumber])));
+    $unitLabel = $appliance->unit_label ?: null;
+    $serialNumber = $appliance->serial_number ?: null;
     $statusStyles = [
         'Triage' => ['label' => 'None / White', 'class' => 'status-white'],
         'Testing' => ['label' => 'Teal / Light Blue', 'class' => 'status-light-blue'],
@@ -29,22 +28,56 @@
     $statusClass = $statusStyles[$status]['class'] ?? 'status-white';
 @endphp
 
+@section('title', $heading)
+@section('page-title', 'Appliance Details')
+
+@section('content')
 <div class="inventory-detail-shell text-[13px] text-gray-900">
-    <div class="flex items-center justify-between mb-3">
-        <h1 class="text-2xl font-semibold text-gray-900">Appliance Details: {{ $modelNumber }}</h1>
-        <a href="{{ url()->previous() !== url()->current() ? url()->previous() : route('admin.inventory.index') }}" class="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-xs">Back</a>
+    <div class="flex flex-col gap-3 mb-4 sm:flex-row sm:items-start sm:justify-between">
+        <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+                <h1 class="text-2xl font-bold text-gray-900">{{ $heading }}</h1>
+                <span class="status-chip {{ $statusClass }}">{{ $status }}</span>
+            </div>
+            <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
+                <span class="ui-tooltip-trigger cursor-help">
+                    {{ $unitLabel ?: 'No unit label' }}
+                    <span class="ui-tooltip">Unit Label</span>
+                </span>
+                <span class="text-gray-300">·</span>
+                <span class="inline-flex items-center gap-1">
+                    <span>Model #: {{ $modelNumber }}</span>
+                    <button type="button" data-copy-text="{{ $modelNumber }}" class="inline-flex h-6 w-6 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-800" title="Copy model">
+                        <i class="fas fa-copy text-[11px]"></i>
+                    </button>
+                </span>
+                @if($serialNumber)
+                <span class="text-gray-300">·</span>
+                <span class="inline-flex items-center gap-1">
+                    <span>Serial: {{ $serialNumber }}</span>
+                    <button type="button" data-copy-text="{{ $serialNumber }}" class="inline-flex h-6 w-6 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-800" title="Copy serial">
+                        <i class="fas fa-copy text-[11px]"></i>
+                    </button>
+                </span>
+                @endif
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('admin.inventory.stickers', ['ids' => $appliance->id]) }}" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md inline-flex items-center justify-center text-sm">
+                <i class="fas fa-qrcode mr-2"></i>Print sticker
+            </a>
+            <a href="{{ route('admin.inventory.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md inline-flex items-center justify-center text-sm">
+                Back to inventory
+            </a>
+        </div>
     </div>
 
     <section id="photos" class="legacy-panel">
         <div class="legacy-panel-heading bg-blue-600">Appliance Information</div>
         <div class="legacy-panel-body space-y-2">
-            <p><strong>Unit Label:</strong> #{{ $appliance->id }}</p>
             <p><strong>Truck:</strong> @if($appliance->truck)<a href="{{ route('admin.trucks.show', $appliance->truck) }}" class="text-blue-700 underline">{{ $appliance->truck->name }}</a>@else - @endif</p>
-            <p><strong>Model #:</strong> <span class="text-blue-700">{{ $modelNumber }}</span></p>
-            <p><strong>Serial #:</strong> {{ $appliance->serial_number ?: '-' }}</p>
             <p><strong>Brand:</strong> {{ $appliance->brand ?: '-' }}</p>
             <p><strong>Category:</strong> {{ $appliance->category?->name ?? '-' }}</p>
-            <p><strong>Current Status:</strong> <span class="status-chip {{ $statusClass }}">{{ $status }}</span></p>
             <p><strong>Location:</strong> {{ $appliance->location ?: '-' }}</p>
             <p><strong>Total Cost:</strong> ${{ number_format(0, 2) }}</p>
             <p><strong>Final Cost Valuation:</strong>${{ number_format($appliance->price, 2) }} <span class="text-gray-500">(Our Cost: ${{ number_format($appliance->price, 2) }} {{ $partsCost < 0 ? '-' : '+' }} Parts Cost: ${{ number_format(abs($partsCost), 2) }})</span></p>
@@ -590,6 +623,23 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+    $('[data-copy-text]').on('click', function () {
+        const $button = $(this);
+        const value = String($button.attr('data-copy-text') || '');
+        const $icon = $button.find('i');
+
+        if (!value || !navigator.clipboard) {
+            return;
+        }
+
+        navigator.clipboard.writeText(value).then(function () {
+            $icon.removeClass('fa-copy').addClass('fa-check');
+            setTimeout(function () {
+                $icon.removeClass('fa-check').addClass('fa-copy');
+            }, 1200);
+        });
+    });
+
     function syncStatusFields() {
         const status = $('#status-select').val();
         const isSold = status === 'Sold';
