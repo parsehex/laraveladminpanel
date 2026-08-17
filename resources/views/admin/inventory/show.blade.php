@@ -151,17 +151,16 @@
     <section class="legacy-panel">
         <div class="legacy-panel-heading bg-yellow-400 text-black">Admin: Move Unit to Another Truck</div>
         <div class="legacy-panel-body">
-            <form method="POST" action="{{ route('admin.inventory.move-truck.update', $appliance) }}" onsubmit="return confirm('Move this unit to the selected truck?');">
+            <form method="POST" action="{{ route('admin.inventory.move-truck.update', $appliance) }}" class="flex flex-col gap-2 sm:flex-row sm:items-start" onsubmit="return confirm('Move this unit to the selected truck?');">
                 @csrf
                 @method('PATCH')
-                <label class="block mb-1">Destination Truck</label>
-                <select name="truck_id" class="legacy-input" required>
-                    <option value="">Select a truck...</option>
+                <select name="truck_id" class="legacy-input min-w-0 flex-1" required aria-label="Destination Truck">
+                    <option value="">Destination Truck...</option>
                     @foreach($trucks as $truck)
                     <option value="{{ $truck->id }}" @selected((string) old('truck_id') === (string) $truck->id)>{{ $truck->name }}</option>
                     @endforeach
                 </select>
-                <button type="submit" class="legacy-btn bg-yellow-500 text-black mt-2">Move Unit</button>
+                <button type="submit" class="legacy-btn bg-yellow-500 text-black location-picker-submit">Move Unit</button>
             </form>
             <p class="mt-2 text-[10px] text-gray-500">This keeps parts, status history, and notes attached to the same unit record.</p>
         </div>
