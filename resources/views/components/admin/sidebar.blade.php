@@ -1,16 +1,23 @@
-<aside :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0', sidebarCollapsed ? 'is-collapsed lg:w-20' : 'lg:w-64']"
-       class="ui-sidebar fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] -translate-x-full flex-shrink-0 overflow-y-auto text-white transition-all duration-200 ease-out lg:static lg:max-w-none lg:translate-x-0">
-    <div class="flex items-center h-20 px-5">
-        <div class="ui-brand-mark h-11 w-11 rounded-2xl flex items-center justify-center font-extrabold text-lg flex-shrink-0">B</div>
-        <div class="ml-3 min-w-0 leading-tight sidebar-brand-text">
-            <h1 class="text-lg font-extrabold text-white tracking-tight">Ben's Appliances</h1>
-            <!-- <p class="text-xs font-medium text-white/55">Unified system</p> -->
-        </div>
+<aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+       class="ui-sidebar fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] -translate-x-full flex-shrink-0 overflow-y-auto text-white transition-[width,transform] duration-200 ease-out lg:static lg:w-64 lg:max-w-none lg:translate-x-0">
+    <div class="sidebar-header flex h-20 items-center px-5">
+        <a href="{{ route(\App\Support\PanelRedirector::routeNameFor(auth()->user())) }}"
+           @click="sidebarOpen = false"
+           class="flex min-w-0 items-center rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40">
+            <div class="ui-brand-mark h-11 w-11 rounded-2xl flex items-center justify-center font-extrabold text-lg flex-shrink-0">B</div>
+            <div class="ml-3 min-w-0 leading-tight sidebar-brand-text">
+                <h1 class="text-lg font-extrabold text-white tracking-tight">Ben's Appliances</h1>
+            </div>
+        </a>
         <button type="button" @click="sidebarOpen = false" class="ml-auto flex h-10 w-10 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white lg:hidden" aria-label="Close menu">
             <i class="fas fa-times"></i>
         </button>
-        <button type="button" @click="sidebarCollapsed = !sidebarCollapsed" class="ml-auto hidden h-10 w-10 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white lg:flex" :aria-label="sidebarCollapsed ? 'Expand menu' : 'Collapse menu'" title="Toggle sidebar">
-            <i class="fas" :class="sidebarCollapsed ? 'fa-angles-right' : 'fa-angles-left'"></i>
+        <button type="button" @click="sidebarCollapsed = !sidebarCollapsed"
+                class="sidebar-collapse-btn ml-auto hidden h-10 w-10 items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white lg:flex"
+                :aria-label="sidebarCollapsed ? 'Expand menu' : 'Collapse menu'"
+                title="Toggle sidebar">
+            <i class="sidebar-icon-collapse fas fa-angles-left"></i>
+            <i class="sidebar-icon-expand fas fa-angles-right hidden"></i>
         </button>
     </div>
 

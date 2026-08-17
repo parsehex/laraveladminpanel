@@ -94,43 +94,76 @@
         backdrop-filter: blur(18px);
     }
 
-    /* Collapsed (icon-only) sidebar */
-    .ui-sidebar.is-collapsed .sidebar-brand-text {
-        display: none;
-    }
+    /* Desktop sidebar width is set in CSS so the first paint matches the persisted state
+       instead of waiting on Tailwind/Alpine. aside.ui-sidebar beats utility width classes. */
+    @media (min-width: 1024px) {
+        aside.ui-sidebar {
+            width: 16rem;
+            max-width: none;
+            transition: width 200ms ease-out;
+        }
 
-    .ui-sidebar.is-collapsed .ui-nav-link {
-        justify-content: center;
-        padding-left: 0;
-        padding-right: 0;
-    }
+        html.sidebar-collapsed aside.ui-sidebar {
+            width: 5rem;
+            max-width: 5rem;
+        }
 
-    .ui-sidebar.is-collapsed .ui-nav-link i {
-        margin-right: 0;
-    }
+        html.sidebar-collapsed .ui-sidebar .sidebar-header {
+            height: auto;
+            flex-direction: column;
+            gap: 0.25rem;
+            padding: 1rem 0.5rem 0.5rem;
+        }
 
-    .ui-sidebar.is-collapsed .ui-nav-link > span {
-        position: absolute;
-        left: 100%;
-        top: 50%;
-        margin-left: 0.75rem;
-        transform: translateY(-50%);
-        white-space: nowrap;
-        background: #0f1f38;
-        color: #fff;
-        padding: 0.45rem 0.85rem;
-        border-radius: 0.5rem;
-        font-size: 0.8rem;
-        font-weight: 600;
-        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.28);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 120ms ease;
-        z-index: 60;
-    }
+        html.sidebar-collapsed .ui-sidebar .sidebar-collapse-btn {
+            margin-left: 0;
+        }
 
-    .ui-sidebar.is-collapsed .ui-nav-link:hover > span {
-        opacity: 1;
+        html.sidebar-collapsed .ui-sidebar .sidebar-icon-collapse {
+            display: none;
+        }
+
+        html.sidebar-collapsed .ui-sidebar .sidebar-icon-expand {
+            display: inline-block;
+        }
+
+        html.sidebar-collapsed .ui-sidebar .sidebar-brand-text {
+            display: none;
+        }
+
+        html.sidebar-collapsed .ui-sidebar .ui-nav-link {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        html.sidebar-collapsed .ui-sidebar .ui-nav-link i {
+            margin-right: 0;
+        }
+
+        html.sidebar-collapsed .ui-sidebar .ui-nav-link > span {
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            margin-left: 0.75rem;
+            transform: translateY(-50%);
+            white-space: nowrap;
+            background: #0f1f38;
+            color: #fff;
+            padding: 0.45rem 0.85rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.28);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 120ms ease;
+            z-index: 60;
+        }
+
+        html.sidebar-collapsed .ui-sidebar .ui-nav-link:hover > span {
+            opacity: 1;
+        }
     }
 
     /* Compact table density */

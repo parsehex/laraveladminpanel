@@ -6,9 +6,12 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Dashboard')</title>
     <script>
-        // Apply persisted table density before render to avoid a flash of the wrong style.
+        // Apply persisted UI prefs before render to avoid a flash of the wrong layout.
         if (localStorage.getItem('tableDensity') === 'compact') {
             document.documentElement.classList.add('table-density-compact');
+        }
+        if (localStorage.getItem('sidebarCollapsed') === '1') {
+            document.documentElement.classList.add('sidebar-collapsed');
         }
     </script>
 
@@ -74,8 +77,8 @@
     @stack('styles')
 </head>
 <body class="bg-gray-100">
-    <div x-data="{ sidebarOpen: false, sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === '1' }"
-         x-effect="document.body.classList.toggle('overflow-hidden', sidebarOpen); localStorage.setItem('sidebarCollapsed', sidebarCollapsed ? '1' : '0')"
+    <div x-data="{ sidebarOpen: false, sidebarCollapsed: document.documentElement.classList.contains('sidebar-collapsed') }"
+         x-effect="document.body.classList.toggle('overflow-hidden', sidebarOpen); document.documentElement.classList.toggle('sidebar-collapsed', sidebarCollapsed); localStorage.setItem('sidebarCollapsed', sidebarCollapsed ? '1' : '0')"
          class="flex h-screen flex-col overflow-hidden">
         <div class="app-shell flex min-h-0 flex-1 overflow-hidden">
             <div x-cloak x-show="sidebarOpen" x-transition.opacity @click="sidebarOpen = false" class="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-sm lg:hidden"></div>
