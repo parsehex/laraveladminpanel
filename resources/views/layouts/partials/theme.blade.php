@@ -106,6 +106,8 @@
         html.sidebar-collapsed aside.ui-sidebar {
             width: 5rem;
             max-width: 5rem;
+            /* overflow-y-auto clips the flyout labels; visible lets them paint over the page. */
+            overflow: visible;
         }
 
         html.sidebar-collapsed .ui-sidebar .sidebar-header {
@@ -156,13 +158,16 @@
             font-weight: 600;
             box-shadow: 0 12px 24px rgba(15, 23, 42, 0.28);
             opacity: 0;
+            visibility: hidden;
             pointer-events: none;
-            transition: opacity 120ms ease;
+            transition: opacity 120ms ease, visibility 120ms ease;
             z-index: 60;
         }
 
-        html.sidebar-collapsed .ui-sidebar .ui-nav-link:hover > span {
+        html.sidebar-collapsed .ui-sidebar .ui-nav-link:hover > span,
+        html.sidebar-collapsed .ui-sidebar .ui-nav-link:focus-visible > span {
             opacity: 1;
+            visibility: visible;
         }
     }
 
