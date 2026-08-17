@@ -1,5 +1,5 @@
 <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-       class="ui-sidebar fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] -translate-x-full flex-shrink-0 overflow-y-auto text-white transition-[width,transform] duration-200 ease-out lg:relative lg:w-64 lg:max-w-none lg:translate-x-0 lg:transform-none">
+       class="ui-sidebar fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] -translate-x-full flex-shrink-0 text-white transition-[width,transform] duration-200 ease-out lg:relative lg:w-64 lg:max-w-none lg:translate-x-0 lg:transform-none">
     <div class="sidebar-header flex h-20 items-center px-5">
         <a href="{{ route(\App\Support\PanelRedirector::routeNameFor(auth()->user())) }}"
            @click="sidebarOpen = false"
@@ -118,14 +118,13 @@
         </a>
         @endcanAccess
 
-        <div class="border-t border-white/10 mt-8 pt-4 mx-3">
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="ui-nav-link flex items-center w-full px-4 py-3 text-left text-sm font-semibold">
-                    <i class="fas fa-sign-out-alt mr-3 w-5 text-center"></i>
-                    <span>Logout</span>
-                </button>
-            </form>
-        </div>
+        <div class="mx-3 mt-8 border-t border-white/10"></div>
+        <form method="POST" action="{{ route('logout') }}" class="pt-4">
+            @csrf
+            <button type="submit" class="ui-nav-link flex items-center px-4 py-3 text-left text-sm font-semibold">
+                <i class="fas fa-sign-out-alt mr-3 w-5 text-center"></i>
+                <span>Logout</span>
+            </button>
+        </form>
     </nav>
 </aside>
