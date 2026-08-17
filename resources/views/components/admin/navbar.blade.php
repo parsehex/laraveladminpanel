@@ -11,6 +11,8 @@
         </div>
         
         <div class="flex flex-shrink-0 items-center space-x-2 sm:space-x-4">
+            <x-admin.table-density-toggle />
+
             <div class="hidden md:block rounded-xl border border-slate-200 bg-white/80 px-4 py-2 shadow-sm">
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Signed In</p>
                 <p class="max-w-44 truncate text-sm font-semibold text-slate-800">{{ auth()->user()->name }}</p>

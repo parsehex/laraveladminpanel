@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Dashboard')</title>
-    
+    <script>
+        // Apply persisted table density before render to avoid a flash of the wrong style.
+        if (localStorage.getItem('tableDensity') === 'compact') {
+            document.documentElement.classList.add('table-density-compact');
+        }
+    </script>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     @include('layouts.partials.theme')
@@ -64,7 +70,7 @@
             }
         }
     </style>
-    
+
     @stack('styles')
 </head>
 <body class="bg-gray-100">
@@ -76,12 +82,12 @@
 
             <!-- Sidebar -->
             <x-admin.sidebar />
-            
+
             <!-- Main Content -->
             <div class="flex-1 flex flex-col overflow-hidden">
                 <!-- Navbar -->
                 <x-admin.navbar />
-                
+
                 <!-- Page Content -->
                 <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 sm:p-6 lg:p-8">
                     @yield('content')
@@ -90,10 +96,29 @@
         </div>
         <x-admin.footer />
     </div>
-    
+
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script>
+        // Shared table density control, used in the admin navbar
+        window.applyTableDensity = function (mode) {
+            document.documentElement.classList.toggle('table-density-compact', mode === 'compact');
+        };
+
+        window.setTableDensity = function (mode) {
+            applyTableDensity(mode);
+            localStorage.setItem('tableDensity', mode);
+        };
+
+        window.addEventListener('storage', function (event) {
+            if (event.key !== 'tableDensity') {
+                return;
+            }
+
+            applyTableDensity(event.newValue === 'compact' ? 'compact' : 'comfortable');
+        });
+    </script>
     <script>
         document.querySelectorAll('.caps').forEach(input => {
         // While typing
@@ -116,24 +141,24 @@
             "positionClass": "toast-top-right",
             "timeOut": "3000"
         };
-        
+
         // Display flash messages
         @if(session('success'))
             toastr.success('{{ session('success') }}');
         @endif
-        
+
         @if(session('error'))
             toastr.error('{{ session('error') }}');
         @endif
-        
+
         @if(session('warning'))
             toastr.warning('{{ session('warning') }}');
         @endif
-        
+
         @if(session('info'))
             toastr.info('{{ session('info') }}');
         @endif
-        
+
         // Display validation errors
         @if($errors->any())
             @foreach($errors->all() as $error)
@@ -141,7 +166,7 @@
             @endforeach
         @endif
     </script>
-    
+
     @stack('scripts')
 </body>
 </html>
