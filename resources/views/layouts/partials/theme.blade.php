@@ -177,40 +177,6 @@
         }
     }
 
-    .ui-tooltip {
-        position: absolute;
-        white-space: nowrap;
-        background: #0f1f38;
-        color: #fff;
-        padding: 0.45rem 0.85rem;
-        border-radius: 0.5rem;
-        font-size: 0.8rem;
-        font-weight: 600;
-        line-height: 1.2;
-        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.28);
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-        transition: opacity 120ms ease, visibility 120ms ease;
-        z-index: 60;
-    }
-
-    .ui-tooltip-trigger {
-        position: relative;
-    }
-
-    .ui-tooltip-trigger > .ui-tooltip {
-        left: 50%;
-        bottom: calc(100% + 0.45rem);
-        transform: translateX(-50%);
-    }
-
-    .ui-tooltip-trigger:hover > .ui-tooltip,
-    .ui-tooltip-trigger:focus-visible > .ui-tooltip {
-        opacity: 1;
-        visibility: visible;
-    }
-
     /* Compact table density */
     .table-density-compact table th,
     .table-density-compact table td {

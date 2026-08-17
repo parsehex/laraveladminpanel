@@ -10,7 +10,14 @@
     $modelNumber = $appliance->model?->model_number ?? ('#'.$appliance->id);
     $heading = trim(implode(' ', array_filter([$appliance->brand, $modelNumber])));
     $unitLabel = $appliance->unit_label ?: null;
+    $brandName = $appliance->brand ?: null;
     $serialNumber = $appliance->serial_number ?: null;
+    $identityFields = [
+        ['label' => 'Label', 'value' => $unitLabel, 'title' => 'Copy label'],
+        ['label' => 'Brand', 'value' => $brandName, 'title' => 'Copy brand'],
+        ['label' => 'Model #', 'value' => $modelNumber, 'title' => 'Copy model'],
+        ['label' => 'Serial', 'value' => $serialNumber, 'title' => 'Copy serial'],
+    ];
     $statusStyles = [
         'Triage' => ['label' => 'None / White', 'class' => 'status-white'],
         'Testing' => ['label' => 'Teal / Light Blue', 'class' => 'status-light-blue'],
@@ -40,26 +47,19 @@
                 <span class="status-chip {{ $statusClass }}">{{ $status }}</span>
             </div>
             <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
-                <span class="ui-tooltip-trigger cursor-help">
-                    {{ $unitLabel ?: 'No unit label' }}
-                    <span class="ui-tooltip">Unit Label</span>
-                </span>
-                <span class="text-gray-300">·</span>
-                <span class="inline-flex items-center gap-1">
-                    <span>Model #: {{ $modelNumber }}</span>
-                    <button type="button" data-copy-text="{{ $modelNumber }}" class="inline-flex h-6 w-6 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-800" title="Copy model">
-                        <i class="fas fa-copy text-[11px]"></i>
-                    </button>
-                </span>
-                @if($serialNumber)
-                <span class="text-gray-300">·</span>
-                <span class="inline-flex items-center gap-1">
-                    <span>Serial: {{ $serialNumber }}</span>
-                    <button type="button" data-copy-text="{{ $serialNumber }}" class="inline-flex h-6 w-6 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-800" title="Copy serial">
-                        <i class="fas fa-copy text-[11px]"></i>
-                    </button>
-                </span>
-                @endif
+                @foreach($identityFields as $index => $field)
+                    @if($index > 0)
+                    <span class="text-gray-300">·</span>
+                    @endif
+                    <span class="inline-flex items-center gap-1">
+                        <span>{{ $field['label'] }}: {{ $field['value'] ?: '—' }}</span>
+                        @if($field['value'])
+                        <button type="button" data-copy-text="{{ $field['value'] }}" class="identity-copy-btn" title="{{ $field['title'] }}">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        @endif
+                    </span>
+                @endforeach
             </div>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -72,20 +72,60 @@
         </div>
     </div>
 
-    <section id="photos" class="legacy-panel">
+    <section class="legacy-panel">
         <div class="legacy-panel-heading bg-blue-600">Appliance Information</div>
-        <div class="legacy-panel-body space-y-2">
-            <p><strong>Truck:</strong> @if($appliance->truck)<a href="{{ route('admin.trucks.show', $appliance->truck) }}" class="text-blue-700 underline">{{ $appliance->truck->name }}</a>@else - @endif</p>
-            <p><strong>Brand:</strong> {{ $appliance->brand ?: '-' }}</p>
-            <p><strong>Category:</strong> {{ $appliance->category?->name ?? '-' }}</p>
-            <p><strong>Location:</strong> {{ $appliance->location ?: '-' }}</p>
-            <p><strong>Total Cost:</strong> ${{ number_format(0, 2) }}</p>
-            <p><strong>Final Cost Valuation:</strong>${{ number_format($appliance->price, 2) }} <span class="text-gray-500">(Our Cost: ${{ number_format($appliance->price, 2) }} {{ $partsCost < 0 ? '-' : '+' }} Parts Cost: ${{ number_format(abs($partsCost), 2) }})</span></p>
-            <p><strong>MSRP:</strong> ${{ number_format($appliance->msrp, 2) }}</p>
-            @if($soldPrice !== null)
-            <p><strong>Sold Price:</strong> ${{ number_format($appliance->sold_price, 2) }} <span class="text-gray-500">({{ $appliance->sold_by ?: 'Unknown' }}, {{ $appliance->sold_at?->format('Y-m-d H:i') }})</span></p>
-            <p><strong>Profit:</strong> ${{ number_format($profit, 2) }} <span class="text-gray-500">(Sold Price - Final Cost Valuation)</span></p>
-            @endif
+        <div class="legacy-panel-body">
+            <dl class="appliance-facts">
+                <div>
+                    <dt>Truck</dt>
+                    <dd>
+                        @if($appliance->truck)
+                        <a href="{{ route('admin.trucks.show', $appliance->truck) }}" class="text-blue-700 underline">{{ $appliance->truck->name }}</a>
+                        @else
+                        —
+                        @endif
+                    </dd>
+                </div>
+                <div>
+                    <dt>Location</dt>
+                    <dd>{{ $appliance->location ?: '—' }}</dd>
+                </div>
+                <div>
+                    <dt>Category</dt>
+                    <dd>{{ $appliance->category?->name ?? '—' }}</dd>
+                </div>
+                <div>
+                    <dt>Subcategory</dt>
+                    <dd>{{ $appliance->subcategory ?: '—' }}</dd>
+                </div>
+            </dl>
+            <dl class="appliance-costs">
+                <div>
+                    <dt>Total Cost</dt>
+                    <dd>${{ number_format(0, 2) }}</dd>
+                </div>
+                <div>
+                    <dt>Final Cost Valuation</dt>
+                    <dd>${{ number_format($appliance->price, 2) }}</dd>
+                    <p>Our Cost: ${{ number_format($appliance->price, 2) }} {{ $partsCost < 0 ? '-' : '+' }} Parts Cost: ${{ number_format(abs($partsCost), 2) }}</p>
+                </div>
+                <div>
+                    <dt>MSRP</dt>
+                    <dd>${{ number_format($appliance->msrp, 2) }}</dd>
+                </div>
+                @if($soldPrice !== null)
+                <div>
+                    <dt>Sold Price</dt>
+                    <dd>${{ number_format($appliance->sold_price, 2) }}</dd>
+                    <p>{{ $appliance->sold_by ?: 'Unknown' }}, {{ $appliance->sold_at?->format('Y-m-d H:i') }}</p>
+                </div>
+                <div>
+                    <dt>Profit</dt>
+                    <dd>${{ number_format($profit, 2) }}</dd>
+                    <p>Sold Price - Final Cost Valuation</p>
+                </div>
+                @endif
+            </dl>
         </div>
     </section>
 
@@ -345,8 +385,74 @@
         padding: 9px;
     }
 
-    .legacy-panel-body p {
-        margin: 0 0 7px;
+    .identity-copy-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 1.5rem;
+        width: 1.5rem;
+        min-height: 0;
+        border-radius: 0.25rem;
+        color: #6b7280;
+        font-size: 11px;
+    }
+
+    .identity-copy-btn:hover {
+        background: #f3f4f6;
+        color: #1f2937;
+    }
+
+    .appliance-facts,
+    .appliance-costs {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px 16px;
+        margin: 0;
+    }
+
+    .appliance-costs {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .appliance-facts dt,
+    .appliance-costs dt {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        margin: 0 0 3px;
+    }
+
+    .appliance-facts dd,
+    .appliance-costs dd {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    .appliance-costs p {
+        margin: 3px 0 0;
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 500;
+    }
+
+    @media (max-width: 900px) {
+        .appliance-facts,
+        .appliance-costs {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 480px) {
+        .appliance-facts,
+        .appliance-costs {
+            grid-template-columns: minmax(0, 1fr);
+        }
     }
 
     .legacy-input {
