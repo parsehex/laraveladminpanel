@@ -197,7 +197,6 @@ class InventoryController extends Controller
 
         if ($truck) {
             $this->recalculateTruckPrices($truck);
-            $this->renumberTruckLabels($truck);
         }
 
         return back()->with('success', __('Appliance deleted from inventory.'));
@@ -551,12 +550,4 @@ class InventoryController extends Controller
         }
     }
 
-    private function renumberTruckLabels(Truck $truck): void
-    {
-        $number = 1;
-        $truck->appliances()->orderBy('id')->get()->each(function (TruckAppliance $appliance) use ($truck, &$number) {
-            $appliance->update(['unit_label' => trim((string) $truck->name).'-'.sprintf('%03d', $number)]);
-            $number++;
-        });
-    }
 }

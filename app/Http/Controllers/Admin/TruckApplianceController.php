@@ -71,7 +71,6 @@ class TruckApplianceController extends Controller
 
         $appliance->delete();
         $this->recalculatePrices($truck);
-        $this->renumberLabels($truck);
 
         return redirect()->route('admin.trucks.show', $truck)->with('success', __('Appliance removed successfully.'));
     }
@@ -393,18 +392,6 @@ class TruckApplianceController extends Controller
             'created_by' => $userId,
             'updated_by' => $userId,
         ]);
-    }
-
-    private function renumberLabels(Truck $truck): void
-    {
-        $number = 1;
-        $truck->appliances()
-            ->orderBy('id')
-            ->get()
-            ->each(function (TruckAppliance $appliance) use ($truck, &$number) {
-                $appliance->update(['unit_label' => $this->formatUnitLabel($truck, $number)]);
-                $number++;
-            });
     }
 
     private function normalizeIdentifier(string $value): string
