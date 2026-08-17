@@ -184,7 +184,7 @@
         </div>
         <div class="wide-table-shell" data-wide-table>
             <div class="wide-table-top-scroll" data-wide-table-top-scroll><div></div></div>
-        <div class="wide-table-scroll overflow-x-auto" data-wide-table-scroll>
+        <div class="wide-table-scroll" data-wide-table-scroll>
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50 sticky-table-head">
                     <tr>
@@ -342,15 +342,30 @@
 
     .wide-table-scroll {
         max-height: 72vh;
-        overflow: auto;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    .wide-table-scroll > table {
+        width: max-content;
+        min-width: 100%;
+    }
+
+    .wide-table-shell.has-h-scroll .wide-table-scroll {
+        overflow-x: auto;
     }
 
     .wide-table-top-scroll {
+        display: none;
         height: 16px;
         overflow-x: auto;
         overflow-y: hidden;
         border-bottom: 1px solid rgba(226, 232, 240, 0.9);
         background: #f8fafc;
+    }
+
+    .wide-table-shell.has-h-scroll .wide-table-top-scroll {
+        display: block;
     }
 
     .wide-table-top-scroll > div {
@@ -471,10 +486,35 @@
         const $shell = $(this);
         const $main = $shell.find('[data-wide-table-scroll]');
         const $top = $shell.find('[data-wide-table-top-scroll]');
+        const mainEl = $main.get(0);
         const table = $main.find('table').get(0);
+        let frame = null;
 
         function syncWidth() {
-            $top.children().first().width(table ? table.scrollWidth : 0);
+            if (!mainEl || !table) {
+                return;
+            }
+
+            $top.children().first().width(table.scrollWidth);
+
+            const yScrollbar = Math.max(0, mainEl.offsetWidth - mainEl.clientWidth);
+            const overflowX = table.scrollWidth - mainEl.clientWidth;
+            const needsScroll = overflowX > yScrollbar + 2;
+
+            if ($shell.hasClass('has-h-scroll') !== needsScroll) {
+                $shell.toggleClass('has-h-scroll', needsScroll);
+            }
+        }
+
+        function scheduleSync() {
+            if (frame) {
+                return;
+            }
+
+            frame = requestAnimationFrame(function () {
+                frame = null;
+                syncWidth();
+            });
         }
 
         $main.on('scroll', function () {
@@ -486,7 +526,13 @@
         });
 
         syncWidth();
-        $(window).on('resize', syncWidth);
+        $(window).on('resize', scheduleSync);
+
+        if (window.ResizeObserver) {
+            const observer = new ResizeObserver(scheduleSync);
+            observer.observe(mainEl);
+            observer.observe(table);
+        }
     });
 </script>
 @endpush
