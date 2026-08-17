@@ -217,6 +217,19 @@ class InventoryController extends Controller
             'appliance' => $appliance,
             'statuses' => self::STATUSES,
             'trucks' => Truck::query()->whereKeyNot($appliance->truck_id)->orderBy('name')->get(['id', 'name']),
+            'locations' => TruckAppliance::query()
+                ->whereNotNull('location')
+                ->where('location', '<>', '')
+                ->selectRaw('MIN(location) as location')
+                ->selectRaw('COUNT(*) as usage_count')
+                ->groupBy(DB::raw('LOWER(TRIM(location))'))
+                ->orderBy('location')
+                ->get()
+                ->map(fn ($row) => [
+                    'label' => $row->location,
+                    'count' => (int) $row->usage_count,
+                ])
+                ->values(),
         ]);
     }
 

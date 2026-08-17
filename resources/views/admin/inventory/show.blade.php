@@ -113,7 +113,7 @@
                     <dt>MSRP</dt>
                     <dd>${{ number_format($appliance->msrp, 2) }}</dd>
                 </div>
-                @if($soldPrice !== null)
+                @if($soldPrice !== null && $appliance->sold_by !== null)
                 <div>
                     <dt>Sold Price</dt>
                     <dd>${{ number_format($appliance->sold_price, 2) }}</dd>
@@ -133,11 +133,17 @@
     <section class="legacy-panel">
         <div class="legacy-panel-heading bg-blue-600">Update Location</div>
         <div class="legacy-panel-body">
-            <form method="POST" action="{{ route('admin.inventory.location.update', $appliance) }}" class="space-y-2">
+            <form method="POST" action="{{ route('admin.inventory.location.update', $appliance) }}" class="flex flex-col gap-2 sm:flex-row sm:items-start">
                 @csrf
                 @method('PATCH')
-                <input type="text" name="location" value="{{ old('location', $appliance->location) }}" placeholder="Enter Location (e.g., Inventory Shelf 01)" class="legacy-input">
-                <button type="submit" class="legacy-btn bg-blue-600">Update Location</button>
+                <div class="relative min-w-0 flex-1" data-location-picker>
+                    <input type="text" name="location" id="location-input" value="{{ old('location', $appliance->location) }}" placeholder="Search or enter a location..." class="legacy-input location-picker-input" autocomplete="off">
+                    <button type="button" class="location-picker-toggle" data-location-toggle aria-label="Show used locations">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div id="location-results" class="location-suggestion-menu hidden" role="listbox"></div>
+                </div>
+                <button type="submit" class="legacy-btn bg-blue-600 location-picker-submit">Update Location</button>
             </form>
         </div>
     </section>
@@ -455,6 +461,85 @@
         }
     }
 
+    .location-picker-input {
+        padding-right: 2.5rem;
+    }
+
+    .location-picker-toggle {
+        position: absolute;
+        right: 0.35rem;
+        top: 50%;
+        transform: translateY(-50%);
+        height: 2rem;
+        width: 2rem;
+        min-height: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        border-radius: 0.35rem;
+    }
+
+    .location-picker-toggle:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+    }
+
+    .location-picker-submit {
+        min-width: 9.5rem;
+        min-height: 2.75rem;
+    }
+
+    .location-suggestion-menu {
+        position: absolute;
+        top: calc(100% + 0.35rem);
+        left: 0;
+        right: 0;
+        z-index: 40;
+        max-height: 16rem;
+        overflow-y: auto;
+        padding: 0.25rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+    }
+
+    .location-suggestion {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        min-height: 0;
+        padding: 0.55rem 0.7rem;
+        border-radius: 0.375rem;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .location-suggestion:hover,
+    .location-suggestion.is-active {
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .location-suggestion-count {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .location-suggestion-empty {
+        padding: 0.7rem 0.75rem;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
     .legacy-input {
         width: 100%;
         border: 1px solid #bfc7d1;
@@ -761,6 +846,116 @@
     $('[data-status-shortcut]').on('click', function () {
         $('#status-select').val($(this).data('status-shortcut')).trigger('change');
         document.getElementById('status-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    const locationOptions = @json($locations);
+    const $locationPicker = $('[data-location-picker]');
+    const $locationInput = $('#location-input');
+    const $locationResults = $('#location-results');
+    let locationActiveIndex = -1;
+
+    function filteredLocations(query) {
+        const normalized = query.trim().toLowerCase();
+
+        if (!normalized) {
+            return locationOptions.slice(0, 12);
+        }
+
+        return locationOptions
+            .filter(function (option) {
+                return option.label.toLowerCase().includes(normalized);
+            })
+            .slice(0, 12);
+    }
+
+    function hideLocationResults() {
+        $locationResults.addClass('hidden').empty();
+        locationActiveIndex = -1;
+    }
+
+    function renderLocationResults(query) {
+        const matches = filteredLocations(query);
+        $locationResults.empty();
+        locationActiveIndex = -1;
+
+        if (!matches.length) {
+            $locationResults.append(
+                $('<div class="location-suggestion-empty"></div>').text(
+                    query.trim() ? 'No matching locations. Press Update to save a new one.' : 'No saved locations yet.'
+                )
+            );
+            $locationResults.removeClass('hidden');
+            return;
+        }
+
+        matches.forEach(function (option, index) {
+            const unitLabel = option.count === 1 ? 'unit' : 'units';
+            const $row = $('<button type="button" class="location-suggestion" role="option"></button>');
+            $row.append($('<span></span>').text(option.label));
+            $row.append($('<span class="location-suggestion-count"></span>').text(option.count + ' ' + unitLabel));
+            $row.on('mouseenter', function () {
+                locationActiveIndex = index;
+                $locationResults.find('.location-suggestion').removeClass('is-active');
+                $row.addClass('is-active');
+            });
+            $row.on('click', function () {
+                $locationInput.val(option.label);
+                hideLocationResults();
+                $locationInput.trigger('focus');
+            });
+            $locationResults.append($row);
+        });
+
+        $locationResults.removeClass('hidden');
+    }
+
+    function moveLocationSelection(direction) {
+        const $items = $locationResults.find('.location-suggestion');
+        if (!$items.length || $locationResults.hasClass('hidden')) {
+            return;
+        }
+
+        locationActiveIndex = Math.max(0, Math.min($items.length - 1, locationActiveIndex + direction));
+        $items.removeClass('is-active').eq(locationActiveIndex).addClass('is-active');
+    }
+
+    $locationInput.on('focus input', function () {
+        renderLocationResults($(this).val());
+    });
+
+    $('[data-location-toggle]').on('click', function () {
+        if ($locationResults.hasClass('hidden')) {
+            renderLocationResults($locationInput.val());
+            $locationInput.trigger('focus');
+            return;
+        }
+
+        hideLocationResults();
+    });
+
+    $locationInput.on('keydown', function (event) {
+        if ($locationResults.hasClass('hidden')) {
+            return;
+        }
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            moveLocationSelection(1);
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            moveLocationSelection(-1);
+        } else if (event.key === 'Enter' && locationActiveIndex >= 0) {
+            event.preventDefault();
+            $locationResults.find('.location-suggestion').eq(locationActiveIndex).trigger('click');
+        } else if (event.key === 'Escape') {
+            hideLocationResults();
+        }
+    });
+
+    $(document).on('click', function (event) {
+        if (!$(event.target).closest('[data-location-picker]').length) {
+            hideLocationResults();
+        }
     });
 
     let partSearchTimer = null;
