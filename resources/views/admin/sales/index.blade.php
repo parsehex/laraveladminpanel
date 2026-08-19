@@ -5,10 +5,6 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-gray-900">Sales Tracking</h1>
-    </div>
-
     @canAccess('sales.create')
     <div class="bg-white rounded-lg shadow overflow-hidden">
         <div class="bg-blue-600 px-6 py-4">

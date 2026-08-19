@@ -36,40 +36,34 @@
 @endphp
 
 @section('title', $heading)
-@section('page-title', 'Appliance Details')
+@section('page-title', $heading)
+
+@section('page-actions')
+    <a href="{{ route('admin.inventory.stickers', ['ids' => $appliance->id]) }}" target="_blank" class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+        <i class="fas fa-qrcode mr-2"></i>Print sticker
+    </a>
+    <a href="{{ route('admin.inventory.index') }}" class="inline-flex items-center justify-center rounded-md bg-gray-500 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-600">
+        Back to inventory
+    </a>
+@endsection
 
 @section('content')
 <div class="inventory-detail-shell text-[13px] text-gray-900">
-    <div class="flex flex-col gap-3 mb-4 sm:flex-row sm:items-start sm:justify-between">
-        <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-                <h1 class="text-2xl font-bold text-gray-900">{{ $heading }}</h1>
-                <span class="status-chip {{ $statusClass }}">{{ $status }}</span>
-            </div>
-            <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
-                @foreach($identityFields as $index => $field)
-                    @if($index > 0)
-                    <span class="text-gray-300">·</span>
-                    @endif
-                    <span class="inline-flex items-center gap-1">
-                        <span>{{ $field['label'] }}: {{ $field['value'] ?: '—' }}</span>
-                        @if($field['value'])
-                        <button type="button" data-copy-text="{{ $field['value'] }}" class="identity-copy-btn" title="{{ $field['title'] }}">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                        @endif
-                    </span>
-                @endforeach
-            </div>
-        </div>
-        <div class="flex flex-wrap gap-2">
-            <a href="{{ route('admin.inventory.stickers', ['ids' => $appliance->id]) }}" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md inline-flex items-center justify-center text-sm">
-                <i class="fas fa-qrcode mr-2"></i>Print sticker
-            </a>
-            <a href="{{ route('admin.inventory.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md inline-flex items-center justify-center text-sm">
-                Back to inventory
-            </a>
-        </div>
+    <div class="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span class="status-chip {{ $statusClass }}">{{ $status }}</span>
+        @foreach($identityFields as $index => $field)
+            @if($index > 0)
+            <span class="text-gray-300">·</span>
+            @endif
+            <span class="inline-flex items-center gap-1 text-sm text-gray-600">
+                <span>{{ $field['label'] }}: {{ $field['value'] ?: '—' }}</span>
+                @if($field['value'])
+                <button type="button" data-copy-text="{{ $field['value'] }}" class="identity-copy-btn" title="{{ $field['title'] }}">
+                    <i class="fas fa-copy"></i>
+                </button>
+                @endif
+            </span>
+        @endforeach
     </div>
 
     <section class="legacy-panel">

@@ -1,11 +1,16 @@
 @extends('layouts.admin')
 
 @section('title', 'Edit role')
-@section('page-title', 'Edit role')
+@section('page-title', 'Edit: '.$role->name)
+
+@section('page-actions')
+    <a href="{{ route('admin.roles.index') }}" class="inline-flex items-center text-sm font-semibold text-slate-600 hover:text-slate-900">
+        <i class="fas fa-arrow-left mr-1"></i>Back
+    </a>
+@endsection
 
 @section('content')
 <div class="max-w-4xl mx-auto bg-white rounded-lg shadow p-6">
-    <h2 class="text-xl font-semibold mb-6">Edit: {{ $role->name }}</h2>
     <form method="POST" action="{{ route('admin.roles.update', $role) }}" class="space-y-6">
         @csrf
         @method('PUT')

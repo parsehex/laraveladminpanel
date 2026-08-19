@@ -3,6 +3,14 @@
 @section('title', 'Trucks')
 @section('page-title', 'Trucks')
 
+@section('page-actions')
+    @canAccess('trucks.create')
+    <button type="button" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700" data-toggle-create>
+        <i class="fas fa-plus mr-2"></i>Add truck
+    </button>
+    @endcanAccess
+@endsection
+
 @section('content')
 @php
     $applianceStatusClasses = [
@@ -23,15 +31,6 @@
     ];
 @endphp
 <div class="space-y-6">
-    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h1 class="text-2xl font-bold text-gray-900">Trucks</h1>
-        @canAccess('trucks.create')
-        <button type="button" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md inline-flex items-center justify-center" data-toggle-create>
-            <i class="fas fa-plus mr-2"></i>Add truck
-        </button>
-        @endcanAccess
-    </div>
-
     @canAccess('trucks.create')
     <div id="create-truck-panel" class="bg-white rounded-lg shadow p-6 {{ $errors->any() && old('_form') === 'create' ? '' : 'hidden' }}">
         <div class="flex items-center justify-between mb-6">

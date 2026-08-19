@@ -3,6 +3,14 @@
 @section('title', 'Kit Parts')
 @section('page-title', 'Kit Parts')
 
+@section('page-actions')
+    @canAccess('kit-parts.create')
+    <button type="button" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700" data-toggle-create>
+        <i class="fas fa-plus mr-2"></i>Add kit part
+    </button>
+    @endcanAccess
+@endsection
+
 @section('content')
 @php
     $blankPart = new \App\Models\KitCatalogPart([
@@ -13,15 +21,6 @@
 @endphp
 
 <div class="space-y-6">
-    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h1 class="text-2xl font-bold text-gray-900">Kit Parts</h1>
-        @canAccess('kit-parts.create')
-        <button type="button" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md inline-flex items-center justify-center" data-toggle-create>
-            <i class="fas fa-plus mr-2"></i>Add kit part
-        </button>
-        @endcanAccess
-    </div>
-
     @canAccess('kit-parts.create')
     <div id="create-part-panel" class="bg-white rounded-lg shadow p-6 {{ $errors->any() && old('_form') === 'create' ? '' : 'hidden' }}">
         <h2 class="text-xl font-semibold text-gray-900 mb-6">Add kit part</h2>

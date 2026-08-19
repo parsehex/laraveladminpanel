@@ -11,10 +11,6 @@
 @endphp
 
 <div class="space-y-6">
-    <div>
-        <h1 class="text-4xl font-semibold text-gray-900">Models Management</h1>
-    </div>
-
     @canAccess('models.create')
     <div id="import-scraped-panel" class="hidden bg-white rounded-lg shadow overflow-hidden">
         <div class="bg-blue-600 px-6 py-4">

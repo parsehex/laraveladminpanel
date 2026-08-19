@@ -3,18 +3,16 @@
 @section('title', 'Users Management')
 @section('page-title', 'Users Management')
 
+@section('page-actions')
+    @canAccess('users.create')
+    <a href="{{ route('admin.users.create') }}" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+        <i class="fas fa-plus mr-2"></i>Add New User
+    </a>
+    @endcanAccess
+@endsection
+
 @section('content')
 <div class="space-y-6">
-    <div class="flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-gray-900">Users Management</h1>
-        @canAccess('users.create')
-        <a href="{{ route('admin.users.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center">
-            <i class="fas fa-plus mr-2"></i>
-            Add New User
-        </a>
-        @endcanAccess
-    </div>
-    
     <div class="bg-white rounded-lg shadow p-6">
         <form method="GET" action="{{ route('admin.users.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="md:col-span-2">

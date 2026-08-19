@@ -1,7 +1,18 @@
 @extends('layouts.admin')
 
 @section('title', $truck->name)
-@section('page-title', 'Truck details')
+@section('page-title', $truck->name)
+
+@section('page-actions')
+    @canAccess('trucks.edit')
+    <a href="{{ route('admin.trucks.edit', $truck) }}" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+        <i class="fas fa-edit mr-1"></i>Edit
+    </a>
+    @endcanAccess
+    <a href="{{ route('admin.trucks.index') }}" class="inline-flex items-center justify-center rounded-md bg-gray-500 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-600">
+        Back to list
+    </a>
+@endsection
 
 @section('content')
 @php
@@ -24,18 +35,6 @@
 @endphp
 <div class="flex flex-col gap-6">
     <div id="truck-details" class="order-3 bg-white rounded-lg shadow overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-4">
-            <h2 class="text-xl font-semibold text-gray-900">{{ $truck->name }}</h2>
-            <div class="flex flex-wrap gap-2">
-                @canAccess('trucks.edit')
-                <a href="{{ route('admin.trucks.edit', $truck) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
-                    <i class="fas fa-edit mr-1"></i>Edit
-                </a>
-                @endcanAccess
-                <a href="{{ route('admin.trucks.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm">Back to list</a>
-            </div>
-        </div>
-
         <dl class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
                 <dt class="text-sm font-medium text-gray-500">Units on truck</dt>

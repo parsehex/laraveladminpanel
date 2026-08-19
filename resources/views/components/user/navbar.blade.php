@@ -1,5 +1,5 @@
 <header class="ui-topbar relative z-[1000] bg-white shadow-sm border-b border-gray-200">
-    <div class="flex min-w-0 items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8 lg:py-4">
+    <div class="flex min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8 lg:py-4">
         <div class="flex min-w-0 items-center gap-3">
             <button type="button" @click="sidebarOpen = true" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white/80 text-slate-700 shadow-sm hover:bg-slate-50 lg:hidden" aria-label="Open menu">
                 <i class="fas fa-bars"></i>
@@ -8,6 +8,11 @@
                 <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Workspace</p>
                 <h2 class="truncate text-lg font-extrabold text-gray-800 sm:text-xl">@yield('page-title', 'Dashboard')</h2>
             </div>
+            @hasSection('page-actions')
+                <div class="flex flex-shrink-0 flex-wrap items-center gap-2">
+                    @yield('page-actions')
+                </div>
+            @endif
         </div>
         
         <div class="flex flex-shrink-0 items-center space-x-2 sm:space-x-4">

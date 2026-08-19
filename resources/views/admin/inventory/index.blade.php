@@ -24,30 +24,6 @@
 @endphp
 
 <div class="space-y-6">
-    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h1 class="text-2xl font-bold text-gray-900">Inventory</h1>
-        <div class="flex flex-wrap gap-2">
-            <button type="button" data-select-all-button class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-md inline-flex items-center justify-center">
-                <i class="fas fa-check-square mr-2"></i>Select all
-            </button>
-            <button type="button" data-unselect-all-button class="bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded-md inline-flex items-center justify-center">
-                <i class="far fa-square mr-2"></i>Unselect all
-            </button>
-            <button type="button" data-print-selected class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md inline-flex items-center justify-center">
-                <i class="fas fa-print mr-2"></i>Print selected
-            </button>
-            <button type="button" data-print-selected-stickers class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md inline-flex items-center justify-center">
-                <i class="fas fa-qrcode mr-2"></i>Print selected stickers
-            </button>
-            <button type="button" data-print-page class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md inline-flex items-center justify-center">
-                <i class="fas fa-file-alt mr-2"></i>Print current page
-            </button>
-            <button type="button" data-print-page-stickers class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md inline-flex items-center justify-center">
-                <i class="fas fa-tags mr-2"></i>Print current page stickers
-            </button>
-        </div>
-    </div>
-
     @if($showAdminValue)
     <div id="inventory-value-card" class="bg-white rounded-lg shadow overflow-hidden">
         <button type="button" data-toggle-value class="w-full bg-green-600 text-white px-6 py-4 flex items-center justify-between text-left">
@@ -110,9 +86,27 @@
     </div>
     @endif
 
-    
-
-    <x-admin.data-table title="Current Inventory List" :table="$dataTable">
+    <x-admin.data-table :table="$dataTable">
+        <x-slot:header>
+            <button type="button" data-select-all-button class="inline-flex items-center justify-center rounded-md bg-slate-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-700">
+                <i class="fas fa-check-square mr-2"></i>Select all
+            </button>
+            <button type="button" data-unselect-all-button class="inline-flex items-center justify-center rounded-md bg-slate-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-600">
+                <i class="far fa-square mr-2"></i>Unselect all
+            </button>
+            <button type="button" data-print-selected class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700">
+                <i class="fas fa-print mr-2"></i>Print selected
+            </button>
+            <button type="button" data-print-selected-stickers class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700">
+                <i class="fas fa-qrcode mr-2"></i>Print selected stickers
+            </button>
+            <button type="button" data-print-page class="inline-flex items-center justify-center rounded-md bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700">
+                <i class="fas fa-file-alt mr-2"></i>Print current page
+            </button>
+            <button type="button" data-print-page-stickers class="inline-flex items-center justify-center rounded-md bg-teal-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-700">
+                <i class="fas fa-tags mr-2"></i>Print current page stickers
+            </button>
+        </x-slot:header>
         <x-slot:filters>
         <div class="inventory-filter-card bg-white p-4">
             <form method="GET" action="{{ route('admin.inventory.index') }}" class="relative grid grid-cols-1 lg:grid-cols-12 gap-4">

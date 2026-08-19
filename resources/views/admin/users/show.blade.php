@@ -1,25 +1,22 @@
 @extends('layouts.admin')
 
 @section('title', 'User Details')
-@section('page-title', 'User Details')
+@section('page-title', $user->name)
+
+@section('page-actions')
+    @canAccess('users.edit')
+    <a href="{{ route('admin.users.edit', $user) }}" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+        <i class="fas fa-edit mr-2"></i>Edit User
+    </a>
+    @endcanAccess
+    <a href="{{ route('admin.users.index') }}" class="inline-flex items-center justify-center rounded-md bg-gray-500 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-600">
+        <i class="fas fa-arrow-left mr-2"></i>Back to Users
+    </a>
+@endsection
 
 @section('content')
 <div class="max-w-4xl mx-auto">
     <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-gray-900">User Information</h2>
-            <div class="flex items-center space-x-3">
-                @canAccess('users.edit')
-                <a href="{{ route('admin.users.edit', $user) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
-                    <i class="fas fa-edit mr-2"></i>Edit User
-                </a>
-                @endcanAccess
-                <a href="{{ route('admin.users.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">
-                    <i class="fas fa-arrow-left mr-2"></i>Back to Users
-                </a>
-            </div>
-        </div>
-        
         <div class="p-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-1">

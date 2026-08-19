@@ -3,19 +3,15 @@
 @section('title', 'Admin Profile')
 @section('page-title', 'Profile')
 
+@section('page-actions')
+    <a href="{{ route('admin.profile.password.edit') }}" class="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+        <i class="fas fa-lock mr-2"></i>Change Password
+    </a>
+@endsection
+
 @section('content')
 <div class="max-w-3xl mx-auto">
     <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
-            <div>
-                <h2 class="text-xl font-semibold text-gray-900">Profile</h2>
-                <p class="text-sm text-gray-500">Update your display name and review account details.</p>
-            </div>
-            <a href="{{ route('admin.profile.password.edit') }}" class="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
-                <i class="fas fa-lock mr-2"></i>Change Password
-            </a>
-        </div>
-
         <form method="POST" action="{{ route('admin.profile.update') }}" class="space-y-6">
             @csrf
             @method('PUT')

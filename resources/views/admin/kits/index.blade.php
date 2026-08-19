@@ -14,11 +14,6 @@
 
 @section('content')
 <div class="space-y-6">
-    <div>
-        <h1 class="text-2xl font-bold text-gray-900">Kits Management</h1>
-        <p class="mt-1 text-sm text-gray-500">Build kit definitions, assign batches, and track raw and finished stock.</p>
-    </div>
-
     @if($canManage)
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div class="bg-white rounded-lg shadow overflow-hidden">

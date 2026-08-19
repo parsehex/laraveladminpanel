@@ -40,10 +40,6 @@
                 @endisset
             </div>
         </div>
-    @elseif(isset($header))
-        <div class="flex flex-wrap items-center justify-end gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2">
-            {{ $header }}
-        </div>
     @endif
 
     @isset($filters)
@@ -51,8 +47,14 @@
     @endisset
 
     <div x-data="adminDataTable(@js($columnStorageKey), @js($toggleableColumns))" x-init="init()">
-        @if($columnStorageKey && count($toggleableColumns))
-            <div class="flex justify-end border-b border-gray-200 bg-gray-50 px-4 py-2">
+        @if((! $title && isset($header)) || ($columnStorageKey && count($toggleableColumns)))
+            <div class="flex flex-wrap items-center justify-end gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2">
+                @if(! $title)
+                    @isset($header)
+                        {{ $header }}
+                    @endisset
+                @endif
+                @if($columnStorageKey && count($toggleableColumns))
                 <div class="relative" x-data="{ open: false }">
                     <button type="button"
                             @click="open = !open"
@@ -92,6 +94,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
             </div>
         @endif
 

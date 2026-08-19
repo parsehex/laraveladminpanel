@@ -3,19 +3,15 @@
 @section('title', 'Change Password')
 @section('page-title', 'Change Password')
 
+@section('page-actions')
+    <a href="{{ route('admin.profile.edit') }}" class="inline-flex items-center text-sm font-semibold text-slate-600 hover:text-slate-900">
+        <i class="fas fa-arrow-left mr-1"></i>Back to Profile
+    </a>
+@endsection
+
 @section('content')
 <div class="max-w-3xl mx-auto">
     <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between mb-6">
-            <div>
-                <h2 class="text-xl font-semibold text-gray-900">Change Password</h2>
-                <p class="text-sm text-gray-500">Set a new password for {{ $user->name }}.</p>
-            </div>
-            <a href="{{ route('admin.profile.edit') }}" class="text-gray-600 hover:text-gray-900">
-                <i class="fas fa-arrow-left mr-1"></i>Back to Profile
-            </a>
-        </div>
-
         <form method="POST" action="{{ route('admin.profile.password.update') }}" class="space-y-6">
             @csrf
             @method('PUT')
