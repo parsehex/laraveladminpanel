@@ -39,9 +39,29 @@
 @section('page-title', $heading)
 
 @section('page-actions')
-    <a href="{{ route('admin.inventory.stickers', ['ids' => $appliance->id]) }}" target="_blank" class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-        <i class="fas fa-qrcode mr-2"></i>Print sticker
-    </a>
+    <div class="relative" x-data="{ open: false }">
+        <button type="button"
+                @click="open = !open"
+                class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+            <i class="fas fa-print mr-2"></i>Print
+            <i class="fas fa-chevron-down ml-2 text-xs opacity-80"></i>
+        </button>
+        <div x-cloak
+             x-show="open"
+             @click.outside="open = false"
+             class="absolute left-0 z-[1001] mt-2 w-44 rounded-md border border-slate-200 bg-white py-1 shadow-lg">
+            <a href="{{ route('admin.inventory.stickers', ['ids' => $appliance->id]) }}"
+               target="_blank"
+               class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                <i class="fas fa-qrcode w-4 mr-2 text-emerald-600"></i>Sticker
+            </a>
+            <a href="{{ route('admin.inventory.index', ['print' => 1, 'ids' => $appliance->id]) }}"
+               target="_blank"
+               class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                <i class="fas fa-file-alt w-4 mr-2 text-blue-600"></i>Sheet
+            </a>
+        </div>
+    </div>
     <a href="{{ route('admin.inventory.index') }}" class="inline-flex items-center justify-center rounded-md bg-gray-500 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-600">
         Back to inventory
     </a>
