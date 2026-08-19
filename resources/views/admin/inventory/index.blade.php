@@ -112,12 +112,16 @@
 
     
 
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="bg-blue-600 px-6 py-4">
-            <h2 class="text-xl font-semibold text-white">Current Inventory List</h2>
-        </div>
+    <x-admin.data-table title="Current Inventory List" :table="$dataTable">
+        <x-slot:filters>
         <div class="inventory-filter-card bg-white p-4">
             <form method="GET" action="{{ route('admin.inventory.index') }}" class="relative grid grid-cols-1 lg:grid-cols-12 gap-4">
+                @if(request('sort'))
+                    <input type="hidden" name="sort" value="{{ request('sort') }}">
+                @endif
+                @if(request('direction'))
+                    <input type="hidden" name="direction" value="{{ request('direction') }}">
+                @endif
                 <div class="lg:col-span-3">
                     <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
                     <input type="text" id="search" name="search" value="{{ request('search') }}" placeholder="Model, serial, product..."
@@ -182,24 +186,21 @@
                 </div>
             </form>
         </div>
-        <div class="wide-table-shell" data-wide-table>
-            <div class="wide-table-top-scroll" data-wide-table-top-scroll><div></div></div>
-        <div class="wide-table-scroll" data-wide-table-scroll>
+        </x-slot:filters>
+
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50 sticky-table-head">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><input type="checkbox" data-select-all></th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Truck</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Label</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model #</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serial #</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SubCategory</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Date/Time</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Sold Price</th>
+                        @foreach($dataTable->columnsForView() as $column)
+                            <x-admin.data-table.sortable-th
+                                :column="$column['key']"
+                                :label="$column['label']"
+                                :align="$column['align']"
+                                :sort="$sort"
+                                :direction="$direction"
+                            />
+                        @endforeach
                         <th class="sticky-action px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
@@ -212,19 +213,19 @@
                     @endphp
                     <tr class="appliance-status-row {{ $statusClass }}">
                         <td class="px-4 py-3"><input type="checkbox" name="print_ids[]" value="{{ $item->id }}"></td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->truck?->name ?? '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap">
+                        <x-admin.data-table.cell column="truck">{{ $item->truck?->name ?? '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="status">
                             <span class="appliance-status-chip {{ $statusClass }}">{{ $status }}</span>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->unit_label ?: 'N/A' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->model?->model_number ?? '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->serial_number ?: '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->brand ?: '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->category?->name ?? '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->subcategory ?: '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $item->statusHistories?->sortByDesc('created_at')->first()?->created_at?->format('Y-m-d H:i:s') ?? 'N/A' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">${{ number_format($totalCost, 2) }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 text-right">${{ number_format((float) ($item->sold_price ?? 0), 2) }}</td>
+                        </x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="unit_label" truncate title="{{ $item->unit_label ?: 'N/A' }}">{{ $item->unit_label ?: 'N/A' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="model">{{ $item->model?->model_number ?? '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="serial_number">{{ $item->serial_number ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="brand" truncate title="{{ $item->brand ?: '-' }}">{{ $item->brand ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="category" truncate title="{{ $item->category?->name ?? '-' }}">{{ $item->category?->name ?? '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="subcategory" truncate title="{{ $item->subcategory ?: '-' }}">{{ $item->subcategory ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="status_date">{{ $item->statusHistories?->sortByDesc('created_at')->first()?->created_at?->format('Y-m-d H:i:s') ?? 'N/A' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="total_cost" align="right">${{ number_format($totalCost, 2) }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="sold_price" align="right">${{ number_format((float) ($item->sold_price ?? 0), 2) }}</x-admin.data-table.cell>
                         <td class="sticky-action px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                             <a href="{{ route('admin.inventory.show', $item) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100" title="View details">
                                 <i class="fas fa-eye"></i>
@@ -250,8 +251,8 @@
                     @endforelse
                 </tbody>
             </table>
-        </div>
-        </div>
+
+        <x-slot:footer>
         <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div class="text-sm text-gray-600">
                 Showing {{ $items->firstItem() ?? 0 }} - {{ $items->lastItem() ?? 0 }} of {{ $items->total() }}
@@ -268,7 +269,8 @@
             <div>{{ $items->links() }}</div>
             @endif
         </div>
-    </div>
+        </x-slot:footer>
+    </x-admin.data-table>
 </div>
 @endsection
 
@@ -333,51 +335,6 @@
         top: calc(100% + 0.5rem);
         right: 0;
         z-index: 100001;
-    }
-
-    .wide-table-shell {
-        position: relative;
-        z-index: 1;
-    }
-
-    .wide-table-scroll {
-        max-height: 72vh;
-        overflow-x: hidden;
-        overflow-y: auto;
-    }
-
-    .wide-table-scroll > table {
-        width: max-content;
-        min-width: 100%;
-    }
-
-    .wide-table-shell.has-h-scroll .wide-table-scroll {
-        overflow-x: auto;
-    }
-
-    .wide-table-top-scroll {
-        display: none;
-        height: 16px;
-        overflow-x: auto;
-        overflow-y: hidden;
-        border-bottom: 1px solid rgba(226, 232, 240, 0.9);
-        background: #f8fafc;
-    }
-
-    .wide-table-shell.has-h-scroll .wide-table-top-scroll {
-        display: block;
-    }
-
-    .wide-table-top-scroll > div {
-        height: 1px;
-    }
-
-    .sticky-table-head th {
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        background: #f8fafc !important;
-        box-shadow: inset 0 -1px 0 rgba(226, 232, 240, 0.95);
     }
 </style>
 @endpush
@@ -480,59 +437,6 @@
 
     $('[data-print-page-stickers]').on('click', function () {
         openStickerPrint(currentPageInventoryIds());
-    });
-
-    $('[data-wide-table]').each(function () {
-        const $shell = $(this);
-        const $main = $shell.find('[data-wide-table-scroll]');
-        const $top = $shell.find('[data-wide-table-top-scroll]');
-        const mainEl = $main.get(0);
-        const table = $main.find('table').get(0);
-        let frame = null;
-
-        function syncWidth() {
-            if (!mainEl || !table) {
-                return;
-            }
-
-            $top.children().first().width(table.scrollWidth);
-
-            const yScrollbar = Math.max(0, mainEl.offsetWidth - mainEl.clientWidth);
-            const overflowX = table.scrollWidth - mainEl.clientWidth;
-            const needsScroll = overflowX > yScrollbar + 2;
-
-            if ($shell.hasClass('has-h-scroll') !== needsScroll) {
-                $shell.toggleClass('has-h-scroll', needsScroll);
-            }
-        }
-
-        function scheduleSync() {
-            if (frame) {
-                return;
-            }
-
-            frame = requestAnimationFrame(function () {
-                frame = null;
-                syncWidth();
-            });
-        }
-
-        $main.on('scroll', function () {
-            $top.scrollLeft($main.scrollLeft());
-        });
-
-        $top.on('scroll', function () {
-            $main.scrollLeft($top.scrollLeft());
-        });
-
-        syncWidth();
-        $(window).on('resize', scheduleSync);
-
-        if (window.ResizeObserver) {
-            const observer = new ResizeObserver(scheduleSync);
-            observer.observe(mainEl);
-            observer.observe(table);
-        }
     });
 </script>
 @endpush

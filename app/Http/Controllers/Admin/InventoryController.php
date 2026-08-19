@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppliancePart;
+use App\Models\InventoryStatusHistory;
 use App\Models\Part;
 use App\Models\Truck;
+use App\Support\DataTable;
 use App\Models\TruckAppliance;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -39,11 +41,13 @@ class InventoryController extends Controller
 
     public function index(Request $request)
     {
+        $dataTable = $this->inventoryDataTable();
+
         $query = TruckAppliance::query()
-            ->with(['truck', 'category', 'model', 'statusHistories'])
-            ->latest('id');
+            ->with(['truck', 'category', 'model', 'statusHistories']);
 
         $this->applyFilters($query, $request);
+        $dataTable->applySorting($query, $request);
 
         $limit = $request->get('limit', 25);
         $limit = $limit === 'all' ? 'all' : max(1, (int) $limit);
@@ -164,6 +168,8 @@ class InventoryController extends Controller
             'inventoryData' => $inventoryData,
             'totalInventoryValue' => $totalInventoryValue,
             'showAdminValue' => $showAdminValue,
+            'dataTable' => $dataTable,
+            ...$dataTable->sortState($request),
         ]);
     }
 
@@ -540,6 +546,97 @@ class InventoryController extends Controller
         if ($request->filled('sub_category')) {
             $query->whereLike('subcategory', '%'.$request->string('sub_category')->trim().'%');
         }
+    }
+
+    private function inventoryDataTable(): DataTable
+    {
+        return new DataTable(
+            storageKey: 'inventoryTableColumns',
+            defaultSort: ['truck_appliances.id', 'desc'],
+            columns: [
+                [
+                    'key' => 'truck',
+                    'label' => 'Truck',
+                    'sort' => fn (Builder $query, string $direction) => $query
+                        ->leftJoin('trucks', 'trucks.id', '=', 'truck_appliances.truck_id')
+                        ->orderBy('trucks.name', $direction)
+                        ->select('truck_appliances.*'),
+                ],
+                [
+                    'key' => 'status',
+                    'label' => 'Status',
+                    'sort' => fn (Builder $query, string $direction) => $query->orderByRaw(
+                        "COALESCE(NULLIF(truck_appliances.status, ''), 'Triage') ".$direction
+                    ),
+                ],
+                [
+                    'key' => 'unit_label',
+                    'label' => 'Unit Label',
+                    'truncate' => true,
+                    'sort' => 'truck_appliances.unit_label',
+                ],
+                [
+                    'key' => 'model',
+                    'label' => 'Model #',
+                    'sort' => fn (Builder $query, string $direction) => $query
+                        ->leftJoin('models', 'models.id', '=', 'truck_appliances.model_id')
+                        ->orderBy('models.model_number', $direction)
+                        ->select('truck_appliances.*'),
+                ],
+                [
+                    'key' => 'serial_number',
+                    'label' => 'Serial #',
+                    'sort' => 'truck_appliances.serial_number',
+                ],
+                [
+                    'key' => 'brand',
+                    'label' => 'Brand',
+                    'truncate' => true,
+                    'sort' => 'truck_appliances.brand',
+                ],
+                [
+                    'key' => 'category',
+                    'label' => 'Category',
+                    'truncate' => true,
+                    'sort' => fn (Builder $query, string $direction) => $query
+                        ->leftJoin('categories', 'categories.id', '=', 'truck_appliances.category_id')
+                        ->orderBy('categories.name', $direction)
+                        ->select('truck_appliances.*'),
+                ],
+                [
+                    'key' => 'subcategory',
+                    'label' => 'SubCategory',
+                    'truncate' => true,
+                    'sort' => 'truck_appliances.subcategory',
+                ],
+                [
+                    'key' => 'status_date',
+                    'label' => 'Status Date/Time',
+                    'sort' => fn (Builder $query, string $direction) => $query->orderBy(
+                        InventoryStatusHistory::query()
+                            ->select('created_at')
+                            ->whereColumn('truck_appliance_id', 'truck_appliances.id')
+                            ->latest('created_at')
+                            ->limit(1),
+                        $direction
+                    ),
+                ],
+                [
+                    'key' => 'total_cost',
+                    'label' => 'Total Cost',
+                    'align' => 'right',
+                    'sort' => fn (Builder $query, string $direction) => $query->orderByRaw(
+                        '(COALESCE(truck_appliances.msrp, 0) + CASE WHEN COALESCE(truck_appliances.status, \'\') IN (\'Demanufacture\', \'Scrap\') THEN -COALESCE(truck_appliances.total_parts_cost, 0) ELSE COALESCE(truck_appliances.total_parts_cost, 0) END) '.$direction
+                    ),
+                ],
+                [
+                    'key' => 'sold_price',
+                    'label' => 'Sold Price',
+                    'align' => 'right',
+                    'sort' => 'truck_appliances.sold_price',
+                ],
+            ],
+        );
     }
 
     private function recalculateTruckPrices(Truck $truck): void

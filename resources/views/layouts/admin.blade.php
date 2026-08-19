@@ -72,6 +72,51 @@
                 margin-bottom: 0.25rem;
             }
         }
+
+        .wide-table-shell {
+            position: relative;
+            z-index: 1;
+        }
+
+        .wide-table-scroll {
+            max-height: 72vh;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        .wide-table-scroll > table {
+            width: max-content;
+            min-width: 100%;
+        }
+
+        .wide-table-shell.has-h-scroll .wide-table-scroll {
+            overflow-x: auto;
+        }
+
+        .wide-table-top-scroll {
+            display: none;
+            height: 16px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+            background: #f8fafc;
+        }
+
+        .wide-table-shell.has-h-scroll .wide-table-top-scroll {
+            display: block;
+        }
+
+        .wide-table-top-scroll > div {
+            height: 1px;
+        }
+
+        .sticky-table-head th {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: #f8fafc !important;
+            box-shadow: inset 0 -1px 0 rgba(226, 232, 240, 0.95);
+        }
     </style>
 
     @stack('styles')
@@ -120,6 +165,154 @@
             }
 
             applyTableDensity(event.newValue === 'compact' ? 'compact' : 'comfortable');
+        });
+
+        window.adminDataTable = function (storageKey, columnConfig) {
+            if (!storageKey || !columnConfig.length) {
+                return {
+                    init() {},
+                    isColumnVisible() {
+                        return true;
+                    },
+                    showAllColumns() {},
+                    hideAllColumns() {},
+                    resetColumns() {},
+                };
+            }
+
+            const buildDefaults = () => Object.fromEntries(
+                columnConfig.map(({ key, default: isOn }) => [key, isOn !== false])
+            );
+
+            return {
+                visible: {},
+                init() {
+                    this.applyStoredColumns(localStorage.getItem(storageKey));
+
+                    this.$watch('visible', (value) => {
+                        localStorage.setItem(storageKey, JSON.stringify(value));
+                        window.dispatchEvent(new CustomEvent('wide-table-resync'));
+                    }, { deep: true });
+
+                    window.addEventListener('storage', (event) => {
+                        if (event.key !== storageKey) {
+                            return;
+                        }
+
+                        this.applyStoredColumns(event.newValue);
+                        window.dispatchEvent(new CustomEvent('wide-table-resync'));
+                    });
+                },
+                applyStoredColumns(storedValue) {
+                    const defaults = buildDefaults();
+
+                    if (storedValue === null) {
+                        this.visible = defaults;
+
+                        return;
+                    }
+
+                    try {
+                        this.visible = { ...defaults, ...JSON.parse(storedValue) };
+                    } catch (error) {
+                        this.visible = defaults;
+                    }
+                },
+                isColumnVisible(key) {
+                    return this.visible[key] !== false;
+                },
+                showAllColumns() {
+                    this.visible = Object.fromEntries(
+                        columnConfig.map(({ key }) => [key, true])
+                    );
+                },
+                hideAllColumns() {
+                    this.visible = Object.fromEntries(
+                        columnConfig.map(({ key }) => [key, false])
+                    );
+                },
+                resetColumns() {
+                    localStorage.removeItem(storageKey);
+                    this.visible = buildDefaults();
+                },
+            };
+        };
+
+        window.initWideTables = function () {
+            $('[data-wide-table]').each(function () {
+                const $shell = $(this);
+
+                if ($shell.data('wideTableInit')) {
+                    return;
+                }
+
+                $shell.data('wideTableInit', true);
+
+                const $main = $shell.find('[data-wide-table-scroll]');
+                const $top = $shell.find('[data-wide-table-top-scroll]');
+                const mainEl = $main.get(0);
+                const table = $main.find('table').get(0);
+                let frame = null;
+
+                function syncWidth() {
+                    if (!mainEl || !table) {
+                        return;
+                    }
+
+                    $top.children().first().width(table.scrollWidth);
+
+                    const yScrollbar = Math.max(0, mainEl.offsetWidth - mainEl.clientWidth);
+                    const overflowX = table.scrollWidth - mainEl.clientWidth;
+                    const needsScroll = overflowX > yScrollbar + 2;
+
+                    if ($shell.hasClass('has-h-scroll') !== needsScroll) {
+                        $shell.toggleClass('has-h-scroll', needsScroll);
+                    }
+                }
+
+                function scheduleSync() {
+                    if (frame) {
+                        return;
+                    }
+
+                    frame = requestAnimationFrame(function () {
+                        frame = null;
+                        syncWidth();
+                    });
+                }
+
+                $main.on('scroll', function () {
+                    $top.scrollLeft($main.scrollLeft());
+                });
+
+                $top.on('scroll', function () {
+                    $main.scrollLeft($top.scrollLeft());
+                });
+
+                syncWidth();
+                $(window).on('resize', scheduleSync);
+
+                if (window.ResizeObserver && mainEl && table) {
+                    const observer = new ResizeObserver(scheduleSync);
+                    observer.observe(mainEl);
+                    observer.observe(table);
+                }
+
+                $shell.data('wideTableSync', scheduleSync);
+            });
+        };
+
+        $(document).ready(function () {
+            initWideTables();
+        });
+
+        window.addEventListener('wide-table-resync', function () {
+            $('[data-wide-table]').each(function () {
+                const sync = $(this).data('wideTableSync');
+                if (typeof sync === 'function') {
+                    sync();
+                }
+            });
         });
     </script>
     <script>
