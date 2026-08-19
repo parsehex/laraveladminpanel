@@ -192,15 +192,7 @@
                 <thead class="bg-gray-50 sticky-table-head">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><input type="checkbox" data-select-all></th>
-                        @foreach($dataTable->columnsForView() as $column)
-                            <x-admin.data-table.sortable-th
-                                :column="$column['key']"
-                                :label="$column['label']"
-                                :align="$column['align']"
-                                :sort="$sort"
-                                :direction="$direction"
-                            />
-                        @endforeach
+                        <x-admin.data-table.header-cells :data-table="$dataTable" :sort="$sort" :direction="$direction" />
                         <th class="sticky-action px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>

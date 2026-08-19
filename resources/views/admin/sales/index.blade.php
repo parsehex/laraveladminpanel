@@ -4,27 +4,6 @@
 @section('page-title', 'Sales Tracking')
 
 @section('content')
-@php
-    $sort = $sort ?? request('sort', 'sold_date');
-    $direction = $direction ?? request('direction', 'desc');
-    $sortLink = function (string $column) use ($sort, $direction) {
-        $nextDirection = $sort === $column && $direction === 'asc' ? 'desc' : 'asc';
-
-        return route('admin.sales.index', array_merge(request()->except('page'), [
-            'sort' => $column,
-            'direction' => $nextDirection,
-        ]));
-    };
-    $sortArrow = function (string $column) use ($sort, $direction) {
-        if ($sort !== $column) {
-            return '<i class="fas fa-sort ml-1 text-gray-400"></i>';
-        }
-
-        return $direction === 'asc'
-            ? '<i class="fas fa-sort-up ml-1 text-blue-600"></i>'
-            : '<i class="fas fa-sort-down ml-1 text-blue-600"></i>';
-    };
-@endphp
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold text-gray-900">Sales Tracking</h1>
@@ -105,6 +84,12 @@
         <div class="p-4">
             <form method="GET" action="{{ route('admin.sales.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
                 <input type="hidden" name="view" value="{{ $view }}">
+                @if($view === 'normal' && request('sort'))
+                    <input type="hidden" name="sort" value="{{ request('sort') }}">
+                @endif
+                @if($view === 'normal' && request('direction'))
+                    <input type="hidden" name="direction" value="{{ request('direction') }}">
+                @endif
                 <input type="text" name="search" value="{{ request('search') }}" class="px-3 py-2 border border-gray-300 rounded-md" placeholder="Search model or serial">
                 <select name="limit" class="px-3 py-2 border border-gray-300 rounded-md">
                     <option value="25" @selected((string) request('limit', 25) === '25')>25</option>
@@ -116,14 +101,26 @@
             </form>
 
             @if($view === 'normal')
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left">Model</th><th class="px-4 py-3 text-left">Serial</th><th class="px-4 py-3 text-right"><a href="{{ $sortLink('sold_price') }}" class="inline-flex items-center justify-end text-gray-700 hover:text-blue-700">Sold Price {!! $sortArrow('sold_price') !!}</a></th><th class="px-4 py-3 text-right">Cost</th><th class="px-4 py-3 text-right">Profit</th><th class="px-4 py-3 text-left">Sold By</th><th class="px-4 py-3 text-left"><a href="{{ $sortLink('sold_date') }}" class="inline-flex items-center text-gray-700 hover:text-blue-700">Sold Date {!! $sortArrow('sold_date') !!}</a></th><th class="sticky-action px-4 py-3 text-right">Actions</th></tr></thead>
+            <x-admin.data-table bare :table="$dataTable">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50 sticky-table-head">
+                    <tr>
+                        <x-admin.data-table.header-cells :data-table="$dataTable" :sort="$sort" :direction="$direction" />
+                        <th class="sticky-action px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
                     <tbody class="divide-y divide-gray-200">
                         @forelse($soldItems as $item)
                         @php $cost = $item->salesCost(); $profit = (float) ($item->sold_price ?? 0) - $cost; @endphp
                         <tr>
-                            <td class="px-4 py-3">{{ $item->id }}</td><td class="px-4 py-3">{{ $item->model?->model_number ?? '-' }}</td><td class="px-4 py-3">{{ $item->serial_number }}</td><td class="px-4 py-3 text-right">${{ number_format($item->sold_price ?? 0, 2) }}</td><td class="px-4 py-3 text-right">${{ number_format($cost, 2) }}</td><td class="px-4 py-3 text-right">${{ number_format($profit, 2) }}</td><td class="px-4 py-3">{{ $item->sold_by ?: '-' }}</td><td class="px-4 py-3">{{ $item->sold_at?->format('Y-m-d H:i') ?: '-' }}</td>
+                            <x-admin.data-table.cell column="id">{{ $item->id }}</x-admin.data-table.cell>
+                            <x-admin.data-table.cell column="model">{{ $item->model?->model_number ?? '-' }}</x-admin.data-table.cell>
+                            <x-admin.data-table.cell column="serial_number">{{ $item->serial_number }}</x-admin.data-table.cell>
+                            <x-admin.data-table.cell column="sold_price" align="right">${{ number_format($item->sold_price ?? 0, 2) }}</x-admin.data-table.cell>
+                            <x-admin.data-table.cell column="cost" align="right">${{ number_format($cost, 2) }}</x-admin.data-table.cell>
+                            <x-admin.data-table.cell column="profit" align="right">${{ number_format($profit, 2) }}</x-admin.data-table.cell>
+                            <x-admin.data-table.cell column="sold_by" truncate title="{{ $item->sold_by ?: '-' }}">{{ $item->sold_by ?: '-' }}</x-admin.data-table.cell>
+                            <x-admin.data-table.cell column="sold_date">{{ $item->sold_at?->format('Y-m-d H:i') ?: '-' }}</x-admin.data-table.cell>
                             <td class="sticky-action px-4 py-3 text-right">
                                 <a href="{{ route('admin.inventory.show', $item) }}" class="text-blue-600">View</a>
                                 @canAccess('sales.edit')
@@ -136,12 +133,14 @@
                         @endforelse
                     </tbody>
                 </table>
-            </div>
+            <x-slot:footer>
             <div class="mt-4">{{ $soldItems->links() }}</div>
+            </x-slot:footer>
+            </x-admin.data-table>
             @else
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left">Model</th><th class="px-4 py-3 text-left">Serial</th><th class="px-4 py-3 text-right"><a href="{{ $sortLink('sold_price') }}" class="inline-flex items-center justify-end text-gray-700 hover:text-blue-700">Sold Price {!! $sortArrow('sold_price') !!}</a></th><th class="px-4 py-3 text-right">Estimated</th><th class="px-4 py-3 text-right">Profit</th><th class="px-4 py-3 text-left">Sold By</th><th class="px-4 py-3 text-left"><a href="{{ $sortLink('sold_date') }}" class="inline-flex items-center text-gray-700 hover:text-blue-700">Sold Date {!! $sortArrow('sold_date') !!}</a></th></tr></thead>
+                    <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left">ID</th><th class="px-4 py-3 text-left">Model</th><th class="px-4 py-3 text-left">Serial</th><th class="px-4 py-3 text-right">Sold Price</th><th class="px-4 py-3 text-right">Estimated</th><th class="px-4 py-3 text-right">Profit</th><th class="px-4 py-3 text-left">Sold By</th><th class="px-4 py-3 text-left">Sold Date</th></tr></thead>
                     <tbody class="divide-y divide-gray-200">
                         @forelse($customSales as $sale)
                         <tr><td class="px-4 py-3">{{ $sale->id }}</td><td class="px-4 py-3">{{ $sale->model_number }}</td><td class="px-4 py-3">{{ $sale->serial_number }}</td><td class="px-4 py-3 text-right">${{ number_format($sale->sold_price, 2) }}</td><td class="px-4 py-3 text-right">${{ number_format($sale->estimated_price, 2) }}</td><td class="px-4 py-3 text-right">${{ number_format($sale->sold_price - $sale->estimated_price, 2) }}</td><td class="px-4 py-3">{{ $sale->sold_by }}</td><td class="px-4 py-3">{{ $sale->created_at?->format('Y-m-d H:i') }}</td></tr>

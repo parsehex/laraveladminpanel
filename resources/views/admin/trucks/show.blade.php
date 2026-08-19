@@ -139,10 +139,8 @@
     </div>
     @endcanAccess
 
-    <div id="truck-appliances" class="order-2 bg-white rounded-lg shadow overflow-hidden">
-        <div class="bg-blue-600 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-xl font-semibold text-white">Truck Appliances ({{ $appliances->total() }} total)</h2>
-            <div class="flex flex-wrap gap-2">
+    <x-admin.data-table id="truck-appliances" class="order-2" :title="'Truck Appliances ('.$appliances->total().' total)'" :table="$dataTable">
+        <x-slot:header>
                 @canAccess('trucks.view')
                 <a href="{{ route('admin.trucks.appliances.export', $truck) }}" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100">
                     <i class="fas fa-file-export mr-1"></i>Export
@@ -158,11 +156,17 @@
                     <a href="{{ asset('examples/truck-appliances-import-example.csv') }}" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100" download>Example CSV</a>
                 </form>
                 @endcanAccess
-            </div>
-        </div>
+        </x-slot:header>
 
+        <x-slot:filters>
         <div class="border-b border-gray-200 bg-white px-4 py-3">
             <form method="GET" action="{{ route('admin.trucks.show', $truck) }}" class="flex flex-wrap items-center gap-2">
+                @if(request('sort'))
+                    <input type="hidden" name="sort" value="{{ request('sort') }}">
+                @endif
+                @if(request('direction'))
+                    <input type="hidden" name="direction" value="{{ request('direction') }}">
+                @endif
                 <label for="appliances_per_page" class="text-sm font-medium text-gray-700">Rows per page:</label>
                 <select id="appliances_per_page" name="appliances_per_page" onchange="this.form.submit()" class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     @foreach([10, 25, 50, 100] as $size)
@@ -174,29 +178,14 @@
                 </span>
             </form>
         </div>
+        </x-slot:filters>
 
-        <div class="wide-table-shell" data-wide-table>
-            <div class="wide-table-top-scroll" data-wide-table-top-scroll><div></div></div>
-        <div class="wide-table-scroll overflow-x-auto" data-wide-table-scroll>
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50 sticky-table-head">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><input type="checkbox" data-truck-select-all></th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sub-Category</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Label</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serial #</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MSRP</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fuel Type</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Receiving Condition</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Parts Cost</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <x-admin.data-table.header-cells :data-table="$dataTable" :sort="$sort" :direction="$direction" />
+                        <th class="sticky-action px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -206,20 +195,20 @@
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
                             <input type="checkbox" name="truck_print_ids[]" value="{{ $appliance->id }}" data-truck-appliance-checkbox>
                         </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->category?->name ?? '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        <x-admin.data-table.cell column="category" truncate title="{{ $appliance->category?->name ?? '-' }}">{{ $appliance->category?->name ?? '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="status">
                             <span class="appliance-status-chip {{ $rowClass }}">
                                 {{ $appliance->status ? ucfirst($appliance->status) : 'Triage' }}
                             </span>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->subcategory ?: '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->unit_label ?: '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->model?->model_number ?? '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->serial_number ?: '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->brand ?: '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->product_name ?: '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->quantity ?? 1 }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        </x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="subcategory" truncate title="{{ $appliance->subcategory ?: '-' }}">{{ $appliance->subcategory ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="unit_label" truncate title="{{ $appliance->unit_label ?: '-' }}">{{ $appliance->unit_label ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="model">{{ $appliance->model?->model_number ?? '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="serial_number">{{ $appliance->serial_number ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="brand" truncate title="{{ $appliance->brand ?: '-' }}">{{ $appliance->brand ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="product_name" truncate title="{{ $appliance->product_name ?: '-' }}">{{ $appliance->product_name ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="quantity" align="right">{{ $appliance->quantity ?? 1 }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="total_cost" align="right">
                             ${{ number_format($appliance->totalCostUsing((float) $appliance->price), 2) }}
                             <button type="button" class="ml-1 text-blue-600" data-cost-toggle>?</button>
                             <div class="hidden mt-1 border-t border-dashed border-gray-300 pt-1 text-xs text-gray-600" data-cost-details>
@@ -229,12 +218,12 @@
                                     <br><span class="font-semibold text-red-700">Demanufacture/Scrap parts cost is subtracted.</span>
                                 @endif
                             </div>
-                        </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${{ number_format($appliance->msrp, 2) }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->fuel_type ?: '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $appliance->receiving_condition ?: '-' }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${{ number_format($appliance->total_parts_cost, 2) }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                        </x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="msrp" align="right">${{ number_format($appliance->msrp, 2) }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="fuel_type" truncate title="{{ $appliance->fuel_type ?: '-' }}">{{ $appliance->fuel_type ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="receiving_condition" truncate title="{{ $appliance->receiving_condition ?: '-' }}">{{ $appliance->receiving_condition ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="total_parts_cost" align="right">${{ number_format($appliance->total_parts_cost, 2) }}</x-admin.data-table.cell>
+                        <td class="sticky-action px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex items-center justify-end gap-1.5">
                             @canAccess('appliance.edit')
                             <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" title="Edit" data-toggle-row="appliance-edit-{{ $appliance->id }}">
@@ -294,8 +283,8 @@
                     @endforelse
                 </tbody>
             </table>
-        </div>
-        </div>
+
+        <x-slot:footer>
         @if($appliances->total() > 0)
         <div class="border-t border-gray-200 bg-white px-4 py-4">
             <div class="flex flex-wrap gap-2">
@@ -313,7 +302,8 @@
             {{ $appliances->links() }}
         </div>
         @endif
-    </div>
+        </x-slot:footer>
+    </x-admin.data-table>
 </div>
 
 @include('admin.shared.ajax-dropdowns')
@@ -369,35 +359,6 @@
     .appliance-status-chip.appliance-status-black { background: #111827 !important; color: #ffffff !important; }
     .appliance-status-chip.appliance-status-green { background: #16a34a !important; color: #052e16 !important; }
     .appliance-status-chip.appliance-status-sold { background: #059669 !important; color: #ffffff !important; }
-
-    .wide-table-shell {
-        position: relative;
-    }
-
-    .wide-table-scroll {
-        max-height: 72vh;
-        overflow: auto;
-    }
-
-    .wide-table-top-scroll {
-        height: 16px;
-        overflow-x: auto;
-        overflow-y: hidden;
-        border-bottom: 1px solid rgba(226, 232, 240, 0.9);
-        background: #f8fafc;
-    }
-
-    .wide-table-top-scroll > div {
-        height: 1px;
-    }
-
-    .sticky-table-head th {
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        background: #f8fafc !important;
-        box-shadow: inset 0 -1px 0 rgba(226, 232, 240, 0.95);
-    }
 
     .swal-photo-gallery {
         display: grid;
@@ -599,28 +560,6 @@
 
     $('[data-truck-print-all-stickers]').on('click', function () {
         openPrintUrl('stickers', false);
-    });
-
-    $('[data-wide-table]').each(function () {
-        const $shell = $(this);
-        const $main = $shell.find('[data-wide-table-scroll]');
-        const $top = $shell.find('[data-wide-table-top-scroll]');
-        const table = $main.find('table').get(0);
-
-        function syncWidth() {
-            $top.children().first().width(table ? table.scrollWidth : 0);
-        }
-
-        $main.on('scroll', function () {
-            $top.scrollLeft($main.scrollLeft());
-        });
-
-        $top.on('scroll', function () {
-            $main.scrollLeft($top.scrollLeft());
-        });
-
-        syncWidth();
-        $(window).on('resize', syncWidth);
     });
 
     function escapeHtml(value) {

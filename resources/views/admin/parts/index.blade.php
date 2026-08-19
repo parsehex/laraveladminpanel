@@ -42,6 +42,12 @@
 
     <div class="bg-white rounded-lg shadow p-6 space-y-4">
         <form method="GET" action="{{ route('admin.parts.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            @if(request('sort'))
+                <input type="hidden" name="sort" value="{{ request('sort') }}">
+            @endif
+            @if(request('direction'))
+                <input type="hidden" name="direction" value="{{ request('direction') }}">
+            @endif
             <div class="md:col-span-3">
                 <label for="search" class="block text-sm font-medium text-gray-700 mb-1">{{request('is_from_model_section') ? "Search Model Compatibility" : "Search by any feild"}}</label>
                 <input type="text" id="search" name="search" value="{{ request('search') }}"
@@ -67,35 +73,26 @@
         @endcanAccess
     </div>
 
-    <div id="parts-results" class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="overflow-x-auto">
+    <x-admin.data-table id="parts-results" :table="$dataTable">
             <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead class="bg-gray-50 sticky-table-head">
                     <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sr. No</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Stock</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Part #</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model Compatibility</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Retail Price</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Your Price</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cross Reference</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <x-admin.data-table.header-cells :data-table="$dataTable" :sort="$sort" :direction="$direction" />
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($parts as $part)
                     <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $part->id }}</td>
-                        
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $part->total_stock }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $part->part_number }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $part->product_name ?: '-' }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $part->model_compatibility ?: '-' }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${{ number_format($part->retail_price, 2) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${{ number_format($part->your_price, 2) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $part->cross_reference ?: '-' }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                        <x-admin.data-table.cell column="id">{{ $part->id }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="total_stock" align="right">{{ $part->total_stock }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="part_number" class="font-medium text-gray-900">{{ $part->part_number }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="product_name" truncate title="{{ $part->product_name ?: '-' }}">{{ $part->product_name ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="model_compatibility" truncate title="{{ $part->model_compatibility ?: '-' }}">{{ $part->model_compatibility ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="retail_price" align="right">${{ number_format($part->retail_price, 2) }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="your_price" align="right">${{ number_format($part->your_price, 2) }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="cross_reference" truncate title="{{ $part->cross_reference ?: '-' }}">{{ $part->cross_reference ?: '-' }}</x-admin.data-table.cell>
+                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium space-x-2">
                             @canAccess('parts.view')
                             <button type="button" class="text-blue-600 hover:text-blue-900" title="View" data-toggle-row="part-view-{{ $part->id }}">
                                 <i class="fas fa-eye"></i>
@@ -171,11 +168,13 @@
                     @endforelse
                 </tbody>
             </table>
-        </div>
+
         @if($parts->hasPages())
+        <x-slot:footer>
         <div class="px-6 py-4 border-t border-gray-200">{{ $parts->links() }}</div>
+        </x-slot:footer>
         @endif
-    </div>
+    </x-admin.data-table>
 </div>
 
 @include('admin.shared.ajax-dropdowns')

@@ -58,6 +58,12 @@
 
     <div class="bg-white rounded-lg shadow p-6">
         <form method="GET" action="{{ route('admin.trucks.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            @if(request('sort'))
+                <input type="hidden" name="sort" value="{{ request('sort') }}">
+            @endif
+            @if(request('direction'))
+                <input type="hidden" name="direction" value="{{ request('direction') }}">
+            @endif
             <div class="md:col-span-2">
                 <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search by name</label>
                 <input type="text" id="search" name="search" value="{{ request('search') }}"
@@ -80,66 +86,47 @@
         </form>
     </div>
 
-    <div id="truck-results" class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="overflow-x-auto">
+    <x-admin.data-table id="truck-results" :table="$dataTable">
             <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+                <thead class="bg-gray-50 sticky-table-head">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cost</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shipping</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total MSRP</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Arrival</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Truck Status</th>
-                        <th class="truck-status-breakdown-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Breakdown</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue to Date</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created by</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <x-admin.data-table.header-cells :data-table="$dataTable" :sort="$sort" :direction="$direction" />
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($trucks as $truck)
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $truck->name }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $truck->units_on_truck }} (item:{{ $truck->appliances->count() }})</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${{ number_format($truck->cost_of_truck, 2) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${{ number_format((float) $truck->shipping_cost, 2) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${{ number_format($truck->total_appliance_msrp ?? 0, 2) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $truck->arrival_date ? $truck->arrival_date : '-' }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <x-admin.data-table.cell column="name" class="font-medium text-gray-900">{{ $truck->name }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="units">{{ $truck->units_on_truck }} (item:{{ $truck->appliances->count() }})</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="cost" align="right">${{ number_format($truck->cost_of_truck, 2) }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="shipping" align="right">${{ number_format((float) $truck->shipping_cost, 2) }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="total_msrp" align="right">${{ number_format($truck->total_appliance_msrp ?? 0, 2) }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="arrival">{{ $truck->arrival_date ? $truck->arrival_date : '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="truck_status">
                             <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $truck->status === 'active' ? 'bg-green-100 text-green-800' : ($truck->status === 'breakdown' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800') }}">
                                 {{ ucfirst($truck->status) }}
                             </span>
-                        </td>
-                        <td class="truck-status-breakdown-cell px-6 py-4">
+                        </x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="status_breakdown" class="truck-status-breakdown-cell">
                             <div class="truck-status-breakdown">
-
                                 @forelse($truck->appliance_statuses as $item)
-
                                     @php
                                         $status = $item['status'] ?: 'Triage';
                                         $count = $item['count'];
                                         $classes = $applianceStatusClasses[strtolower($status)] ?? 'status-white';
                                     @endphp
-
                                     <span class="status-chip {{ $classes }}">
                                         {{ ucfirst($status) }} ({{ $count }})
                                     </span>
-
                                 @empty
-
                                     <span class="text-gray-500 text-sm">N/A</span>
-
                                 @endforelse
-
                             </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${{ number_format((float) ($truck->revenue_to_date ?? 0), 2) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                            {{ $truck->creator?->name ?? '-' }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                        </x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="revenue" align="right">${{ number_format((float) ($truck->revenue_to_date ?? 0), 2) }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="created_by" truncate title="{{ $truck->creator?->name ?? '-' }}">{{ $truck->creator?->name ?? '-' }}</x-admin.data-table.cell>
+                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium space-x-2">
                             @canAccess('trucks.view')
                             <a href="{{ route('admin.trucks.show', $truck) }}" class="text-blue-600 hover:text-blue-900" title="View"><i class="fas fa-eye"></i></a>
                             <a href="{{ route('admin.trucks.appliances.export', $truck) }}" class="text-emerald-600 hover:text-emerald-900" title="Export appliances">
@@ -174,11 +161,13 @@
                     @endforelse
                 </tbody>
             </table>
-        </div>
+
         @if($trucks->hasPages())
+        <x-slot:footer>
         <div class="px-6 py-4 border-t border-gray-200">{{ $trucks->links() }}</div>
+        </x-slot:footer>
         @endif
-    </div>
+    </x-admin.data-table>
 </div>
 @endsection
 

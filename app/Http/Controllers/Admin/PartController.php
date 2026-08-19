@@ -7,6 +7,7 @@ use App\Http\Requests\StorePartRequest;
 use App\Http\Requests\UpdatePartRequest;
 use App\Models\Model;
 use App\Models\Part;
+use App\Support\DataTable;
 use Illuminate\Http\Request;
 
 class PartController extends Controller
@@ -23,13 +24,14 @@ class PartController extends Controller
     {
         $this->authorize('viewAny', Part::class);
 
-        $query = Part::query()->latest();
+        $dataTable = $this->partsIndexDataTable();
+        $query = Part::query();
 
         if ($request->filled('search')) {
             $search = $request->string('search')->trim();
-            if($request->filled('is_from_model_section')){
+            if ($request->filled('is_from_model_section')) {
                 $query->whereLike('model_compatibility', '%'.$search.'%');
-            }else{
+            } else {
                 $query->where(function ($query) use ($search) {
                     $query->whereLike('part_number', '%'.$search.'%')
                         ->orWhereLike('product_name', '%'.$search.'%')
@@ -38,6 +40,8 @@ class PartController extends Controller
                 });
             }
         }
+
+        $dataTable->applySorting($query, $request);
 
         $parts = $query->paginate(12)->withQueryString();
         $modelNumbers = $parts->getCollection()
@@ -50,7 +54,68 @@ class PartController extends Controller
             ->orderBy('model_number')
             ->get(['id', 'model_number', 'product_name']);
 
-        return view('admin.parts.index', compact('parts', 'models'));
+        return view('admin.parts.index', [
+            'parts' => $parts,
+            'models' => $models,
+            'dataTable' => $dataTable,
+            ...$dataTable->sortState($request),
+        ]);
+    }
+
+    private function partsIndexDataTable(): DataTable
+    {
+        return new DataTable(
+            storageKey: 'partsIndexTableColumns',
+            defaultSort: [['parts.id', 'desc']],
+            columns: [
+                [
+                    'key' => 'id',
+                    'label' => 'Sr. No',
+                    'sort' => 'parts.id',
+                ],
+                [
+                    'key' => 'total_stock',
+                    'label' => 'Total Stock',
+                    'align' => 'right',
+                    'sort' => 'parts.total_stock',
+                ],
+                [
+                    'key' => 'part_number',
+                    'label' => 'Part #',
+                    'sort' => 'parts.part_number',
+                ],
+                [
+                    'key' => 'product_name',
+                    'label' => 'Product Name',
+                    'truncate' => true,
+                    'sort' => 'parts.product_name',
+                ],
+                [
+                    'key' => 'model_compatibility',
+                    'label' => 'Model Compatibility',
+                    'truncate' => true,
+                    'sort' => 'parts.model_compatibility',
+                ],
+                [
+                    'key' => 'retail_price',
+                    'label' => 'Retail Price',
+                    'align' => 'right',
+                    'sort' => 'parts.retail_price',
+                ],
+                [
+                    'key' => 'your_price',
+                    'label' => 'Your Price',
+                    'align' => 'right',
+                    'sort' => 'parts.your_price',
+                ],
+                [
+                    'key' => 'cross_reference',
+                    'label' => 'Cross Reference',
+                    'truncate' => true,
+                    'sort' => 'parts.cross_reference',
+                ],
+            ],
+        );
     }
 
     public function store(StorePartRequest $request)

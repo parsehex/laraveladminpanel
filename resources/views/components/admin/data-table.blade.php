@@ -3,6 +3,7 @@
     'table' => null,
     'columnStorageKey' => null,
     'columns' => [],
+    'bare' => false,
 ])
 
 @php
@@ -29,7 +30,7 @@
         ->all();
 @endphp
 
-<div {{ $attributes->merge(['class' => 'bg-white rounded-lg shadow overflow-hidden']) }}>
+<div @if($bare) {{ $attributes }} @else {{ $attributes->merge(['class' => 'bg-white rounded-lg shadow overflow-hidden']) }} @endif>
     @if($title)
         <div class="bg-blue-600 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
             <h2 class="text-xl font-semibold text-white">{{ $title }}</h2>
@@ -38,6 +39,10 @@
                     {{ $header }}
                 @endisset
             </div>
+        </div>
+    @elseif(isset($header))
+        <div class="flex flex-wrap items-center justify-end gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2">
+            {{ $header }}
         </div>
     @endif
 

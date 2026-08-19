@@ -60,8 +60,7 @@ class DataTable
         $column = collect($this->columns)->firstWhere('key', $sort);
 
         if (! is_array($column) || ! ($column['sortable'] ?? true) || ! isset($column['sort'])) {
-            [$columnName, $defaultDirection] = $this->defaultSort;
-            $query->orderBy($columnName, $defaultDirection);
+            $this->applyDefaultSort($query);
 
             return;
         }
@@ -76,6 +75,25 @@ class DataTable
 
         if ($sortHandler instanceof Closure) {
             $sortHandler($query, $direction);
+        }
+    }
+
+    /**
+     * @return array<int, array{0: string, 1: 'asc'|'desc'}>
+     */
+    private function defaultSorts(): array
+    {
+        if (isset($this->defaultSort[0]) && is_array($this->defaultSort[0])) {
+            return $this->defaultSort;
+        }
+
+        return [$this->defaultSort];
+    }
+
+    private function applyDefaultSort(Builder $query): void
+    {
+        foreach ($this->defaultSorts() as [$columnName, $defaultDirection]) {
+            $query->orderBy($columnName, $defaultDirection);
         }
     }
 }

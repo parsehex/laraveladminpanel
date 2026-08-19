@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CustomSale;
 use App\Models\TruckAppliance;
+use App\Support\DataTable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,10 +26,7 @@ class SalesController extends Controller
         $search = $request->string('search')->trim();
         $limit = $request->get('limit', 25);
         $limit = $limit === 'all' ? 'all' : max(1, (int) $limit);
-        $sort = in_array($request->get('sort'), ['sold_price', 'sold_date'], true)
-            ? $request->get('sort')
-            : 'sold_date';
-        $direction = $request->get('direction') === 'asc' ? 'asc' : 'desc';
+        $normalDataTable = $this->normalSalesDataTable();
 
         $normalQuery = TruckAppliance::query()
             ->with(['model'])
@@ -50,11 +48,14 @@ class SalesController extends Controller
             });
         }
 
-        $normalSortColumn = $sort === 'sold_price' ? 'sold_price' : 'sold_at';
-        $customSortColumn = $sort === 'sold_price' ? 'sold_price' : 'created_at';
+        $normalDataTable->applySorting($normalQuery, $request);
 
-        $normalQuery->orderBy($normalSortColumn, $direction)->orderByDesc('id');
-        $customQuery->orderBy($customSortColumn, $direction)->orderByDesc('id');
+        $customSort = in_array($request->get('sort'), ['sold_price', 'sold_date'], true)
+            ? $request->get('sort')
+            : 'sold_date';
+        $customDirection = $request->get('direction') === 'asc' ? 'asc' : 'desc';
+        $customSortColumn = $customSort === 'sold_price' ? 'sold_price' : 'created_at';
+        $customQuery->orderBy($customSortColumn, $customDirection)->orderByDesc('id');
 
         $normalRows = (clone $normalQuery)->get();
         $customRows = (clone $customQuery)->get();
@@ -77,12 +78,72 @@ class SalesController extends Controller
             'limit' => $limit,
             'soldItems' => $soldItems,
             'customSales' => $customSales,
-            'sort' => $sort,
-            'direction' => $direction,
+            'dataTable' => $normalDataTable,
+            ...$normalDataTable->sortState($request),
             'totalSales' => $view === 'normal' ? $normalSales : $customSalesTotal,
             'totalCost' => $view === 'normal' ? $normalCost : $customCost,
             'totalProfit' => $view === 'normal' ? $normalSales - $normalCost : $customSalesTotal - $customCost,
         ]);
+    }
+
+    private function normalSalesDataTable(): DataTable
+    {
+        return new DataTable(
+            storageKey: 'normalSalesTableColumns',
+            defaultSort: [
+                ['truck_appliances.sold_at', 'desc'],
+                ['truck_appliances.id', 'desc'],
+            ],
+            columns: [
+                [
+                    'key' => 'id',
+                    'label' => 'ID',
+                    'sort' => 'truck_appliances.id',
+                ],
+                [
+                    'key' => 'model',
+                    'label' => 'Model',
+                    'sort' => fn (Builder $query, string $direction) => $query
+                        ->leftJoin('models', 'models.id', '=', 'truck_appliances.model_id')
+                        ->orderBy('models.model_number', $direction)
+                        ->select('truck_appliances.*'),
+                ],
+                [
+                    'key' => 'serial_number',
+                    'label' => 'Serial',
+                    'sort' => 'truck_appliances.serial_number',
+                ],
+                [
+                    'key' => 'sold_price',
+                    'label' => 'Sold Price',
+                    'align' => 'right',
+                    'sort' => 'truck_appliances.sold_price',
+                ],
+                [
+                    'key' => 'cost',
+                    'label' => 'Cost',
+                    'align' => 'right',
+                    'sortable' => false,
+                ],
+                [
+                    'key' => 'profit',
+                    'label' => 'Profit',
+                    'align' => 'right',
+                    'sortable' => false,
+                ],
+                [
+                    'key' => 'sold_by',
+                    'label' => 'Sold By',
+                    'truncate' => true,
+                    'sort' => 'truck_appliances.sold_by',
+                ],
+                [
+                    'key' => 'sold_date',
+                    'label' => 'Sold Date',
+                    'sort' => 'truck_appliances.sold_at',
+                ],
+            ],
+        );
     }
 
     public function markSold(Request $request)
