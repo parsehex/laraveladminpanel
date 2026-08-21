@@ -8,10 +8,7 @@
     <div class="rounded-lg bg-white p-4 shadow sm:p-5">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
-                <h2 class="text-lg font-semibold text-gray-900">Scan sticker</h2>
-                <p class="mt-1 text-sm text-gray-600">
-                    Point at the QR and model barcode. If the appliance ID matches that model, you go straight there; otherwise pick from model matches.
-                </p>
+                <h2 class="text-lg font-semibold text-gray-900">Scan QR sticker</h2>
             </div>
             <button type="button" id="scan-reset" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
                 <i class="fas fa-rotate-right mr-2"></i>Scan again
@@ -73,6 +70,7 @@ const resultsEmptyEl = document.getElementById('scan-results-empty');
 const resetBtn = document.getElementById('scan-reset');
 const videoEl = document.getElementById('scan-video');
 const guideEl = document.getElementById('scan-guide');
+const readerWrapEl = document.getElementById('scan-reader-wrap');
 
 const COLLECT_MS = 1600;
 const SCAN_INTERVAL_MS = 120;
@@ -97,6 +95,16 @@ function setStatus(message) {
 
 function setEngine(message) {
     engineEl.textContent = message;
+}
+
+function showCamera() {
+    readerWrapEl.classList.remove('hidden');
+    engineEl.classList.remove('hidden');
+}
+
+function hideCamera() {
+    readerWrapEl.classList.add('hidden');
+    engineEl.classList.add('hidden');
 }
 
 function markReady(el, value) {
@@ -260,6 +268,7 @@ function escapeHtml(value) {
 
 function renderSuggestions(data) {
     const matches = Array.isArray(data.matches) ? data.matches : [];
+    hideCamera();
     resultsEl.classList.remove('hidden');
     resultsListEl.innerHTML = '';
 
@@ -424,6 +433,7 @@ async function tickDetect() {
 async function startScanner() {
     cameraErrorEl.classList.add('hidden');
     cameraErrorEl.textContent = '';
+    showCamera();
 
     if (scanning) {
         return;
@@ -488,6 +498,7 @@ async function startScanner() {
 
 resetBtn.addEventListener('click', async function () {
     resetMarkers();
+    showCamera();
     setStatus('Restarting scanner…');
     await stopScanner();
     await startScanner();
