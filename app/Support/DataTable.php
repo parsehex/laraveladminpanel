@@ -4,6 +4,7 @@ namespace App\Support;
 
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 
 class DataTable
@@ -52,7 +53,7 @@ class DataTable
         ];
     }
 
-    public function applySorting(Builder $query, Request $request): void
+    public function applySorting(Builder|Relation $query, Request $request): void
     {
         $sort = $request->get('sort');
         $direction = $request->get('direction') === 'asc' ? 'asc' : 'desc';
@@ -90,7 +91,7 @@ class DataTable
         return [$this->defaultSort];
     }
 
-    private function applyDefaultSort(Builder $query): void
+    private function applyDefaultSort(Builder|Relation $query): void
     {
         foreach ($this->defaultSorts() as [$columnName, $defaultDirection]) {
             $query->orderBy($columnName, $defaultDirection);

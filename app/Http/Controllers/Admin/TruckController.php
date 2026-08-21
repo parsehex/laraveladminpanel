@@ -10,6 +10,7 @@ use App\Models\Model as ApplianceModel;
 use App\Models\Truck;
 use App\Support\DataTable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 
 class TruckController extends Controller
@@ -229,7 +230,7 @@ class TruckController extends Controller
                     'key' => 'category',
                     'label' => 'Category',
                     'truncate' => true,
-                    'sort' => fn (Builder $query, string $direction) => $query
+                    'sort' => fn (Builder|Relation $query, string $direction) => $query
                         ->leftJoin('categories', 'categories.id', '=', 'truck_appliances.category_id')
                         ->orderBy('categories.name', $direction)
                         ->select('truck_appliances.*'),
@@ -237,7 +238,7 @@ class TruckController extends Controller
                 [
                     'key' => 'status',
                     'label' => 'Status',
-                    'sort' => fn (Builder $query, string $direction) => $query->orderByRaw(
+                    'sort' => fn (Builder|Relation $query, string $direction) => $query->orderByRaw(
                         "COALESCE(NULLIF(truck_appliances.status, ''), 'Triage') ".$direction
                     ),
                 ],
@@ -256,7 +257,7 @@ class TruckController extends Controller
                 [
                     'key' => 'model',
                     'label' => 'Model',
-                    'sort' => fn (Builder $query, string $direction) => $query
+                    'sort' => fn (Builder|Relation $query, string $direction) => $query
                         ->leftJoin('models', 'models.id', '=', 'truck_appliances.model_id')
                         ->orderBy('models.model_number', $direction)
                         ->select('truck_appliances.*'),
@@ -288,7 +289,7 @@ class TruckController extends Controller
                     'key' => 'total_cost',
                     'label' => 'Total Cost',
                     'align' => 'right',
-                    'sort' => fn (Builder $query, string $direction) => $query->orderByRaw(
+                    'sort' => fn (Builder|Relation $query, string $direction) => $query->orderByRaw(
                         '(COALESCE(truck_appliances.price, 0) + CASE WHEN COALESCE(truck_appliances.status, \'\') IN (\'Demanufacture\', \'Scrap\') THEN -COALESCE(truck_appliances.total_parts_cost, 0) ELSE COALESCE(truck_appliances.total_parts_cost, 0) END) '.$direction
                     ),
                 ],
