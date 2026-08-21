@@ -537,99 +537,18 @@
     }
 
     async function stopScanner() {
-        hideZoomControls();
-
-        if (!scanner) {
-            scanning = false;
-            return;
-        }
-
+        if (!scanner || !scanning) return;
         try {
             await scanner.stop();
         } catch (e) {
-            // ignore — may not be running after a failed start
+            // ignore stop races
         }
-
-        try {
-            scanner.clear();
-        } catch (e) {
-            // ignore clear races
-        }
-
         scanning = false;
-        scanner = null;
-    }
-
-    function buildScanConfig() {
-        const config = {
-            fps: 15,
-            qrbox: qrboxFor,
-            aspectRatio: 1.333,
-            formatsToSupport: [
-                Html5QrcodeSupportedFormats.QR_CODE,
-                Html5QrcodeSupportedFormats.CODE_128,
-                Html5QrcodeSupportedFormats.CODE_39,
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.EAN_8,
-            ],
-        };
-
-        // Optional — ignore if the runtime does not support it.
-        try {
-            config.experimentalFeatures = {
-                useBarCodeDetectorIfSupported: true,
-            };
-        } catch (e) {}
-
-        return config;
-    }
-
-    async function createScanner() {
-        await stopScanner();
-
-        const reader = document.getElementById('scan-reader');
-        if (reader) {
-            reader.innerHTML = '';
-        }
-
-        scanner = new Html5Qrcode('scan-reader', { verbose: false });
-    }
-
-    async function tryStartWithCamera(cameraConfig) {
-        await createScanner();
-        await scanner.start(cameraConfig, buildScanConfig(), onDecoded, function () {});
-        scanning = true;
-
-        try {
-            await configureCameraTrack();
-        } catch (e) {
-            console.warn('Post-start camera tuning failed', e);
-        }
-
-        setStatus('Point the camera at the sticker. Use zoom/refocus if the barcode is soft.');
-    }
-
-    async function pickRearCameraId() {
-        if (typeof Html5Qrcode.getCameras !== 'function') {
-            return null;
-        }
-
-        const cameras = await Html5Qrcode.getCameras();
-        if (!cameras || !cameras.length) {
-            return null;
-        }
-
-        const rear = cameras.find(function (camera) {
-            const label = String(camera.label || '').toLowerCase();
-            return label.includes('back') || label.includes('rear') || label.includes('environment');
-        });
-
-        return (rear || cameras[cameras.length - 1]).id;
+        hideZoomControls();
     }
 
     async function startScanner() {
         cameraErrorEl.classList.add('hidden');
-        cameraErrorEl.textContent = '';
 
         if (!window.Html5Qrcode) {
             cameraErrorEl.textContent = 'Scanner library failed to load.';
@@ -638,54 +557,77 @@
             return;
         }
 
+        if (!scanner) {
+            scanner = new Html5Qrcode('scan-reader', { verbose: false });
+        }
+
         if (scanning) return;
 
-        if (!window.isSecureContext) {
-            cameraErrorEl.textContent = 'Camera requires HTTPS or localhost. This page is not a secure context.';
-            cameraErrorEl.classList.remove('hidden');
-            setStatus('Camera blocked by browser security.');
-            return;
-        }
-
-        const attempts = [
-            { facingMode: 'environment' },
-            { facingMode: { ideal: 'environment' } },
-            { facingMode: 'user' },
+        const formats = [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
         ];
 
-        let lastError = null;
-
-        for (let i = 0; i < attempts.length; i++) {
-            try {
-                await tryStartWithCamera(attempts[i]);
-                return;
-            } catch (error) {
-                lastError = error;
-                console.warn('Camera start attempt failed', attempts[i], error);
-                scanning = false;
-            }
-        }
+        const cameraConfig = {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            advanced: [{ focusMode: 'continuous' }],
+        };
 
         try {
-            const cameraId = await pickRearCameraId();
-            if (cameraId) {
-                await tryStartWithCamera(cameraId);
-                return;
-            }
+            await scanner.start(
+                cameraConfig,
+                {
+                    fps: 15,
+                    qrbox: qrboxFor,
+                    aspectRatio: 1.333,
+                    formatsToSupport: formats,
+                    experimentalFeatures: {
+                        useBarCodeDetectorIfSupported: true,
+                    },
+                },
+                onDecoded,
+                function () {}
+            );
+            scanning = true;
+            await configureCameraTrack();
+            setStatus('Point the camera at the sticker. Use zoom/refocus if the barcode is soft.');
         } catch (error) {
-            lastError = error;
-            console.warn('Camera ID start failed', error);
-            scanning = false;
+            console.error(error);
+            // Retry without advanced focus constraint — some browsers reject the whole start.
+            try {
+                await scanner.start(
+                    {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                    },
+                    {
+                        fps: 15,
+                        qrbox: qrboxFor,
+                        aspectRatio: 1.333,
+                        formatsToSupport: formats,
+                        experimentalFeatures: {
+                            useBarCodeDetectorIfSupported: true,
+                        },
+                    },
+                    onDecoded,
+                    function () {}
+                );
+                scanning = true;
+                await configureCameraTrack();
+                setStatus('Point the camera at the sticker. Use zoom/refocus if the barcode is soft.');
+            } catch (retryError) {
+                console.error(retryError);
+                cameraErrorEl.textContent = 'Camera permission denied or unavailable. Allow camera access and try again.';
+                cameraErrorEl.classList.remove('hidden');
+                setStatus('Camera not available.');
+            }
         }
-
-        await stopScanner();
-
-        const detail = lastError && (lastError.message || lastError.name || String(lastError));
-        cameraErrorEl.textContent = detail
-            ? ('Camera could not start: ' + detail)
-            : 'Camera permission denied or unavailable. Allow camera access and try again.';
-        cameraErrorEl.classList.remove('hidden');
-        setStatus('Camera not available.');
     }
 
     function pinchDistance(touches) {
