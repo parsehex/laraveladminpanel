@@ -5,6 +5,17 @@
 
 @section('content')
 <div class="mx-auto max-w-3xl space-y-4">
+    <div id="scan-results" class="hidden">
+        <div class="rounded-lg bg-white p-4 shadow sm:p-5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h3 id="scan-results-title" class="text-base font-semibold text-gray-900">Matches</h3>
+                <span id="scan-results-meta" class="text-sm text-gray-500"></span>
+            </div>
+            <div id="scan-results-list" class="mt-3 divide-y divide-gray-100"></div>
+            <p id="scan-results-empty" class="mt-3 hidden text-sm text-gray-500">No inventory units found for that model. Scan again or search inventory.</p>
+        </div>
+    </div>
+
     <div class="rounded-lg bg-white p-4 shadow sm:p-5">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -36,17 +47,6 @@
         <p id="scan-engine" class="mt-2 text-xs text-gray-500"></p>
         <p id="scan-camera-error" class="mt-3 hidden text-sm font-medium text-red-600"></p>
         <p id="scan-status" class="mt-3 text-sm text-gray-600">Starting camera…</p>
-    </div>
-
-    <div id="scan-results" class="hidden space-y-3">
-        <div class="rounded-lg bg-white p-4 shadow sm:p-5">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-                <h3 id="scan-results-title" class="text-base font-semibold text-gray-900">Matches</h3>
-                <span id="scan-results-meta" class="text-sm text-gray-500"></span>
-            </div>
-            <div id="scan-results-list" class="mt-3 divide-y divide-gray-100"></div>
-            <p id="scan-results-empty" class="mt-3 hidden text-sm text-gray-500">No inventory units found for that model.</p>
-        </div>
     </div>
 </div>
 @endsection
@@ -280,7 +280,7 @@ function renderSuggestions(data) {
 
     if (!matches.length) {
         resultsEmptyEl.classList.remove('hidden');
-        setStatus('No units found for that model. Scan again or search inventory.');
+        setStatus('Scan again when ready.');
         return;
     }
 
@@ -310,7 +310,7 @@ function renderSuggestions(data) {
         resultsListEl.appendChild(row);
     });
 
-    setStatus('Pick the correct unit, or tap Scan again.');
+    setStatus('Pick a unit above, or scan again.');
 }
 
 async function createZxingDecoder() {
