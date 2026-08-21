@@ -29,8 +29,23 @@
             </div>
         </div>
 
-        <div id="scan-reader-wrap" class="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-black">
+        <div id="scan-reader-wrap" class="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-black relative">
             <div id="scan-reader" class="w-full"></div>
+            <button type="button" id="scan-refocus"
+                    class="absolute bottom-3 right-3 inline-flex items-center rounded-md bg-black/70 px-3 py-2 text-xs font-semibold text-white backdrop-blur hover:bg-black/80"
+                    title="Nudge autofocus">
+                <i class="fas fa-crosshairs mr-2"></i>Refocus
+            </button>
+        </div>
+
+        <div id="scan-zoom-wrap" class="mt-3 hidden">
+            <label for="scan-zoom" class="flex items-center justify-between text-sm font-medium text-gray-700">
+                <span><i class="fas fa-search-plus mr-1 text-gray-500"></i>Zoom</span>
+                <span id="scan-zoom-label" class="tabular-nums text-gray-500">1.0×</span>
+            </label>
+            <input id="scan-zoom" type="range" min="1" max="1" step="0.1" value="1"
+                   class="mt-2 w-full accent-indigo-600">
+            <p class="mt-1 text-xs text-gray-500">Hardware zoom when the phone supports it — helps thin model barcodes.</p>
         </div>
 
         <p id="scan-camera-error" class="mt-3 hidden text-sm font-medium text-red-600"></p>
@@ -89,14 +104,28 @@
     const resultsListEl = document.getElementById('scan-results-list');
     const resultsEmptyEl = document.getElementById('scan-results-empty');
     const resetBtn = document.getElementById('scan-reset');
+    const refocusBtn = document.getElementById('scan-refocus');
+    const zoomWrap = document.getElementById('scan-zoom-wrap');
+    const zoomInput = document.getElementById('scan-zoom');
+    const zoomLabel = document.getElementById('scan-zoom-label');
+    const readerWrap = document.getElementById('scan-reader-wrap');
 
-    const COLLECT_MS = 1600;
+    const COLLECT_MS = 1800;
     let scanner = null;
     let scanning = false;
     let resolving = false;
     let collectTimer = null;
+    let focusTimer = null;
     let qrPayload = null;
     let modelNumber = null;
+    let preferBarcodeBox = false;
+    let zoomSupported = false;
+    let zoomMin = 1;
+    let zoomMax = 1;
+    let zoomStep = 0.1;
+    let currentZoom = 1;
+    let pinchStartDistance = null;
+    let pinchStartZoom = 1;
 
     function setStatus(message) {
         statusEl.textContent = message;
@@ -108,10 +137,211 @@
         el.classList.add('text-emerald-700');
     }
 
+    function getVideoTrack() {
+        if (!scanner || typeof scanner.getRunningTrack !== 'function') {
+            const video = document.querySelector('#scan-reader video');
+            const stream = video && video.srcObject;
+            return stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+        }
+
+        try {
+            return scanner.getRunningTrack();
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function getTrackCapabilities() {
+        if (scanner && typeof scanner.getRunningTrackCapabilities === 'function') {
+            try {
+                return scanner.getRunningTrackCapabilities() || {};
+            } catch (e) {
+                // fall through
+            }
+        }
+
+        const track = getVideoTrack();
+        if (track && typeof track.getCapabilities === 'function') {
+            try {
+                return track.getCapabilities() || {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        return {};
+    }
+
+    async function applyTrackConstraints(constraints) {
+        if (!scanning) return false;
+
+        if (scanner && typeof scanner.applyVideoConstraints === 'function') {
+            try {
+                await scanner.applyVideoConstraints(constraints);
+                return true;
+            } catch (e) {
+                // fall through to raw track
+            }
+        }
+
+        const track = getVideoTrack();
+        if (!track || typeof track.applyConstraints !== 'function') {
+            return false;
+        }
+
+        try {
+            await track.applyConstraints(constraints);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function hideZoomControls() {
+        zoomSupported = false;
+        zoomWrap.classList.add('hidden');
+        zoomInput.value = '1';
+        zoomLabel.textContent = '1.0×';
+        currentZoom = 1;
+    }
+
+    function setupZoomControls() {
+        const capabilities = getTrackCapabilities();
+        const zoom = capabilities.zoom;
+
+        if (!zoom || typeof zoom.min !== 'number' || typeof zoom.max !== 'number' || zoom.max <= zoom.min) {
+            hideZoomControls();
+            return;
+        }
+
+        zoomSupported = true;
+        zoomMin = zoom.min;
+        zoomMax = zoom.max;
+        zoomStep = typeof zoom.step === 'number' && zoom.step > 0 ? zoom.step : 0.1;
+        currentZoom = Math.min(Math.max(zoomMin, currentZoom || zoomMin), zoomMax);
+
+        zoomInput.min = String(zoomMin);
+        zoomInput.max = String(zoomMax);
+        zoomInput.step = String(zoomStep);
+        zoomInput.value = String(currentZoom);
+        zoomLabel.textContent = currentZoom.toFixed(1) + '×';
+        zoomWrap.classList.remove('hidden');
+    }
+
+    async function setZoom(value, announce) {
+        if (!zoomSupported || !scanning) return;
+
+        const next = Math.min(zoomMax, Math.max(zoomMin, Number(value)));
+        if (!Number.isFinite(next)) return;
+
+        currentZoom = next;
+        zoomInput.value = String(next);
+        zoomLabel.textContent = next.toFixed(1) + '×';
+
+        const ok = await applyTrackConstraints({
+            advanced: [{ zoom: next }],
+        });
+
+        if (!ok) {
+            await applyTrackConstraints({ zoom: next });
+        }
+
+        if (announce) {
+            setStatus('Zoom ' + next.toFixed(1) + '×');
+        }
+    }
+
+    async function nudgeFocus(point) {
+        if (!scanning) return;
+
+        const capabilities = getTrackCapabilities();
+        const focusModes = capabilities.focusMode || [];
+        const supportsPoints = Array.isArray(capabilities.pointsOfInterest);
+        const advanced = [];
+
+        if (supportsPoints) {
+            advanced.push({
+                pointsOfInterest: [point || { x: 0.5, y: 0.5 }],
+            });
+        }
+
+        if (focusModes.includes('single-shot')) {
+            advanced.push({ focusMode: 'single-shot' });
+        } else if (focusModes.includes('continuous')) {
+            advanced.push({ focusMode: 'continuous' });
+        } else if (focusModes.includes('manual') && typeof capabilities.focusDistance === 'object') {
+            const mid = (capabilities.focusDistance.min + capabilities.focusDistance.max) / 2;
+            advanced.push({ focusMode: 'manual', focusDistance: mid });
+        }
+
+        if (!advanced.length && !focusModes.length) {
+            setStatus('This camera does not expose focus controls in the browser.');
+            return;
+        }
+
+        const payload = advanced.length ? { advanced: advanced } : { focusMode: 'continuous' };
+        const ok = await applyTrackConstraints(payload);
+
+        if (ok) {
+            setStatus('Refocusing… hold steady on the barcode.');
+            if (focusTimer) clearTimeout(focusTimer);
+            focusTimer = setTimeout(async function () {
+                if (focusModes.includes('continuous')) {
+                    await applyTrackConstraints({ advanced: [{ focusMode: 'continuous' }] });
+                }
+            }, 700);
+        } else {
+            setStatus('Could not nudge focus on this device/browser.');
+        }
+    }
+
+    async function configureCameraTrack() {
+        const capabilities = getTrackCapabilities();
+        const focusModes = capabilities.focusMode || [];
+        const advanced = [];
+
+        if (focusModes.includes('continuous')) {
+            advanced.push({ focusMode: 'continuous' });
+        } else if (focusModes.includes('single-shot')) {
+            advanced.push({ focusMode: 'single-shot' });
+        }
+
+        if (capabilities.zoom && typeof capabilities.zoom.min === 'number') {
+            // Mild default zoom helps thin CODE128 bars without losing the QR.
+            const mild = Math.min(
+                capabilities.zoom.max,
+                Math.max(capabilities.zoom.min, capabilities.zoom.min + (capabilities.zoom.max - capabilities.zoom.min) * 0.15)
+            );
+            currentZoom = mild;
+            advanced.push({ zoom: mild });
+        }
+
+        if (advanced.length) {
+            await applyTrackConstraints({ advanced: advanced });
+        }
+
+        setupZoomControls();
+    }
+
+    function qrboxFor(viewfinderWidth, viewfinderHeight) {
+        if (preferBarcodeBox) {
+            return {
+                width: Math.floor(viewfinderWidth * 0.92),
+                height: Math.max(90, Math.floor(viewfinderHeight * 0.28)),
+            };
+        }
+
+        return {
+            width: Math.floor(viewfinderWidth * 0.9),
+            height: Math.floor(viewfinderHeight * 0.7),
+        };
+    }
+
     function resetMarkers() {
         qrPayload = null;
         modelNumber = null;
         resolving = false;
+        preferBarcodeBox = false;
         if (collectTimer) {
             clearTimeout(collectTimer);
             collectTimer = null;
@@ -164,14 +394,16 @@
         if (looksLikeQrPayload(text)) {
             if (qrPayload === text) return;
             qrPayload = text;
+            preferBarcodeBox = !modelNumber;
             markReady(qrStatusEl, text.length > 48 ? text.slice(0, 48) + '…' : text);
-            setStatus('QR captured. Looking for model barcode…');
+            setStatus('QR captured. Zoom/refocus on the model barcode if needed…');
             scheduleResolve();
             return;
         }
 
         if (modelNumber === text) return;
         modelNumber = text;
+        preferBarcodeBox = false;
         markReady(modelStatusEl, text);
         setStatus(qrPayload ? 'Model captured. Resolving…' : 'Model captured. Looking for QR…');
         scheduleResolve();
@@ -227,6 +459,7 @@
                 if (data.scanned_id) {
                     markReady(qrStatusEl, 'ID ' + data.scanned_id);
                 }
+                preferBarcodeBox = true;
                 resolving = false;
                 await startScanner();
                 return;
@@ -311,6 +544,7 @@
             // ignore stop races
         }
         scanning = false;
+        hideZoomControls();
     }
 
     async function startScanner() {
@@ -324,7 +558,7 @@
         }
 
         if (!scanner) {
-            scanner = new Html5Qrcode('scan-reader');
+            scanner = new Html5Qrcode('scan-reader', { verbose: false });
         }
 
         if (scanning) return;
@@ -337,32 +571,107 @@
             Html5QrcodeSupportedFormats.EAN_8,
         ];
 
+        const cameraConfig = {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            advanced: [{ focusMode: 'continuous' }],
+        };
+
         try {
             await scanner.start(
-                { facingMode: 'environment' },
+                cameraConfig,
                 {
-                    fps: 12,
-                    qrbox: function (viewfinderWidth, viewfinderHeight) {
-                        return {
-                            width: Math.floor(viewfinderWidth * 0.88),
-                            height: Math.floor(viewfinderHeight * 0.62),
-                        };
-                    },
+                    fps: 15,
+                    qrbox: qrboxFor,
                     aspectRatio: 1.333,
                     formatsToSupport: formats,
+                    experimentalFeatures: {
+                        useBarCodeDetectorIfSupported: true,
+                    },
                 },
                 onDecoded,
                 function () {}
             );
             scanning = true;
-            setStatus('Point the camera at the sticker.');
+            await configureCameraTrack();
+            setStatus('Point the camera at the sticker. Use zoom/refocus if the barcode is soft.');
         } catch (error) {
             console.error(error);
-            cameraErrorEl.textContent = 'Camera permission denied or unavailable. Allow camera access and try again.';
-            cameraErrorEl.classList.remove('hidden');
-            setStatus('Camera not available.');
+            // Retry without advanced focus constraint — some browsers reject the whole start.
+            try {
+                await scanner.start(
+                    {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 },
+                    },
+                    {
+                        fps: 15,
+                        qrbox: qrboxFor,
+                        aspectRatio: 1.333,
+                        formatsToSupport: formats,
+                        experimentalFeatures: {
+                            useBarCodeDetectorIfSupported: true,
+                        },
+                    },
+                    onDecoded,
+                    function () {}
+                );
+                scanning = true;
+                await configureCameraTrack();
+                setStatus('Point the camera at the sticker. Use zoom/refocus if the barcode is soft.');
+            } catch (retryError) {
+                console.error(retryError);
+                cameraErrorEl.textContent = 'Camera permission denied or unavailable. Allow camera access and try again.';
+                cameraErrorEl.classList.remove('hidden');
+                setStatus('Camera not available.');
+            }
         }
     }
+
+    function pinchDistance(touches) {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.hypot(dx, dy);
+    }
+
+    zoomInput.addEventListener('input', function () {
+        setZoom(zoomInput.value, false);
+    });
+
+    refocusBtn.addEventListener('click', function () {
+        nudgeFocus({ x: 0.5, y: preferBarcodeBox ? 0.62 : 0.5 });
+    });
+
+    readerWrap.addEventListener('click', function (event) {
+        if (!scanning || event.target.closest('#scan-refocus')) return;
+
+        const rect = readerWrap.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+
+        nudgeFocus({
+            x: Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width)),
+            y: Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height)),
+        });
+    });
+
+    readerWrap.addEventListener('touchstart', function (event) {
+        if (!zoomSupported || event.touches.length !== 2) return;
+        pinchStartDistance = pinchDistance(event.touches);
+        pinchStartZoom = currentZoom;
+    }, { passive: true });
+
+    readerWrap.addEventListener('touchmove', function (event) {
+        if (!zoomSupported || pinchStartDistance === null || event.touches.length !== 2) return;
+        event.preventDefault();
+        const scale = pinchDistance(event.touches) / pinchStartDistance;
+        setZoom(pinchStartZoom * scale, false);
+    }, { passive: false });
+
+    readerWrap.addEventListener('touchend', function () {
+        pinchStartDistance = null;
+    });
 
     resetBtn.addEventListener('click', async function () {
         resetMarkers();
