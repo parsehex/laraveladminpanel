@@ -76,7 +76,6 @@ const guideEl = document.getElementById('scan-guide');
 
 const COLLECT_MS = 1600;
 const SCAN_INTERVAL_MS = 120;
-const NATIVE_FORMATS = ['qr_code', 'code_128', 'code_39', 'ean_13', 'ean_8'];
 const ZXING_FORMATS = ['QRCode', 'Code128', 'Code39', 'EAN-13', 'EAN-8'];
 
 let mediaStream = null;
@@ -305,46 +304,6 @@ function renderSuggestions(data) {
     setStatus('Pick the correct unit, or tap Scan again.');
 }
 
-async function createNativeDecoder() {
-    if (!('BarcodeDetector' in window)) {
-        return null;
-    }
-
-    let formats = NATIVE_FORMATS.slice();
-
-    try {
-        if (typeof BarcodeDetector.getSupportedFormats === 'function') {
-            const supported = await BarcodeDetector.getSupportedFormats();
-            formats = NATIVE_FORMATS.filter((format) => supported.includes(format));
-        }
-    } catch (error) {
-        console.warn('BarcodeDetector.getSupportedFormats failed', error);
-    }
-
-    if (!formats.length) {
-        return null;
-    }
-
-    try {
-        const detector = new BarcodeDetector({ formats });
-        // Smoke-test once — some browsers expose the constructor but fail at runtime.
-        await detector.detect(document.createElement('canvas'));
-
-        return {
-            name: 'Native BarcodeDetector',
-            async detect(video) {
-                const codes = await detector.detect(video);
-                return codes
-                    .map((code) => String(code.rawValue || '').trim())
-                    .filter(Boolean);
-            },
-        };
-    } catch (error) {
-        console.warn('BarcodeDetector unavailable', error);
-        return null;
-    }
-}
-
 async function createZxingDecoder() {
     const moduleUrl = `https://cdn.jsdelivr.net/npm/zxing-wasm@${ZXING_VERSION}/dist/es/reader/index.js`;
     const wasmUrl = `https://cdn.jsdelivr.net/npm/zxing-wasm@${ZXING_VERSION}/dist/reader/zxing_reader.wasm`;
@@ -414,15 +373,9 @@ async function ensureDecoder() {
         return decoder;
     }
 
-    decoder = await createNativeDecoder();
-    if (decoder) {
-        setEngine('Decoder: ' + decoder.name);
-        return decoder;
-    }
-
     setStatus('Loading barcode engine…');
     decoder = await createZxingDecoder();
-    setEngine('Decoder: ' + decoder.name + ' (fallback)');
+    setEngine('Decoder: ' + decoder.name);
     return decoder;
 }
 
