@@ -174,6 +174,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('inventory', [InventoryController::class, 'index'])
         ->middleware('permission:inventory.view')
         ->name('inventory.index');
+    Route::get('inventory/scan', [InventoryController::class, 'scan'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.scan');
+    Route::post('inventory/scan/resolve', [InventoryController::class, 'resolveScan'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.scan.resolve');
     Route::get('inventory/parts/search', [InventoryController::class, 'searchParts'])
         ->middleware('permission:parts.view|appliance.edit')
         ->name('inventory.parts.search');

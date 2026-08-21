@@ -79,9 +79,14 @@
 
         @canAccess('inventory.view')
         <a href="{{ route('admin.inventory.index') }}" @click="sidebarOpen = false"
-           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.*') ? 'is-active' : '' }}">
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.*') && ! request()->routeIs('admin.inventory.scan*') ? 'is-active' : '' }}">
             <i class="fas fa-boxes-stacked mr-3 w-5 text-center"></i>
             <span>Inventory</span>
+        </a>
+        <a href="{{ route('admin.inventory.scan') }}" @click="sidebarOpen = false"
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.scan*') ? 'is-active' : '' }}">
+            <i class="fas fa-qrcode mr-3 w-5 text-center"></i>
+            <span>Scan</span>
         </a>
         @endcanAccess
 

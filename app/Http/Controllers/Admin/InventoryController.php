@@ -194,6 +194,75 @@ class InventoryController extends Controller
         return view('admin.inventory.stickers', compact('items'));
     }
 
+    public function scan()
+    {
+        return view('admin.inventory.scan');
+    }
+
+    public function resolveScan(Request $request)
+    {
+        $validated = $request->validate([
+            'qr_payload' => ['nullable', 'string', 'max:2048'],
+            'model_number' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $applianceId = $this->parseApplianceIdFromQr($validated['qr_payload'] ?? null);
+        $modelNumber = $this->normalizeModelNumber($validated['model_number'] ?? null);
+
+        if ($applianceId && $modelNumber !== null) {
+            $exact = TruckAppliance::query()
+                ->with(['truck', 'model', 'category'])
+                ->whereKey($applianceId)
+                ->whereHas('model', function (Builder $query) use ($modelNumber) {
+                    $query->whereRaw('LOWER(TRIM(model_number)) = ?', [strtolower($modelNumber)]);
+                })
+                ->first();
+
+            if ($exact) {
+                return response()->json([
+                    'mode' => 'exact',
+                    'scanned_id' => $applianceId,
+                    'model_number' => $modelNumber,
+                    'appliance' => $this->scanMatchPayload($exact),
+                    'url' => route('admin.inventory.show', $exact),
+                ]);
+            }
+        }
+
+        if ($modelNumber !== null) {
+            $matches = TruckAppliance::query()
+                ->with(['truck', 'model', 'category'])
+                ->whereHas('model', function (Builder $query) use ($modelNumber) {
+                    $query->whereRaw('LOWER(TRIM(model_number)) = ?', [strtolower($modelNumber)]);
+                })
+                ->orderByDesc('id')
+                ->limit(50)
+                ->get()
+                ->map(fn (TruckAppliance $appliance) => $this->scanMatchPayload($appliance))
+                ->values();
+
+            return response()->json([
+                'mode' => 'suggestions',
+                'scanned_id' => $applianceId,
+                'model_number' => $modelNumber,
+                'matches' => $matches,
+            ]);
+        }
+
+        if ($applianceId) {
+            return response()->json([
+                'mode' => 'need_model',
+                'scanned_id' => $applianceId,
+                'message' => 'QR read. Point at the model barcode too.',
+            ]);
+        }
+
+        return response()->json([
+            'mode' => 'empty',
+            'message' => 'No usable QR or model barcode detected.',
+        ], 422);
+    }
+
     public function destroy(Request $request, TruckAppliance $appliance)
     {
         abort_unless($request->user()?->hasRole('admin') || $request->user()?->role === 'admin', 403);
@@ -658,6 +727,65 @@ class InventoryController extends Controller
                 $item->update(['price' => $price]);
             }
         }
+    }
+
+    private function parseApplianceIdFromQr(?string $payload): ?int
+    {
+        if ($payload === null) {
+            return null;
+        }
+
+        $payload = trim($payload);
+
+        if ($payload === '') {
+            return null;
+        }
+
+        if (ctype_digit($payload)) {
+            return (int) $payload;
+        }
+
+        if (preg_match('/[?&]id=(\d+)/i', $payload, $matches)) {
+            return (int) $matches[1];
+        }
+
+        if (preg_match('#/(?:admin/)?inventory/(\d+)#i', $payload, $matches)) {
+            return (int) $matches[1];
+        }
+
+        return null;
+    }
+
+    private function normalizeModelNumber(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        if ($value === '' || strcasecmp($value, 'N/A') === 0) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    private function scanMatchPayload(TruckAppliance $appliance): array
+    {
+        return [
+            'id' => $appliance->id,
+            'unit_label' => $appliance->unit_label,
+            'serial_number' => $appliance->serial_number,
+            'brand' => $appliance->brand,
+            'product_name' => $appliance->product_name,
+            'status' => $appliance->status ?: 'Triage',
+            'location' => $appliance->location,
+            'model_number' => $appliance->model?->model_number,
+            'truck_name' => $appliance->truck?->name,
+            'category_name' => $appliance->category?->name,
+            'url' => route('admin.inventory.show', $appliance),
+        ];
     }
 
 }
