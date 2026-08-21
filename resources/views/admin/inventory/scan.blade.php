@@ -73,15 +73,6 @@
 @endpush
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.23/dist/index.js"></script>
-<script>
-    try {
-        window['BarcodeDetector'].getSupportedFormats()
-    } catch {
-        window['BarcodeDetector'] = barcodeDetectorPolyfill.BarcodeDetectorPolyfill
-    }
-</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script>
 (function () {
