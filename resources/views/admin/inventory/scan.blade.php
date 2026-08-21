@@ -153,12 +153,15 @@ function scheduleResolve() {
         return;
     }
 
-    if (collectTimer) return;
+    // Model without QR: wait briefly in case the QR lands next.
+    if (modelNumber && !qrPayload) {
+        if (collectTimer) return;
 
-    collectTimer = setTimeout(function () {
-        collectTimer = null;
-        resolveScan();
-    }, COLLECT_MS);
+        collectTimer = setTimeout(function () {
+            collectTimer = null;
+            resolveScan();
+        }, COLLECT_MS);
+    }
 }
 
 function onDecoded(decodedText) {
@@ -173,6 +176,7 @@ function onDecoded(decodedText) {
         guideEl.style.height = '28%';
         markReady(qrStatusEl, text.length > 48 ? text.slice(0, 48) + '…' : text);
         setStatus('QR captured. Looking for model barcode…');
+        previewQrMatch();
         scheduleResolve();
         return;
     }
@@ -185,9 +189,54 @@ function onDecoded(decodedText) {
     scheduleResolve();
 }
 
+async function previewQrMatch() {
+    if (!qrPayload || modelNumber || resolving) return;
+
+    try {
+        const response = await fetch(resolveUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+                qr_payload: qrPayload,
+                model_number: null,
+            }),
+        });
+
+        const data = await response.json().catch(function () {
+            return {};
+        });
+
+        if (!response.ok || data.mode !== 'need_model') {
+            return;
+        }
+
+        if (data.scanned_id) {
+            markReady(qrStatusEl, 'ID ' + data.scanned_id);
+        }
+
+        if (Array.isArray(data.matches) && data.matches.length) {
+            renderSuggestions(data, { keepCamera: true, waitingForModel: true });
+        }
+
+        setStatus(data.message || 'QR captured. Looking for model barcode…');
+    } catch (error) {
+        console.warn('QR preview lookup failed', error);
+    }
+}
+
 async function resolveScan() {
     if (resolving) return;
     if (!qrPayload && !modelNumber) return;
+
+    // Still waiting on the model barcode — keep camera running.
+    if (qrPayload && !modelNumber) {
+        return;
+    }
 
     resolving = true;
     if (collectTimer) {
@@ -235,6 +284,9 @@ async function resolveScan() {
             if (data.scanned_id) {
                 markReady(qrStatusEl, 'ID ' + data.scanned_id);
             }
+            if (Array.isArray(data.matches) && data.matches.length) {
+                renderSuggestions(data, { keepCamera: true, waitingForModel: true });
+            }
             guideEl.style.height = '28%';
             resolving = false;
             await startScanner();
@@ -266,21 +318,36 @@ function escapeHtml(value) {
         .replace(/'/g, '&#039;');
 }
 
-function renderSuggestions(data) {
+function renderSuggestions(data, options = {}) {
     const matches = Array.isArray(data.matches) ? data.matches : [];
-    hideCamera();
+    const keepCamera = Boolean(options.keepCamera);
+    const waitingForModel = Boolean(options.waitingForModel);
+
+    if (!keepCamera) {
+        hideCamera();
+    }
+
     resultsEl.classList.remove('hidden');
     resultsListEl.innerHTML = '';
 
-    const modelLabel = data.model_number || modelNumber || 'unknown model';
-    resultsTitleEl.textContent = matches.length === 1 ? 'Possible match' : 'Possible matches';
-    resultsMetaEl.textContent = data.scanned_id
-        ? ('Model ' + modelLabel + ' · scanned ID ' + data.scanned_id + ' (no exact match)')
-        : ('Model ' + modelLabel);
+    if (waitingForModel) {
+        resultsTitleEl.textContent = matches.length ? 'Possible match from QR' : 'Matches';
+        resultsMetaEl.textContent = data.scanned_id
+            ? ('Appliance ID ' + data.scanned_id + ' · still scanning model barcode')
+            : 'Still scanning model barcode';
+    } else {
+        const modelLabel = data.model_number || modelNumber || 'unknown model';
+        resultsTitleEl.textContent = matches.length === 1 ? 'Possible match' : 'Possible matches';
+        resultsMetaEl.textContent = data.scanned_id
+            ? ('Model ' + modelLabel + ' · scanned ID ' + data.scanned_id + ' (no exact match)')
+            : ('Model ' + modelLabel);
+    }
 
     if (!matches.length) {
-        resultsEmptyEl.classList.remove('hidden');
-        setStatus('Scan again when ready.');
+        if (!waitingForModel) {
+            resultsEmptyEl.classList.remove('hidden');
+            setStatus('Scan again when ready.');
+        }
         return;
     }
 
@@ -295,7 +362,7 @@ function renderSuggestions(data) {
             '<div class="min-w-0">' +
                 '<div class="text-sm font-semibold text-gray-900">' +
                     escapeHtml(item.unit_label || ('Appliance #' + item.id)) +
-                    (highlight ? ' <span class="text-amber-700">(same ID as QR)</span>' : '') +
+                    (highlight ? ' <span class="text-amber-700">(ID from QR)</span>' : '') +
                 '</div>' +
                 '<div class="mt-1 text-sm text-gray-600">' +
                     escapeHtml([item.brand, item.model_number].filter(Boolean).join(' · ') || '—') +
@@ -310,7 +377,9 @@ function renderSuggestions(data) {
         resultsListEl.appendChild(row);
     });
 
-    setStatus('Pick a unit above, or scan again.');
+    if (!waitingForModel) {
+        setStatus('Pick a unit above, or scan again.');
+    }
 }
 
 async function createZxingDecoder() {

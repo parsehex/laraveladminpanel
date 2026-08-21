@@ -250,10 +250,18 @@ class InventoryController extends Controller
         }
 
         if ($applianceId) {
+            $byId = TruckAppliance::query()
+                ->with(['truck', 'model', 'category'])
+                ->whereKey($applianceId)
+                ->first();
+
             return response()->json([
                 'mode' => 'need_model',
                 'scanned_id' => $applianceId,
-                'message' => 'QR read. Point at the model barcode too.',
+                'message' => $byId
+                    ? 'Possible match from QR ID. Still scanning for the model barcode…'
+                    : 'QR read. Point at the model barcode too.',
+                'matches' => $byId ? [$this->scanMatchPayload($byId)] : [],
             ]);
         }
 
