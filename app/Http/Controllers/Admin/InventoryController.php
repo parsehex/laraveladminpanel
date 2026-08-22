@@ -8,6 +8,7 @@ use App\Models\InventoryStatusHistory;
 use App\Models\Part;
 use App\Models\Truck;
 use App\Support\DataTable;
+use App\Support\PageSize;
 use App\Models\TruckAppliance;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -49,8 +50,7 @@ class InventoryController extends Controller
         $this->applyFilters($query, $request);
         $dataTable->applySorting($query, $request);
 
-        $limit = $request->get('limit', 25);
-        $limit = $limit === 'all' ? 'all' : max(1, (int) $limit);
+        $limit = PageSize::resolve($request);
 
         if ($request->boolean('print')) {
             $printQuery = TruckAppliance::query()
@@ -79,9 +79,7 @@ class InventoryController extends Controller
             ]);
         }
 
-        $items = $limit === 'all'
-            ? $query->paginate($query->count() ?: 1)->withQueryString()
-            : $query->paginate($limit)->withQueryString();
+        $items = PageSize::paginate($query, $request);
 
         $brands = TruckAppliance::query()
             ->whereNotNull('brand')

@@ -51,9 +51,7 @@
                 </tbody>
             </table>
         </div>
-        @if($roles->hasPages())
-        <div class="px-6 py-4 border-t">{{ $roles->links() }}</div>
-        @endif
+        <x-admin.table-pagination :paginator="$roles" />
     </div>
 </div>
 @endsection

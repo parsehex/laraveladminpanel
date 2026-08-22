@@ -148,15 +148,6 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="lg:col-span-1">
-                    <label for="limit" class="block text-sm font-medium text-gray-700 mb-1">Rows</label>
-                    <select id="limit" name="limit" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        @foreach([25, 50, 100, 250, 500, 1000] as $option)
-                        <option value="{{ $option }}" @selected((string) request('limit', 25) === (string) $option)>{{ $option }}</option>
-                        @endforeach
-                        <option value="all" @selected(request('limit') === 'all')>All</option>
-                    </select>
-                </div>
                 <div class="lg:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                     <div class="relative" data-status-filter>
@@ -240,22 +231,14 @@
             </table>
 
         <x-slot:footer>
-        <div class="px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div class="text-sm text-gray-600">
-                Showing {{ $items->firstItem() ?? 0 }} - {{ $items->lastItem() ?? 0 }} of {{ $items->total() }}
-            </div>
-            <div class="flex flex-wrap gap-2">
-                <button type="button" data-select-all-button class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-md text-sm inline-flex items-center justify-center">
-                    <i class="fas fa-check-square mr-2"></i>Select all
-                </button>
-                <button type="button" data-unselect-all-button class="bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded-md text-sm inline-flex items-center justify-center">
-                    <i class="far fa-square mr-2"></i>Unselect all
-                </button>
-            </div>
-            @if($items->hasPages())
-            <div>{{ $items->links() }}</div>
-            @endif
-        </div>
+        <x-admin.table-pagination :paginator="$items">
+            <button type="button" data-select-all-button class="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-md text-sm inline-flex items-center justify-center">
+                <i class="fas fa-check-square mr-2"></i>Select all
+            </button>
+            <button type="button" data-unselect-all-button class="bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 rounded-md text-sm inline-flex items-center justify-center">
+                <i class="far fa-square mr-2"></i>Unselect all
+            </button>
+        </x-admin.table-pagination>
         </x-slot:footer>
     </x-admin.data-table>
 </div>

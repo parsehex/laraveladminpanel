@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Delivery;
+use App\Support\PageSize;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -20,8 +21,6 @@ class DeliveryController extends Controller
     public function index(Request $request)
     {
         $search = $request->string('search')->trim();
-        $limit = $request->get('limit', 25);
-        $limit = $limit === 'all' ? 'all' : max(1, (int) $limit);
 
         $query = Delivery::query()->latest();
 
@@ -32,15 +31,10 @@ class DeliveryController extends Controller
             });
         }
 
-        $totalRecords = (clone $query)->count();
-        $deliveries = $limit === 'all'
-            ? $query->paginate($totalRecords ?: 1)->withQueryString()
-            : $query->paginate($limit)->withQueryString();
+        $deliveries = PageSize::paginate($query, $request);
 
         return view('admin.deliveries.index', [
             'deliveries' => $deliveries,
-            'limit' => $limit,
-            'totalRecords' => $totalRecords,
         ]);
     }
 

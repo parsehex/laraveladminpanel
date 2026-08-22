@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Model as ApplianceModel;
 use App\Models\Truck;
 use App\Support\DataTable;
+use App\Support\PageSize;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
@@ -47,7 +48,7 @@ class TruckController extends Controller
 
         $dataTable->applySorting($query, $request);
 
-        $trucks = $query->paginate(12)->withQueryString();
+        $trucks = PageSize::paginate($query, $request);
 
         $trucks->getCollection()->transform(function ($truck) {
             $truck->appliance_statuses = $truck->appliances
@@ -94,15 +95,16 @@ class TruckController extends Controller
         ]);
 
         $dataTable = $this->truckAppliancesDataTable();
-        $perPage = (int) $request->input('appliances_per_page', 25);
-        $perPage = in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 25;
 
         $appliancesQuery = $truck->appliances()->with(['category', 'model']);
         $dataTable->applySorting($appliancesQuery, $request);
 
-        $appliances = $appliancesQuery
-            ->paginate($perPage, ['*'], 'appliances_page')
-            ->withQueryString();
+        $appliances = PageSize::paginate(
+            $appliancesQuery,
+            $request,
+            name: 'appliances_per_page',
+            pageName: 'appliances_page',
+        );
 
         $allAppliances = $truck->appliances()
             ->with(['category', 'model'])
@@ -121,7 +123,6 @@ class TruckController extends Controller
             'categories' => $categories,
             'models' => $models,
             'appliances' => $appliances,
-            'perPage' => $perPage,
             'dataTable' => $dataTable,
             ...$dataTable->sortState($request),
         ]);

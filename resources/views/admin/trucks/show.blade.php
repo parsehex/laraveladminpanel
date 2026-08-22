@@ -157,28 +157,6 @@
                 @endcanAccess
         </x-slot:header>
 
-        <x-slot:filters>
-        <div class="border-b border-gray-200 bg-white px-4 py-3">
-            <form method="GET" action="{{ route('admin.trucks.show', $truck) }}" class="flex flex-wrap items-center gap-2">
-                @if(request('sort'))
-                    <input type="hidden" name="sort" value="{{ request('sort') }}">
-                @endif
-                @if(request('direction'))
-                    <input type="hidden" name="direction" value="{{ request('direction') }}">
-                @endif
-                <label for="appliances_per_page" class="text-sm font-medium text-gray-700">Rows per page:</label>
-                <select id="appliances_per_page" name="appliances_per_page" onchange="this.form.submit()" class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    @foreach([10, 25, 50, 100] as $size)
-                        <option value="{{ $size }}" {{ $perPage === $size ? 'selected' : '' }}>{{ $size }}</option>
-                    @endforeach
-                </select>
-                <span class="ml-auto text-sm text-gray-600">
-                    Showing {{ $appliances->firstItem() ?? 0 }} - {{ $appliances->lastItem() ?? 0 }} of {{ $appliances->total() }}
-                </span>
-            </form>
-        </div>
-        </x-slot:filters>
-
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50 sticky-table-head">
                     <tr>
@@ -284,23 +262,16 @@
             </table>
 
         <x-slot:footer>
-        @if($appliances->total() > 0)
-        <div class="border-t border-gray-200 bg-white px-4 py-4">
-            <div class="flex flex-wrap gap-2">
+        <x-admin.table-pagination :paginator="$appliances" name="appliances_per_page" page-name="appliances_page">
+            @if($appliances->total() > 0)
                 <button type="button" class="rounded-md bg-gray-600 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700" data-truck-select-all-button>Select All</button>
                 <button type="button" class="rounded-md bg-gray-500 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-600" data-truck-reset-selection>Reset</button>
                 <button type="button" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700" data-truck-print-selected-sheets><i class="fas fa-print mr-2"></i>Print Selected Sheet(s)</button>
                 <button type="button" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700" data-truck-print-selected-stickers><i class="fas fa-qrcode mr-2"></i>Print Selected Sticker(s)</button>
                 <button type="button" class="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800" data-truck-print-all-sheets><i class="fas fa-file-alt mr-2"></i>Print All Sheets</button>
                 <button type="button" class="rounded-md bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-800" data-truck-print-all-stickers><i class="fas fa-tags mr-2"></i>Print All Stickers</button>
-            </div>
-        </div>
-        @endif
-        @if($appliances->hasPages())
-        <div class="border-t border-gray-200 bg-white px-4 py-4">
-            {{ $appliances->links() }}
-        </div>
-        @endif
+            @endif
+        </x-admin.table-pagination>
         </x-slot:footer>
     </x-admin.data-table>
 </div>

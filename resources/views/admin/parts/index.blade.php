@@ -168,11 +168,9 @@
                 </tbody>
             </table>
 
-        @if($parts->hasPages())
         <x-slot:footer>
-        <div class="px-6 py-4 border-t border-gray-200">{{ $parts->links() }}</div>
+        <x-admin.table-pagination :paginator="$parts" />
         </x-slot:footer>
-        @endif
     </x-admin.data-table>
 </div>
 

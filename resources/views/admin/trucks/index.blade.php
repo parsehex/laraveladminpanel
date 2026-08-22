@@ -161,11 +161,9 @@
                 </tbody>
             </table>
 
-        @if($trucks->hasPages())
         <x-slot:footer>
-        <div class="px-6 py-4 border-t border-gray-200">{{ $trucks->links() }}</div>
+        <x-admin.table-pagination :paginator="$trucks" />
         </x-slot:footer>
-        @endif
     </x-admin.data-table>
 </div>
 @endsection

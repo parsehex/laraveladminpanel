@@ -73,18 +73,6 @@
 
         <div class="p-6 space-y-6">
             <form method="GET" action="{{ route('admin.models.index') }}" class="space-y-4">
-                <div class="flex flex-wrap items-center gap-2">
-                    <label for="per_page" class="text-sm font-medium text-gray-700">Rows per page:</label>
-                    <select id="per_page" name="per_page" onchange="this.form.submit()" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        @foreach([10, 25, 50, 100] as $size)
-                            <option value="{{ $size }}" {{ $perPage === $size ? 'selected' : '' }}>{{ $size }}</option>
-                        @endforeach
-                    </select>
-                    <span class="ml-auto text-sm text-gray-700">
-                        {{ $models->firstItem() ?? 0 }} - {{ $models->lastItem() ?? 0 }} of {{ $models->total() }}
-                    </span>
-                </div>
-
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Filter by Category:</label>
@@ -270,9 +258,7 @@
                 </table>
             </div>
 
-            @if($models->hasPages())
-            <div class="border-t border-gray-200 pt-4">{{ $models->links() }}</div>
-            @endif
+            <x-admin.table-pagination :paginator="$models" />
         </div>
     </div>
 </div>

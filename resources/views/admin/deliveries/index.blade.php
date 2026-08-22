@@ -79,14 +79,8 @@
             <h2 class="text-xl font-semibold text-white">Deliveries List</h2>
         </div>
         <div class="p-4">
-            <form method="GET" action="{{ route('admin.deliveries.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <form method="GET" action="{{ route('admin.deliveries.index') }}" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
                 <input type="text" name="search" value="{{ request('search') }}" class="px-3 py-2 border border-gray-300 rounded-md" placeholder="Search customer or phone">
-                <select name="limit" class="px-3 py-2 border border-gray-300 rounded-md">
-                    @foreach([25, 50, 100, 250, 500, 1000] as $size)
-                        <option value="{{ $size }}" @selected((string) request('limit', 25) === (string) $size)>{{ $size }}</option>
-                    @endforeach
-                    <option value="all" @selected(request('limit') === 'all')>All</option>
-                </select>
                 <button class="bg-blue-600 text-white px-4 py-2 rounded-md">Filter</button>
                 <a href="{{ route('admin.deliveries.index') }}" class="bg-gray-500 text-white px-4 py-2 rounded-md text-center">Reset</a>
             </form>
@@ -138,12 +132,7 @@
                 </table>
             </div>
 
-            <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p class="text-sm text-gray-500">
-                    Showing {{ $deliveries->firstItem() ?? 0 }} - {{ $deliveries->lastItem() ?? 0 }} of {{ $totalRecords }}
-                </p>
-                <div>{{ $deliveries->links() }}</div>
-            </div>
+            <x-admin.table-pagination :paginator="$deliveries" />
         </div>
     </div>
 </div>

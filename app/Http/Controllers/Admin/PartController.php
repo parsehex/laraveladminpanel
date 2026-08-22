@@ -8,6 +8,7 @@ use App\Http\Requests\UpdatePartRequest;
 use App\Models\Model;
 use App\Models\Part;
 use App\Support\DataTable;
+use App\Support\PageSize;
 use Illuminate\Http\Request;
 
 class PartController extends Controller
@@ -43,7 +44,7 @@ class PartController extends Controller
 
         $dataTable->applySorting($query, $request);
 
-        $parts = $query->paginate(12)->withQueryString();
+        $parts = PageSize::paginate($query, $request);
         $modelNumbers = $parts->getCollection()
             ->pluck('model_compatibility')
             ->filter()

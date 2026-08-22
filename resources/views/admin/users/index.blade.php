@@ -125,11 +125,7 @@
             </table>
         </div>
         
-        @if($users->hasPages())
-        <div class="px-6 py-4 border-t border-gray-200">
-            {{ $users->links() }}
-        </div>
-        @endif
+        <x-admin.table-pagination :paginator="$users" />
     </div>
 </div>
 @endsection

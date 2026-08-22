@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\KitCatalogPart;
 use App\Models\KitInventory;
 use App\Models\Model;
+use App\Support\PageSize;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -33,7 +34,7 @@ class KitCatalogPartController extends Controller
             });
         }
 
-        $parts = $query->paginate(12)->withQueryString();
+        $parts = PageSize::paginate($query, $request);
         $modelNumbers = $parts->getCollection()->pluck('model_compatibility')->filter()->unique()->values();
         $models = Model::query()
             ->whereIn('model_number', $modelNumbers)
