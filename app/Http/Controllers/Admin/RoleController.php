@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreRoleRequest;
 use App\Http\Requests\Admin\UpdateRoleRequest;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Support\PageSize;
 use Illuminate\Http\Request;
 
 class RoleController extends Controller
@@ -22,7 +23,7 @@ class RoleController extends Controller
             $query->whereLike('name', '%'.$search.'%');
         }
 
-        $roles = $query->orderBy('name')->paginate(15)->withQueryString();
+        $roles = PageSize::paginate($query->orderBy('name'), $request);
 
         return view('admin.roles.index', compact('roles'));
     }

@@ -7,6 +7,7 @@ use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\PageSize;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
@@ -36,7 +37,7 @@ class UserController extends Controller
             $query->whereHas('roles', fn ($q) => $q->where('name', $request->get('role')));
         }
 
-        $users = $query->latest()->paginate(20)->withQueryString();
+        $users = PageSize::paginate($query->latest(), $request);
         $filterRoles = Role::query()->orderBy('name')->pluck('name');
 
         return view('admin.users.index', compact('users', 'filterRoles'));

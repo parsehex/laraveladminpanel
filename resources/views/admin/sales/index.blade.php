@@ -94,13 +94,8 @@
                     <input type="hidden" name="direction" value="{{ request('direction') }}">
                 @endif
                 <input type="text" name="search" value="{{ request('search') }}" class="md:col-span-4 px-3 py-2 border border-gray-300 rounded-md" placeholder="{{ $view === 'normal' ? 'Search model, serial, location...' : 'Search model or serial' }}">
-                <select name="limit" class="md:col-span-2 px-3 py-2 border border-gray-300 rounded-md">
-                    <option value="25" @selected((string) request('limit', 25) === '25')>25</option>
-                    <option value="50" @selected((string) request('limit') === '50')>50</option>
-                    <option value="all" @selected(request('limit') === 'all')>All</option>
-                </select>
                 @if($view === 'normal')
-                <div class="md:col-span-4 flex flex-wrap items-center gap-2">
+                <div class="md:col-span-6 flex flex-wrap items-center gap-2">
                     @foreach($trackingStatuses as $status)
                         @php
                             $count = (int) ($statusCounts[$status] ?? 0);
@@ -166,7 +161,7 @@
                     </tbody>
                 </table>
             <x-slot:footer>
-            <div class="mt-4">{{ $units->links() }}</div>
+            <x-admin.table-pagination :paginator="$units" />
             </x-slot:footer>
             </x-admin.data-table>
             @else
@@ -182,7 +177,7 @@
                     </tbody>
                 </table>
             </div>
-            <div class="mt-4">{{ $customSales->links() }}</div>
+            <x-admin.table-pagination :paginator="$customSales" />
             @endif
         </div>
     </div>

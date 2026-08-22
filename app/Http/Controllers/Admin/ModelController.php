@@ -9,6 +9,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Model;
 use App\Models\Part;
+use App\Support\PageSize;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -48,10 +49,7 @@ class ModelController extends Controller
             });
         }
 
-        $perPage = (int) $request->input('per_page', 25);
-        $perPage = in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 25;
-
-        $models = $query->paginate($perPage)->withQueryString();
+        $models = PageSize::paginate($query, $request);
         $categoryIds = $models->getCollection()
             ->pluck('category_id')
             ->filter()
@@ -63,7 +61,7 @@ class ModelController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.models.index', compact('models', 'categories', 'perPage'));
+        return view('admin.models.index', compact('models', 'categories'));
     }
 
     public function store(StoreModelRequest $request)

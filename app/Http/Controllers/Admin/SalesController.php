@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CustomSale;
 use App\Models\TruckAppliance;
 use App\Support\DataTable;
+use App\Support\PageSize;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,8 +31,6 @@ class SalesController extends Controller
     {
         $view = $request->get('view', 'normal') === 'custom' ? 'custom' : 'normal';
         $search = $request->string('search')->trim();
-        $limit = $request->get('limit', 25);
-        $limit = $limit === 'all' ? 'all' : max(1, (int) $limit);
         $selectedStatuses = $this->selectedTrackingStatuses($request);
         $normalDataTable = $this->normalSalesDataTable();
 
@@ -82,17 +81,11 @@ class SalesController extends Controller
         $customSalesTotal = (float) $customRows->sum('sold_price');
         $customCost = (float) $customRows->sum('estimated_price');
 
-        $units = $limit === 'all'
-            ? $normalQuery->paginate($normalQuery->count() ?: 1)->withQueryString()
-            : $normalQuery->paginate($limit)->withQueryString();
-
-        $customSales = $limit === 'all'
-            ? $customQuery->paginate($customQuery->count() ?: 1)->withQueryString()
-            : $customQuery->paginate($limit)->withQueryString();
+        $units = PageSize::paginate($normalQuery, $request);
+        $customSales = PageSize::paginate($customQuery, $request);
 
         return view('admin.sales.index', [
             'view' => $view,
-            'limit' => $limit,
             'units' => $units,
             'customSales' => $customSales,
             'dataTable' => $normalDataTable,

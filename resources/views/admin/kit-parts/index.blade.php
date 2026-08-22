@@ -151,9 +151,7 @@
                 </tbody>
             </table>
         </div>
-        @if($parts->hasPages())
-        <div class="px-6 py-4 border-t border-gray-200">{{ $parts->links() }}</div>
-        @endif
+        <x-admin.table-pagination :paginator="$parts" />
     </div>
 </div>
 
