@@ -41,6 +41,7 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'models.edit', 'module_name' => 'models', 'description' => 'Edit models'],
             ['name' => 'models.delete', 'module_name' => 'models', 'description' => 'Delete models'],
             ['name' => 'inventory.view', 'module_name' => 'inventory', 'description' => 'List inventory'],
+            ['name' => 'testing-flows.manage', 'module_name' => 'testing flows', 'description' => 'Manage testing flow checklists'],
             ['name' => 'sales.view', 'module_name' => 'sales', 'description' => 'List sales'],
             ['name' => 'sales.create', 'module_name' => 'sales', 'description' => 'Create sales'],
             ['name' => 'sales.edit', 'module_name' => 'sales', 'description' => 'Edit sales'],
@@ -73,7 +74,13 @@ class RolePermissionSeeder extends Seeder
         /*
         | Replace all roles so lowercase names (admin, user, …) are not merged with
         | legacy PascalCase rows under case-insensitive collations or legacy data constraints.
+        | Capture role→user ids first so assignments can be restored after recreate.
         */
+        $roleUserIds = [];
+        foreach (Role::query()->get(['id', 'name']) as $role) {
+            $roleUserIds[strtolower((string) $role->name)] = $role->users()->pluck('id')->all();
+        }
+
         Schema::disableForeignKeyConstraints();
         try {
             Role::query()->delete();
@@ -125,6 +132,10 @@ class RolePermissionSeeder extends Seeder
             ]);
 
             $role->syncPermissions(Arr::wrap($permissionNames));
+
+            foreach ($roleUserIds[$roleName] ?? [] as $userId) {
+                $role->users()->syncWithoutDetaching([$userId]);
+            }
         }
 
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();

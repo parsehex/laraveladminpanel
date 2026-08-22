@@ -11,6 +11,8 @@ use App\Http\Controllers\Admin\PartController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SalesController;
+use App\Http\Controllers\Admin\TestingFlowController;
+use App\Http\Controllers\Admin\ApplianceTestingController;
 use App\Http\Controllers\Admin\TruckApplianceController;
 use App\Http\Controllers\Admin\TruckController;
 use App\Http\Controllers\Admin\UserController;
@@ -171,6 +173,16 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->middleware('permission:kits.view')
         ->name('kits.sop');
 
+    Route::get('testing-flows', [TestingFlowController::class, 'index'])
+        ->middleware('permission:testing-flows.manage')
+        ->name('testing-flows.index');
+    Route::get('testing-flows/{flow}/edit', [TestingFlowController::class, 'edit'])
+        ->middleware('permission:testing-flows.manage')
+        ->name('testing-flows.edit');
+    Route::put('testing-flows/{flow}', [TestingFlowController::class, 'update'])
+        ->middleware('permission:testing-flows.manage')
+        ->name('testing-flows.update');
+
     Route::get('inventory', [InventoryController::class, 'index'])
         ->middleware('permission:inventory.view')
         ->name('inventory.index');
@@ -186,6 +198,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('inventory/stickers', [InventoryController::class, 'stickers'])
         ->middleware('permission:inventory.view')
         ->name('inventory.stickers');
+    Route::get('inventory/{appliance}/testing', [ApplianceTestingController::class, 'show'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.testing.show');
+    Route::post('inventory/{appliance}/testing', [ApplianceTestingController::class, 'store'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.testing.store');
     Route::get('inventory/{appliance}', [InventoryController::class, 'show'])
         ->middleware('permission:inventory.view')
         ->name('inventory.show');

@@ -180,6 +180,18 @@
         </div>
     </section>
 
+    @if($status === 'Testing')
+    <section class="legacy-panel">
+        <div class="legacy-panel-heading bg-sky-600">Testing checklist</div>
+        <div class="legacy-panel-body">
+            <a href="{{ route('admin.inventory.testing.show', $appliance) }}" class="legacy-btn bg-sky-600 inline-flex items-center">
+                <i class="fas fa-clipboard-check mr-2"></i>Start Testing
+            </a>
+            <p class="mt-2 text-[10px] text-gray-500">Walk the category checklist, then the unit status updates from the result.</p>
+        </div>
+    </section>
+    @endif
+
     <section class="legacy-panel">
         <div class="legacy-panel-heading bg-blue-600">Actions</div>
         <div class="legacy-panel-body flex flex-wrap gap-1">
