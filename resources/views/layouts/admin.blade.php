@@ -117,6 +117,15 @@
             background: #f8fafc !important;
             box-shadow: inset 0 -1px 0 rgba(226, 232, 240, 0.95);
         }
+
+        /* Keep expandable row editors/views within the visible table viewport */
+        [data-table-inline-panel] {
+            position: sticky;
+            left: 0;
+            box-sizing: border-box;
+            max-width: 100%;
+            z-index: 5;
+        }
     </style>
 
     @stack('styles')
@@ -238,6 +247,21 @@
             };
         };
 
+        window.syncTableInlinePanels = function (root) {
+            const scope = root || document;
+
+            $(scope).find('[data-table-inline-panel]').each(function () {
+                const scrollParent = this.closest('[data-wide-table-scroll], .overflow-x-auto');
+
+                if (!scrollParent) {
+                    this.style.width = '';
+                    return;
+                }
+
+                this.style.width = scrollParent.clientWidth + 'px';
+            });
+        };
+
         window.initWideTables = function () {
             $('[data-wide-table]').each(function () {
                 const $shell = $(this);
@@ -268,6 +292,8 @@
                     if ($shell.hasClass('has-h-scroll') !== needsScroll) {
                         $shell.toggleClass('has-h-scroll', needsScroll);
                     }
+
+                    syncTableInlinePanels($shell.get(0));
                 }
 
                 function scheduleSync() {
@@ -304,6 +330,10 @@
 
         $(document).ready(function () {
             initWideTables();
+            syncTableInlinePanels();
+            $(window).on('resize', function () {
+                syncTableInlinePanels();
+            });
         });
 
         window.addEventListener('wide-table-resync', function () {
@@ -313,6 +343,7 @@
                     sync();
                 }
             });
+            syncTableInlinePanels();
         });
     </script>
     <script>
