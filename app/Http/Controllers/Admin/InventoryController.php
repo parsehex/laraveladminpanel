@@ -587,6 +587,7 @@ class InventoryController extends Controller
             $query->where(function (Builder $query) use ($search) {
                 $query->whereLike('serial_number', '%'.$search.'%')
                     ->orWhereLike('product_name', '%'.$search.'%')
+                    ->orWhereLike('location', '%'.$search.'%')
                     ->orWhereHas('model', fn (Builder $modelQuery) => $modelQuery->whereLike('model_number', '%'.$search.'%'));
             });
         }
@@ -686,6 +687,12 @@ class InventoryController extends Controller
                     'label' => 'SubCategory',
                     'truncate' => true,
                     'sort' => 'truck_appliances.subcategory',
+                ],
+                [
+                    'key' => 'location',
+                    'label' => 'Location',
+                    'truncate' => true,
+                    'sort' => 'truck_appliances.location',
                 ],
                 [
                     'key' => 'status_date',

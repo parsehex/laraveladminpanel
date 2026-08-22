@@ -94,6 +94,13 @@ class DataTable
     private function applyDefaultSort(Builder|Relation $query): void
     {
         foreach ($this->defaultSorts() as [$columnName, $defaultDirection]) {
+            if ($columnName instanceof \Illuminate\Contracts\Database\Query\Expression) {
+                $grammar = $query->getQuery()->getGrammar();
+                $query->orderByRaw($columnName->getValue($grammar).' '.$defaultDirection);
+
+                continue;
+            }
+
             $query->orderBy($columnName, $defaultDirection);
         }
     }

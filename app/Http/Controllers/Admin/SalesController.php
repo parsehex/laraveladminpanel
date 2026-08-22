@@ -13,6 +13,12 @@ use Illuminate\Validation\Rule;
 
 class SalesController extends Controller
 {
+    public const TRACKING_STATUSES = [
+        'Ready',
+        'Show Room',
+        'Sold',
+    ];
+
     public function __construct()
     {
         $this->middleware('permission:sales.view')->only('index');
@@ -26,18 +32,31 @@ class SalesController extends Controller
         $search = $request->string('search')->trim();
         $limit = $request->get('limit', 25);
         $limit = $limit === 'all' ? 'all' : max(1, (int) $limit);
+        $selectedStatuses = $this->selectedTrackingStatuses($request);
         $normalDataTable = $this->normalSalesDataTable();
 
         $normalQuery = TruckAppliance::query()
             ->with(['model'])
-            ->where('status', 'Sold');
+            ->whereIn('status', self::TRACKING_STATUSES);
 
         if ($search->isNotEmpty()) {
             $normalQuery->where(function (Builder $query) use ($search) {
                 $query->whereLike('serial_number', '%'.$search.'%')
+                    ->orWhereLike('location', '%'.$search.'%')
+                    ->orWhereLike('brand', '%'.$search.'%')
+                    ->orWhereLike('product_name', '%'.$search.'%')
                     ->orWhereHas('model', fn (Builder $modelQuery) => $modelQuery->whereLike('model_number', '%'.$search.'%'));
             });
         }
+
+        $statusCounts = (clone $normalQuery)
+            ->reorder()
+            ->select('status', DB::raw('COUNT(*) as aggregate'))
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        $soldTotalsQuery = (clone $normalQuery)->where('status', 'Sold');
+        $normalQuery->whereIn('status', $selectedStatuses);
 
         $customQuery = CustomSale::query();
 
@@ -57,15 +76,13 @@ class SalesController extends Controller
         $customSortColumn = $customSort === 'sold_price' ? 'sold_price' : 'created_at';
         $customQuery->orderBy($customSortColumn, $customDirection)->orderByDesc('id');
 
-        $normalRows = (clone $normalQuery)->get();
+        $normalSales = (float) (clone $soldTotalsQuery)->sum('sold_price');
+        $normalCost = (float) (clone $soldTotalsQuery)->sum('price');
         $customRows = (clone $customQuery)->get();
-
-        $normalSales = (float) $normalRows->sum(fn (TruckAppliance $item) => (float) ($item->sold_price ?? 0));
-        $normalCost = (float) $normalRows->sum(fn (TruckAppliance $item) => $item->salesCost());
         $customSalesTotal = (float) $customRows->sum('sold_price');
         $customCost = (float) $customRows->sum('estimated_price');
 
-        $soldItems = $limit === 'all'
+        $units = $limit === 'all'
             ? $normalQuery->paginate($normalQuery->count() ?: 1)->withQueryString()
             : $normalQuery->paginate($limit)->withQueryString();
 
@@ -76,9 +93,12 @@ class SalesController extends Controller
         return view('admin.sales.index', [
             'view' => $view,
             'limit' => $limit,
-            'soldItems' => $soldItems,
+            'units' => $units,
             'customSales' => $customSales,
             'dataTable' => $normalDataTable,
+            'trackingStatuses' => self::TRACKING_STATUSES,
+            'selectedStatuses' => $selectedStatuses,
+            'statusCounts' => $statusCounts,
             ...$normalDataTable->sortState($request),
             'totalSales' => $view === 'normal' ? $normalSales : $customSalesTotal,
             'totalCost' => $view === 'normal' ? $normalCost : $customCost,
@@ -86,12 +106,32 @@ class SalesController extends Controller
         ]);
     }
 
+    /**
+     * @return list<string>
+     */
+    private function selectedTrackingStatuses(Request $request): array
+    {
+        $statuses = collect($request->input('status', []))
+            ->map(fn ($status) => trim((string) $status))
+            ->filter(fn ($status) => in_array($status, self::TRACKING_STATUSES, true))
+            ->unique()
+            ->values()
+            ->all();
+
+        return $statuses ?: self::TRACKING_STATUSES;
+    }
+
+    private function trackingStatusOrderSql(): string
+    {
+        return "CASE COALESCE(truck_appliances.status, '') WHEN 'Show Room' THEN 0 WHEN 'Ready' THEN 1 WHEN 'Sold' THEN 2 ELSE 3 END";
+    }
+
     private function normalSalesDataTable(): DataTable
     {
         return new DataTable(
             storageKey: 'normalSalesTableColumns',
             defaultSort: [
-                ['truck_appliances.sold_at', 'desc'],
+                [DB::raw('COALESCE(truck_appliances.sold_at, truck_appliances.updated_at)'), 'desc'],
                 ['truck_appliances.id', 'desc'],
             ],
             columns: [
@@ -99,6 +139,18 @@ class SalesController extends Controller
                     'key' => 'id',
                     'label' => 'ID',
                     'sort' => 'truck_appliances.id',
+                ],
+                [
+                    'key' => 'status',
+                    'label' => 'Status',
+                    'sort' => fn (Builder $query, string $direction) => $query
+                        ->orderByRaw($this->trackingStatusOrderSql().' '.$direction),
+                ],
+                [
+                    'key' => 'location',
+                    'label' => 'Location',
+                    'truncate' => true,
+                    'sort' => 'truck_appliances.location',
                 ],
                 [
                     'key' => 'model',

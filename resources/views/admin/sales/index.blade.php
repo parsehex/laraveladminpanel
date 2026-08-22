@@ -4,6 +4,13 @@
 @section('page-title', 'Sales Tracking')
 
 @section('content')
+@php
+    $statusClasses = [
+        'Ready' => 'appliance-status-blue',
+        'Show Room' => 'appliance-status-purple',
+        'Sold' => 'appliance-status-sold',
+    ];
+@endphp
 <div class="space-y-6">
     @canAccess('sales.create')
     <div class="bg-white rounded-lg shadow overflow-hidden">
@@ -75,10 +82,10 @@
             </nav>
         </div>
         <div class="bg-blue-600 px-6 py-4">
-            <h2 class="text-xl font-semibold text-white">Sold Items</h2>
+            <h2 class="text-xl font-semibold text-white">{{ $view === 'normal' ? 'Ready / Showroom / Sold' : 'Sold Items' }}</h2>
         </div>
         <div class="p-4">
-            <form method="GET" action="{{ route('admin.sales.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <form method="GET" action="{{ route('admin.sales.index') }}" class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
                 <input type="hidden" name="view" value="{{ $view }}">
                 @if($view === 'normal' && request('sort'))
                     <input type="hidden" name="sort" value="{{ request('sort') }}">
@@ -86,14 +93,31 @@
                 @if($view === 'normal' && request('direction'))
                     <input type="hidden" name="direction" value="{{ request('direction') }}">
                 @endif
-                <input type="text" name="search" value="{{ request('search') }}" class="px-3 py-2 border border-gray-300 rounded-md" placeholder="Search model or serial">
-                <select name="limit" class="px-3 py-2 border border-gray-300 rounded-md">
+                <input type="text" name="search" value="{{ request('search') }}" class="md:col-span-4 px-3 py-2 border border-gray-300 rounded-md" placeholder="{{ $view === 'normal' ? 'Search model, serial, location...' : 'Search model or serial' }}">
+                <select name="limit" class="md:col-span-2 px-3 py-2 border border-gray-300 rounded-md">
                     <option value="25" @selected((string) request('limit', 25) === '25')>25</option>
                     <option value="50" @selected((string) request('limit') === '50')>50</option>
                     <option value="all" @selected(request('limit') === 'all')>All</option>
                 </select>
-                <button class="bg-blue-600 text-white px-4 py-2 rounded-md">Filter</button>
-                <a href="{{ route('admin.sales.index', ['view' => $view]) }}" class="bg-gray-500 text-white px-4 py-2 rounded-md text-center">Reset</a>
+                @if($view === 'normal')
+                <div class="md:col-span-4 flex flex-wrap items-center gap-2">
+                    @foreach($trackingStatuses as $status)
+                        @php
+                            $count = (int) ($statusCounts[$status] ?? 0);
+                            $statusClass = $statusClasses[$status] ?? '';
+                        @endphp
+                        <label class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 shadow-sm">
+                            <input type="checkbox" name="status[]" value="{{ $status }}" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" @checked(in_array($status, $selectedStatuses, true))>
+                            <span class="appliance-status-chip {{ $statusClass }}">{{ $status }}</span>
+                            <span class="text-gray-500">{{ $count }}</span>
+                        </label>
+                    @endforeach
+                </div>
+                @endif
+                <div class="md:col-span-2 flex gap-2">
+                    <button class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md">Filter</button>
+                    <a href="{{ route('admin.sales.index', ['view' => $view]) }}" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-md text-center">Reset</a>
+                </div>
             </form>
 
             @if($view === 'normal')
@@ -106,31 +130,43 @@
                     </tr>
                 </thead>
                     <tbody class="divide-y divide-gray-200">
-                        @forelse($soldItems as $item)
-                        @php $cost = $item->salesCost(); $profit = (float) ($item->sold_price ?? 0) - $cost; @endphp
-                        <tr>
+                        @forelse($units as $item)
+                        @php
+                            $status = $item->status ?: 'Ready';
+                            $isSold = $status === 'Sold';
+                            $cost = $item->salesCost();
+                            $profit = $isSold ? (float) ($item->sold_price ?? 0) - $cost : null;
+                            $statusClass = $statusClasses[$status] ?? 'appliance-status-blue';
+                        @endphp
+                        <tr class="appliance-status-row {{ $statusClass }}">
                             <x-admin.data-table.cell column="id">{{ $item->id }}</x-admin.data-table.cell>
+                            <x-admin.data-table.cell column="status">
+                                <span class="appliance-status-chip {{ $statusClass }}">{{ $status }}</span>
+                            </x-admin.data-table.cell>
+                            <x-admin.data-table.cell column="location" truncate title="{{ $item->location ?: '—' }}">{{ $item->location ?: '—' }}</x-admin.data-table.cell>
                             <x-admin.data-table.cell column="model">{{ $item->model?->model_number ?? '-' }}</x-admin.data-table.cell>
                             <x-admin.data-table.cell column="serial_number">{{ $item->serial_number }}</x-admin.data-table.cell>
-                            <x-admin.data-table.cell column="sold_price" align="right">${{ number_format($item->sold_price ?? 0, 2) }}</x-admin.data-table.cell>
+                            <x-admin.data-table.cell column="sold_price" align="right">{{ $isSold ? '$'.number_format($item->sold_price ?? 0, 2) : '—' }}</x-admin.data-table.cell>
                             <x-admin.data-table.cell column="cost" align="right">${{ number_format($cost, 2) }}</x-admin.data-table.cell>
-                            <x-admin.data-table.cell column="profit" align="right">${{ number_format($profit, 2) }}</x-admin.data-table.cell>
-                            <x-admin.data-table.cell column="sold_by" truncate title="{{ $item->sold_by ?: '-' }}">{{ $item->sold_by ?: '-' }}</x-admin.data-table.cell>
-                            <x-admin.data-table.cell column="sold_date">{{ $item->sold_at?->format('Y-m-d H:i') ?: '-' }}</x-admin.data-table.cell>
+                            <x-admin.data-table.cell column="profit" align="right">{{ $profit === null ? '—' : '$'.number_format($profit, 2) }}</x-admin.data-table.cell>
+                            <x-admin.data-table.cell column="sold_by" truncate title="{{ $item->sold_by ?: '-' }}">{{ $isSold ? ($item->sold_by ?: '-') : '—' }}</x-admin.data-table.cell>
+                            <x-admin.data-table.cell column="sold_date">{{ $isSold ? ($item->sold_at?->format('Y-m-d H:i') ?: '-') : '—' }}</x-admin.data-table.cell>
                             <td class="sticky-action px-4 py-3 text-right">
                                 <a href="{{ route('admin.inventory.show', $item) }}" class="text-blue-600">View</a>
-                                @canAccess('sales.edit')
-                                <button class="text-yellow-600 ml-2" data-edit-sale data-action="{{ route('admin.sales.sold-price.update', $item) }}" data-price="{{ $item->sold_price }}" data-sold-by="{{ $item->sold_by }}">Edit Price</button>
-                                @endcanAccess
+                                @if($isSold)
+                                    @canAccess('sales.edit')
+                                    <button class="text-yellow-600 ml-2" data-edit-sale data-action="{{ route('admin.sales.sold-price.update', $item) }}" data-price="{{ $item->sold_price }}" data-sold-by="{{ $item->sold_by }}">Edit Price</button>
+                                    @endcanAccess
+                                @endif
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="9" class="px-4 py-6 text-center text-gray-500">No sold items yet.</td></tr>
+                        <tr><td colspan="11" class="px-4 py-6 text-center text-gray-500">No matching units.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             <x-slot:footer>
-            <div class="mt-4">{{ $soldItems->links() }}</div>
+            <div class="mt-4">{{ $units->links() }}</div>
             </x-slot:footer>
             </x-admin.data-table>
             @else
@@ -165,6 +201,40 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    .appliance-status-row > td {
+        color: #111827 !important;
+        font-weight: 600;
+        border-color: rgba(15, 23, 42, 0.12) !important;
+    }
+
+    .appliance-status-row:hover > td {
+        filter: brightness(0.96);
+    }
+
+    .appliance-status-chip {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid rgba(15, 23, 42, 0.2);
+        border-radius: 999px;
+        padding: 4px 9px;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1.1;
+        min-height: 22px;
+    }
+
+    .appliance-status-row.appliance-status-blue > td { background: #93c5fd !important; }
+    .appliance-status-row.appliance-status-purple > td { background: #d8b4fe !important; }
+    .appliance-status-row.appliance-status-sold > td { background: #6ee7b7 !important; }
+
+    .appliance-status-chip.appliance-status-blue { background: #3b82f6 !important; color: #ffffff !important; }
+    .appliance-status-chip.appliance-status-purple { background: #9333ea !important; color: #ffffff !important; }
+    .appliance-status-chip.appliance-status-sold { background: #059669 !important; color: #ffffff !important; }
+</style>
+@endpush
 
 @push('scripts')
 <script>

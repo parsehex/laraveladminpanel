@@ -118,7 +118,7 @@
                 @endif
                 <div class="lg:col-span-3">
                     <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-                    <input type="text" id="search" name="search" value="{{ request('search') }}" placeholder="Model, serial, product..."
+                    <input type="text" id="search" name="search" value="{{ request('search') }}" placeholder="Model, serial, product, location..."
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="lg:col-span-2">
@@ -209,6 +209,7 @@
                         <x-admin.data-table.cell column="brand" truncate title="{{ $item->brand ?: '-' }}">{{ $item->brand ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="category" truncate title="{{ $item->category?->name ?? '-' }}">{{ $item->category?->name ?? '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="subcategory" truncate title="{{ $item->subcategory ?: '-' }}">{{ $item->subcategory ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="location" truncate title="{{ $item->location ?: '-' }}">{{ $item->location ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="status_date">{{ $item->statusHistories?->sortByDesc('created_at')->first()?->created_at?->format('Y-m-d H:i:s') ?? 'N/A' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="total_cost" align="right">${{ number_format($totalCost, 2) }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="sold_price" align="right">${{ number_format((float) ($item->sold_price ?? 0), 2) }}</x-admin.data-table.cell>
@@ -232,7 +233,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="13" class="px-6 py-8 text-center text-gray-500">No inventory found.</td>
+                        <td colspan="14" class="px-6 py-8 text-center text-gray-500">No inventory found.</td>
                     </tr>
                     @endforelse
                 </tbody>
