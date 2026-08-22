@@ -410,6 +410,7 @@ class InventoryController extends Controller
         ];
 
         if ($data['status'] === 'Sold') {
+            $update['location'] = null;
             $update['sold_price'] = $data['sold_price'] ?? null;
             $update['sold_by'] = $request->user()->name;
             $update['sold_at'] = now();

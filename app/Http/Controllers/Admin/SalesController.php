@@ -185,6 +185,7 @@ class SalesController extends Controller
         DB::transaction(function () use ($appliance, $data, $request) {
             $appliance->update([
                 'status' => 'Sold',
+                'location' => null,
                 'sold_price' => $data['sold_price'],
                 'sold_by' => $request->user()->name,
                 'sold_at' => now(),
