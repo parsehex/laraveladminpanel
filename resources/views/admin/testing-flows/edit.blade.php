@@ -64,6 +64,5 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('js/testing-wizard.js') }}"></script>
-<script src="{{ asset('js/testing-flow-editor.js') }}"></script>
+    @vite('resources/js/pages/testing-flow-editor.ts')
 @endpush

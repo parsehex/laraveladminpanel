@@ -4,12 +4,14 @@
     "scripts": {
         "dev": "concurrently -k -n server,vite -c blue,magenta \"php artisan serve --host=0.0.0.0\" \"vite\"",
         "build": "vite build",
-        "vite": "vite"
+        "vite": "vite",
+        "typecheck": "tsc --noEmit"
     },
     "devDependencies": {
         "axios": "^1.16.1",
         "concurrently": "^10.0.5",
         "laravel-vite-plugin": "^3.1.0",
+        "typescript": "^7.0.2",
         "vite": "^8.0.12"
     }
 }

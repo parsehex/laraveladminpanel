@@ -80,25 +80,6 @@
 
 @if($flow)
 @push('scripts')
-<script src="{{ asset('js/testing-wizard.js') }}"></script>
-<script>
-(function () {
-    const root = document.getElementById('appliance-testing');
-    const flow = JSON.parse(root.dataset.flow);
-    const wizard = window.TestingWizard.create({
-        root: document.getElementById('wizard-root'),
-        completeEl: document.getElementById('wizard-complete'),
-        finalStatusEl: document.getElementById('wizard-final-status'),
-        flow: flow,
-        onComplete: function (result) {
-            document.getElementById('resulting-status').value = result.status;
-            document.getElementById('answers-json').value = JSON.stringify(result.answers);
-        },
-    });
-    document.getElementById('wizard-restart').addEventListener('click', function () {
-        wizard.restart();
-    });
-})();
-</script>
+    @vite('resources/js/pages/inventory-testing.ts')
 @endpush
 @endif
