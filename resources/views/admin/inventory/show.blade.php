@@ -204,6 +204,18 @@
     </section>
     @endif
 
+    @if($status === 'Demanufacture')
+    <section class="legacy-panel">
+        <div class="legacy-panel-heading bg-red-700">Demanufacture</div>
+        <div class="legacy-panel-body">
+            <a href="{{ route('admin.inventory.deman.show', $appliance) }}" class="legacy-btn bg-red-700 inline-flex items-center">
+                <i class="fas fa-recycle mr-2"></i>Open Demanufacture
+            </a>
+            <p class="mt-2 text-[10px] text-gray-500">Log salvaged parts pulled from this unit.</p>
+        </div>
+    </section>
+    @endif
+
     <section class="legacy-panel">
         <div class="legacy-panel-heading bg-blue-600">Actions</div>
         <div class="legacy-panel-body flex flex-wrap gap-1">

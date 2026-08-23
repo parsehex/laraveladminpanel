@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\SalesController;
 use App\Http\Controllers\Admin\SuggestionController;
 use App\Http\Controllers\Admin\TestingFlowController;
 use App\Http\Controllers\Admin\ApplianceRepairController;
+use App\Http\Controllers\Admin\ApplianceDemanufactureController;
 use App\Http\Controllers\Admin\ApplianceTestingController;
 use App\Http\Controllers\Admin\TruckApplianceController;
 use App\Http\Controllers\Admin\TruckController;
@@ -217,6 +218,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('inventory/{appliance}/repair-results/{result}', [ApplianceRepairController::class, 'showResult'])
         ->middleware('permission:inventory.view')
         ->name('inventory.repair-results.show');
+    Route::get('inventory/{appliance}/deman', [ApplianceDemanufactureController::class, 'show'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.deman.show');
+    Route::post('inventory/{appliance}/deman', [ApplianceDemanufactureController::class, 'store'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.deman.store');
     Route::get('inventory/{appliance}/testing', [ApplianceTestingController::class, 'show'])
         ->middleware('permission:inventory.view')
         ->name('inventory.testing.show');
