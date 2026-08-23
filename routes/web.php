@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\PartController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SalesController;
+use App\Http\Controllers\Admin\SuggestionController;
 use App\Http\Controllers\Admin\TestingFlowController;
 use App\Http\Controllers\Admin\ApplianceRepairController;
 use App\Http\Controllers\Admin\ApplianceTestingController;
@@ -57,7 +58,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->name('profile.password.edit');
     Route::put('/profile/change-password', [ProfileController::class, 'updatePassword'])
         ->name('profile.password.update');
-    Route::post('/dashboard/suggestions', [AdminDashboardController::class, 'storeSuggestion'])
+    Route::post('/suggestions', [SuggestionController::class, 'store'])
+        ->name('suggestions.store');
+    Route::post('/dashboard/suggestions', [SuggestionController::class, 'store'])
         ->middleware('permission:admin.dashboard')
         ->name('dashboard.suggestions.store');
     Route::post('/dashboard/suggestions/{suggestion}/responses', [AdminDashboardController::class, 'storeSuggestionResponse'])

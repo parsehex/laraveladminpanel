@@ -139,8 +139,10 @@
                 <h3 class="text-base font-semibold text-gray-900">Website Suggestion Box</h3>
             </div>
             <div class="p-5 space-y-5">
+                <p class="text-sm text-gray-600">Use the feedback button on any page to include the current URL automatically.</p>
                 <form method="POST" action="{{ route('admin.dashboard.suggestions.store') }}" class="space-y-3">
                     @csrf
+                    <input type="hidden" name="page_url" value="{{ url()->full() }}">
                     <textarea name="suggestion" rows="3" required class="w-full rounded-md border-gray-300 shadow-sm" placeholder="Share a workflow issue, improvement, or dashboard request...">{{ old('suggestion') }}</textarea>
                     <div class="flex flex-wrap items-center gap-3">
                         <select name="urgency" class="rounded-md border-gray-300 text-sm shadow-sm">
@@ -163,6 +165,12 @@
                                         <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $suggestion->status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700' }}">{{ ucfirst($suggestion->status) }}</span>
                                     </div>
                                     <p class="mt-2 text-sm text-gray-700">{{ $suggestion->suggestion }}</p>
+                                    @if($suggestion->page_url)
+                                        <p class="mt-2 text-xs">
+                                            <span class="font-medium text-gray-500">Page:</span>
+                                            <a href="{{ $suggestion->page_url }}" class="text-blue-600 hover:text-blue-800 break-all">{{ $suggestion->page_url }}</a>
+                                        </p>
+                                    @endif
                                     <p class="mt-1 text-xs text-gray-500">{{ $suggestion->created_at->format('M d, Y h:i A') }}</p>
                                 </div>
                                 @if($suggestion->status !== 'completed')

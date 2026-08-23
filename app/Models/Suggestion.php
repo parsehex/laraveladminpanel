@@ -11,6 +11,7 @@ class Suggestion extends Model
         'user_id',
         'username',
         'suggestion',
+        'page_url',
         'urgency',
         'status',
         'responses',
