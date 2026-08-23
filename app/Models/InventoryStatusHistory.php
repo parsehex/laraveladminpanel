@@ -32,4 +32,20 @@ class InventoryStatusHistory extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function testingResultId(): ?string
+    {
+        if (! preg_match('/\[testing-result:([^\]]+)\]/', (string) ($this->notes ?? ''), $matches)) {
+            return null;
+        }
+
+        return $matches[1];
+    }
+
+    public function displayNotes(): string
+    {
+        $notes = trim(preg_replace('/\s*\[testing-result:[^\]]+\]/', '', (string) ($this->notes ?? '')) ?? '');
+
+        return $notes !== '' ? $notes : 'N/A';
+    }
 }

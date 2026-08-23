@@ -229,7 +229,14 @@
     @endcanAccess
 
     <section class="legacy-panel">
-        <div class="legacy-panel-heading bg-blue-600">Status History</div>
+        <div class="legacy-panel-heading bg-blue-600 flex items-center justify-between gap-2">
+            <span>Status History</span>
+            @if(($testingResultCount ?? 0) > 0)
+            <a href="{{ route('admin.inventory.testing-results.index', $appliance) }}" class="text-xs font-semibold text-white/90 underline hover:text-white">
+                Testing results ({{ $testingResultCount }})
+            </a>
+            @endif
+        </div>
         <div class="legacy-panel-body">
             <div class="overflow-x-auto">
                 <table class="legacy-table">
@@ -245,10 +252,17 @@
                     <tbody>
                         @forelse($appliance->statusHistories->sortByDesc('created_at') as $history)
                         @php($rowClass = $statusStyles[$history->status]['class'] ?? 'status-white')
+                        @php($resultId = $testingResultLinks[$history->id] ?? null)
                         <tr class="status-row {{ $rowClass }}">
                             <td><span class="status-chip {{ $rowClass }}">{{ $history->status }}</span></td>
-                            <td>{{ $history->created_at?->format('Y-m-d H:i:s') }}</td>
-                            <td>{{ $history->notes ?: 'N/A' }}</td>
+                            <td>
+                                @if($resultId)
+                                <a href="{{ route('admin.inventory.testing-results.show', [$appliance, $resultId]) }}" class="text-blue-700 underline font-medium" title="View testing result">{{ $history->created_at?->format('Y-m-d H:i:s') }}</a>
+                                @else
+                                {{ $history->created_at?->format('Y-m-d H:i:s') }}
+                                @endif
+                            </td>
+                            <td>{{ $history->displayNotes() }}</td>
                             <td>{{ $history->user?->name ?? '-' }}</td>
                             <td>{{ $history->parts_ordered ? 'Yes' : 'No' }}</td>
                         </tr>

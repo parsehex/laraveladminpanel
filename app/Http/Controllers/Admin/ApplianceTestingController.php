@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\TruckAppliance;
 use App\Testing\TestingFlowCategoryMapper;
 use App\Testing\TestingFlowRepository;
+use App\Testing\TestingResultPresenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -14,8 +15,9 @@ class ApplianceTestingController extends Controller
 {
     public function __construct(
         private readonly TestingFlowRepository $flows,
+        private readonly TestingResultPresenter $presenter,
     ) {
-        $this->middleware('permission:inventory.view')->only('show');
+        $this->middleware('permission:inventory.view')->only(['show', 'showResult', 'indexResults']);
         $this->middleware('permission:appliance.edit')->only('store');
     }
 
@@ -67,7 +69,7 @@ class ApplianceTestingController extends Controller
         ];
 
         DB::transaction(function () use ($appliance, $data, $answers, $snapshot, $request) {
-            $this->flows->storeResult([
+            $resultId = $this->flows->storeResult([
                 'appliance_id' => $appliance->id,
                 'flow_slug' => $snapshot['slug'],
                 'flow_version' => (int) $data['flow_version'],
@@ -85,9 +87,15 @@ class ApplianceTestingController extends Controller
                 'updated_by' => $request->user()->id,
             ]);
 
+            $notes = trim((string) ($data['notes'] ?? ''));
+            if ($notes === '') {
+                $notes = 'Completed Testing flow '.$snapshot['slug'].' v'.$data['flow_version'].'.';
+            }
+            $notes .= ' [testing-result:'.$resultId.']';
+
             $appliance->statusHistories()->create([
                 'status' => $data['resulting_status'],
-                'notes' => $data['notes'] ?? 'Completed Testing flow '.$snapshot['slug'].' v'.$data['flow_version'].'.',
+                'notes' => $notes,
                 'parts_ordered' => false,
                 'user_id' => $request->user()->id,
             ]);
@@ -98,5 +106,33 @@ class ApplianceTestingController extends Controller
             ->with('success', __('Testing completed. Status set to :status.', [
                 'status' => $data['resulting_status'],
             ]));
+    }
+
+    public function indexResults(TruckAppliance $appliance)
+    {
+        $appliance->loadMissing('category', 'model', 'truck');
+
+        return view('admin.inventory.testing-results-index', [
+            'appliance' => $appliance,
+            'results' => $this->flows->listResultsForAppliance($appliance->id),
+        ]);
+    }
+
+    public function showResult(TruckAppliance $appliance, string $result)
+    {
+        abort_unless($this->flows->resultBelongsToAppliance($result, $appliance->id), 404);
+
+        $data = $this->flows->getResult($result);
+        abort_if($data === null, 404);
+
+        $appliance->loadMissing('category', 'model', 'truck');
+
+        return view('admin.inventory.testing-result', [
+            'appliance' => $appliance,
+            'result' => $data,
+            'steps' => $this->presenter->answeredSteps($data),
+            'failedSteps' => $this->presenter->failedSteps($data),
+            'testingResultCount' => count($this->flows->listResultsForAppliance($appliance->id)),
+        ]);
     }
 }

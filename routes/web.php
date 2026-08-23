@@ -204,6 +204,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('inventory/{appliance}/testing', [ApplianceTestingController::class, 'store'])
         ->middleware('permission:appliance.edit')
         ->name('inventory.testing.store');
+    Route::get('inventory/{appliance}/testing-results', [ApplianceTestingController::class, 'indexResults'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.testing-results.index');
+    Route::get('inventory/{appliance}/testing-results/{result}', [ApplianceTestingController::class, 'showResult'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.testing-results.show');
     Route::get('inventory/{appliance}', [InventoryController::class, 'show'])
         ->middleware('permission:inventory.view')
         ->name('inventory.show');
