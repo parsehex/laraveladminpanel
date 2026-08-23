@@ -215,6 +215,38 @@ class TestingFlowRepository
     }
 
     /**
+     * @return array<string, mixed>|null
+     */
+    public function latestResultForAppliance(int $applianceId): ?array
+    {
+        $latest = null;
+        $latestAt = null;
+
+        if (! File::isDirectory($this->resultsPath())) {
+            return null;
+        }
+
+        foreach (File::files($this->resultsPath()) as $file) {
+            if ($file->getExtension() !== 'json') {
+                continue;
+            }
+
+            $data = $this->decodeResultFile($file->getPathname());
+            if ($data === null || (int) ($data['appliance_id'] ?? 0) !== $applianceId) {
+                continue;
+            }
+
+            $completedAt = $data['completed_at'] ?? null;
+            if ($latest === null || ($completedAt !== null && ($latestAt === null || $completedAt > $latestAt))) {
+                $latest = $data;
+                $latestAt = $completedAt;
+            }
+        }
+
+        return $latest;
+    }
+
+    /**
      * Map testing result ids onto Testing status-history rows (not the completion row).
      *
      * @param  iterable<\App\Models\InventoryStatusHistory>  $histories

@@ -10,6 +10,7 @@ use App\Models\Truck;
 use App\Support\DataTable;
 use App\Support\PageSize;
 use App\Models\TruckAppliance;
+use App\Testing\RepairResultRepository;
 use App\Testing\TestingFlowRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -284,7 +285,7 @@ class InventoryController extends Controller
         return back()->with('success', __('Appliance deleted from inventory.'));
     }
 
-    public function show(TruckAppliance $appliance, TestingFlowRepository $flows)
+    public function show(TruckAppliance $appliance, TestingFlowRepository $flows, RepairResultRepository $repairResults)
     {
         $appliance->load([
             'truck',
@@ -299,12 +300,18 @@ class InventoryController extends Controller
             $appliance->id,
             $appliance->statusHistories,
         );
+        $repairResultLinks = $repairResults->mapResultLinksToRepairHistories(
+            $appliance->id,
+            $appliance->statusHistories,
+        );
 
         return view('admin.inventory.show', [
             'appliance' => $appliance,
             'statuses' => self::STATUSES,
             'testingResultLinks' => $testingResultLinks,
+            'repairResultLinks' => $repairResultLinks,
             'testingResultCount' => count($flows->listResultsForAppliance($appliance->id)),
+            'repairResultCount' => count($repairResults->listForAppliance($appliance->id)),
             'trucks' => Truck::query()->whereKeyNot($appliance->truck_id)->orderBy('name')->get(['id', 'name']),
             'locations' => TruckAppliance::query()
                 ->whereNotNull('location')

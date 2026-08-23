@@ -44,8 +44,17 @@ class InventoryStatusHistory extends Model
 
     public function displayNotes(): string
     {
-        $notes = trim(preg_replace('/\s*\[testing-result:[^\]]+\]/', '', (string) ($this->notes ?? '')) ?? '');
+        $notes = trim(preg_replace('/\s*\[(testing|repair)-result:[^\]]+\]/', '', (string) ($this->notes ?? '')) ?? '');
 
         return $notes !== '' ? $notes : 'N/A';
+    }
+
+    public function repairResultId(): ?string
+    {
+        if (! preg_match('/\[repair-result:([^\]]+)\]/', (string) ($this->notes ?? ''), $matches)) {
+            return null;
+        }
+
+        return $matches[1];
     }
 }

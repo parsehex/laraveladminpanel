@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SalesController;
 use App\Http\Controllers\Admin\TestingFlowController;
+use App\Http\Controllers\Admin\ApplianceRepairController;
 use App\Http\Controllers\Admin\ApplianceTestingController;
 use App\Http\Controllers\Admin\TruckApplianceController;
 use App\Http\Controllers\Admin\TruckController;
@@ -198,6 +199,21 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('inventory/stickers', [InventoryController::class, 'stickers'])
         ->middleware('permission:inventory.view')
         ->name('inventory.stickers');
+    Route::get('inventory/{appliance}/repair', [ApplianceRepairController::class, 'show'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.repair.show');
+    Route::post('inventory/{appliance}/repair/diagnosis', [ApplianceRepairController::class, 'storeDiagnosis'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.repair.diagnosis.store');
+    Route::post('inventory/{appliance}/repair/reevaluation', [ApplianceRepairController::class, 'storeReevaluation'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.repair.reevaluation.store');
+    Route::get('inventory/{appliance}/repair-results', [ApplianceRepairController::class, 'indexResults'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.repair-results.index');
+    Route::get('inventory/{appliance}/repair-results/{result}', [ApplianceRepairController::class, 'showResult'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.repair-results.show');
     Route::get('inventory/{appliance}/testing', [ApplianceTestingController::class, 'show'])
         ->middleware('permission:inventory.view')
         ->name('inventory.testing.show');
