@@ -99,14 +99,6 @@
         </a>
         @endcanAccess
 
-        @canAccess('testing-flows.manage')
-        <a href="{{ route('admin.testing-flows.index') }}" @click="sidebarOpen = false"
-           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.testing-flows.*') ? 'is-active' : '' }}">
-            <i class="fas fa-clipboard-check mr-3 w-5 text-center"></i>
-            <span>Testing Flows</span>
-        </a>
-        @endcanAccess
-
         @canAccess('kits.view')
         <a href="{{ route('admin.kits.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.kits.*') ? 'is-active' : '' }}">
@@ -115,21 +107,72 @@
         </a>
         @endcanAccess
 
-        @canAccess('users.view')
-        <a href="{{ route('admin.users.index') }}" @click="sidebarOpen = false"
-           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.users.*') ? 'is-active' : '' }}">
-            <i class="fas fa-users mr-3 w-5 text-center"></i>
-            <span>Users</span>
-        </a>
-        @endcanAccess
+        @php
+            $showManageFolder = canAccess('users.view')
+                || canAccess('roles.view')
+                || canAccess('testing-flows.manage')
+                || canAccess('user-actions.view');
+            $manageFolderActive = request()->routeIs('admin.users.*')
+                || request()->routeIs('admin.roles.*')
+                || request()->routeIs('admin.testing-flows.*')
+                || request()->routeIs('admin.user-actions.*');
+        @endphp
 
-        @canAccess('roles.view')
-        <a href="{{ route('admin.roles.index') }}" @click="sidebarOpen = false"
-           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.roles.*') ? 'is-active' : '' }}">
-            <i class="fas fa-user-shield mr-3 w-5 text-center"></i>
-            <span>Roles</span>
-        </a>
-        @endcanAccess
+        @if($showManageFolder)
+        <div class="ui-nav-folder"
+             data-folder="manage"
+             x-data="{
+                open: document.documentElement.classList.contains('sidebar-folder-manage-open'),
+                toggle() {
+                    this.open = !this.open;
+                    document.documentElement.classList.toggle('sidebar-folder-manage-open', this.open);
+                    localStorage.setItem('sidebarFolder.manage', this.open ? '1' : '0');
+                }
+             }">
+            <button type="button"
+                    @click="toggle()"
+                    class="ui-nav-link ui-nav-folder-toggle flex w-[calc(100%-1.5rem)] items-center px-4 py-3 text-sm font-semibold {{ $manageFolderActive ? 'is-active' : '' }}"
+                    :aria-expanded="open.toString()">
+                <i class="fas fa-gears mr-3 w-5 text-center"></i>
+                <span>Manage</span>
+                <i class="ui-nav-folder-chevron fas fa-chevron-down ml-auto text-xs opacity-70 transition-transform duration-200"></i>
+            </button>
+
+            <div class="ui-nav-folder-children space-y-1 pb-1">
+                @canAccess('users.view')
+                <a href="{{ route('admin.users.index') }}" @click="sidebarOpen = false"
+                   class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.users.*') ? 'is-active' : '' }}">
+                    <i class="fas fa-users mr-3 w-5 text-center"></i>
+                    <span>Users</span>
+                </a>
+                @endcanAccess
+
+                @canAccess('roles.view')
+                <a href="{{ route('admin.roles.index') }}" @click="sidebarOpen = false"
+                   class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.roles.*') ? 'is-active' : '' }}">
+                    <i class="fas fa-user-shield mr-3 w-5 text-center"></i>
+                    <span>Roles</span>
+                </a>
+                @endcanAccess
+
+                @canAccess('testing-flows.manage')
+                <a href="{{ route('admin.testing-flows.index') }}" @click="sidebarOpen = false"
+                   class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.testing-flows.*') ? 'is-active' : '' }}">
+                    <i class="fas fa-clipboard-check mr-3 w-5 text-center"></i>
+                    <span>Testing Flows</span>
+                </a>
+                @endcanAccess
+
+                @canAccess('user-actions.view')
+                <a href="{{ route('admin.user-actions.index') }}" @click="sidebarOpen = false"
+                   class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.user-actions.*') ? 'is-active' : '' }}">
+                    <i class="fas fa-list-ul mr-3 w-5 text-center"></i>
+                    <span>User Actions</span>
+                </a>
+                @endcanAccess
+            </div>
+        </div>
+        @endif
 
         <div class="mx-3 mt-8 border-t border-white/10"></div>
         <form method="POST" action="{{ route('logout') }}" class="pt-4">

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CustomSale;
 use App\Models\TruckAppliance;
+use App\Models\UserAction;
 use App\Support\DataTable;
 use App\Support\PageSize;
 use Illuminate\Database\Eloquent\Builder;
@@ -245,6 +246,10 @@ class SalesController extends Controller
             ]);
         });
 
+        UserAction::log('mark_sold', $appliance->id, [
+            'price' => $data['sold_price'],
+        ]);
+
         $cost = $appliance->salesCost();
 
         return back()->with('success', __('Item marked as sold. Profit: $:profit', [
@@ -266,6 +271,11 @@ class SalesController extends Controller
             'sold_price' => $data['sold_price'],
             'sold_by' => $data['sold_by'],
             'updated_by' => $request->user()->id,
+        ]);
+
+        UserAction::log('update_sold_price', $appliance->id, [
+            'new_price' => $data['sold_price'],
+            'new_sold_by' => $data['sold_by'],
         ]);
 
         return back()->with('success', __('Sold price and sold by updated successfully.'));

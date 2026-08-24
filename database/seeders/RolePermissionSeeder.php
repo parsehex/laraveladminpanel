@@ -42,6 +42,7 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'models.delete', 'module_name' => 'models', 'description' => 'Delete models'],
             ['name' => 'inventory.view', 'module_name' => 'inventory', 'description' => 'List inventory'],
             ['name' => 'testing-flows.manage', 'module_name' => 'testing flows', 'description' => 'Manage testing flow checklists'],
+            ['name' => 'user-actions.view', 'module_name' => 'user actions', 'description' => 'View the user action log'],
             ['name' => 'sales.view', 'module_name' => 'sales', 'description' => 'List sales'],
             ['name' => 'sales.create', 'module_name' => 'sales', 'description' => 'Create sales'],
             ['name' => 'sales.edit', 'module_name' => 'sales', 'description' => 'Edit sales'],

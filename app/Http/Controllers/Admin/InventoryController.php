@@ -10,6 +10,7 @@ use App\Models\Truck;
 use App\Support\DataTable;
 use App\Support\PageSize;
 use App\Models\TruckAppliance;
+use App\Models\UserAction;
 use App\Testing\RepairResultRepository;
 use App\Testing\TestingFlowRepository;
 use Illuminate\Database\Eloquent\Builder;
@@ -276,6 +277,13 @@ class InventoryController extends Controller
         abort_unless($request->user()?->hasRole('admin') || $request->user()?->role === 'admin', 403);
 
         $truck = $appliance->truck;
+        $photoCount = count($appliance->photos ?? []);
+
+        UserAction::log('delete_appliance', $appliance->id, [
+            'truck_id' => $truck?->id,
+            'photos_deleted' => $photoCount,
+        ]);
+
         $appliance->delete();
 
         if ($truck) {
@@ -384,6 +392,7 @@ class InventoryController extends Controller
             'truck_id' => ['required', 'exists:trucks,id', Rule::notIn([$appliance->truck_id])],
         ]);
 
+        $oldTruckId = $appliance->truck_id;
         $oldTruckName = $appliance->truck?->name ?? 'Unassigned';
         $newTruck = Truck::findOrFail($data['truck_id']);
 
@@ -400,6 +409,12 @@ class InventoryController extends Controller
                 'user_id' => $request->user()->id,
             ]);
         });
+
+        UserAction::log('move_truck_item', $appliance->id, [
+            'from_truck_id' => $oldTruckId,
+            'to_truck_id' => $newTruck->id,
+            'to_truck_name' => $newTruck->name,
+        ]);
 
         return redirect()
             ->route('admin.inventory.show', $appliance)
@@ -436,6 +451,14 @@ class InventoryController extends Controller
             'parts_ordered' => (bool) ($data['parts_ordered'] ?? false),
             'user_id' => $request->user()->id,
         ]);
+
+        $actionType = UserAction::actionTypeForStatus($data['status']);
+        if ($actionType) {
+            $extra = $actionType === 'showroom_sold'
+                ? ['price' => $data['sold_price'] ?? null]
+                : null;
+            UserAction::log($actionType, $appliance->id, $extra);
+        }
 
         return back()->with('success', __('Status updated successfully.'));
     }
@@ -559,6 +582,10 @@ class InventoryController extends Controller
         $appliance->update([
             'photos' => $photos->reject(fn ($photo) => $photo === $data['photo'])->values()->all(),
             'updated_by' => $request->user()->id,
+        ]);
+
+        UserAction::log('delete_photo', $appliance->id, [
+            'path' => $data['photo'],
         ]);
 
         return back()->with('success', __('Photo deleted successfully.'));

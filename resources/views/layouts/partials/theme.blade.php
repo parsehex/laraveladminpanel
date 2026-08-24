@@ -89,6 +89,31 @@
         box-shadow: inset 3px 0 0 var(--ui-accent);
     }
 
+    .ui-nav-folder-children .ui-nav-link {
+        margin-left: 1.15rem;
+        padding-left: 1.1rem;
+        font-size: 0.8125rem;
+        color: rgba(255, 255, 255, 0.68);
+    }
+
+    .ui-nav-folder-toggle {
+        width: calc(100% - 1.5rem);
+        text-align: left;
+    }
+
+    /* Folder open state is driven by an html class set before paint (same idea as sidebar-collapsed). */
+    .ui-nav-folder[data-folder="manage"] .ui-nav-folder-children {
+        display: none;
+    }
+
+    html.sidebar-folder-manage-open .ui-nav-folder[data-folder="manage"] .ui-nav-folder-children {
+        display: block;
+    }
+
+    html.sidebar-folder-manage-open .ui-nav-folder[data-folder="manage"] .ui-nav-folder-chevron {
+        transform: rotate(180deg);
+    }
+
     .ui-topbar {
         background: rgba(255, 255, 255, 0.82);
         border-color: rgba(226, 232, 240, 0.82);
@@ -174,6 +199,22 @@
         html.sidebar-collapsed .ui-sidebar .ui-nav-link:focus-visible > span {
             opacity: 1;
             visibility: visible;
+        }
+
+        html.sidebar-collapsed .ui-sidebar .ui-nav-folder-toggle {
+            width: auto;
+            justify-content: center;
+        }
+
+        html.sidebar-collapsed .ui-sidebar .ui-nav-folder-chevron {
+            display: none;
+        }
+
+        html.sidebar-collapsed .ui-sidebar .ui-nav-folder-children .ui-nav-link {
+            margin-left: 0.75rem;
+            padding-left: 0;
+            padding-right: 0;
+            justify-content: center;
         }
     }
 

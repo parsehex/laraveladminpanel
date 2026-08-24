@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\TruckAppliance;
+use App\Models\UserAction;
 use App\Testing\TestingFlowCategoryMapper;
 use App\Testing\TestingFlowRepository;
 use App\Testing\TestingResultPresenter;
@@ -100,6 +101,11 @@ class ApplianceTestingController extends Controller
                 'user_id' => $request->user()->id,
             ]);
         });
+
+        $actionType = UserAction::actionTypeForStatus($data['resulting_status']);
+        if ($actionType) {
+            UserAction::log($actionType, $appliance->id);
+        }
 
         return redirect()
             ->route('admin.inventory.show', $appliance)

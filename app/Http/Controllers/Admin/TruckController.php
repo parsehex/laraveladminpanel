@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateTruckRequest;
 use App\Models\Category;
 use App\Models\Model as ApplianceModel;
 use App\Models\Truck;
+use App\Models\UserAction;
 use App\Support\DataTable;
 use App\Support\PageSize;
 use Illuminate\Database\Eloquent\Builder;
@@ -82,7 +83,12 @@ class TruckController extends Controller
         $data['created_by'] = $request->user()->id;
         $data['updated_by'] = $request->user()->id;
 
-        Truck::create($data);
+        $truck = Truck::create($data);
+
+        UserAction::log('add_truck', null, [
+            'truck_id' => $truck->id,
+            'name' => $truck->name,
+        ]);
 
         return redirect()->route('admin.trucks.index')->with('success', __('Truck created successfully.'));
     }
@@ -140,11 +146,21 @@ class TruckController extends Controller
 
         $truck->update($data);
 
+        UserAction::log('edit_truck', null, [
+            'truck_id' => $truck->id,
+            'name' => $truck->name,
+        ]);
+
         return redirect()->route('admin.trucks.index')->with('success', __('Truck updated successfully.'));
     }
 
     public function destroy(Truck $truck)
     {
+        UserAction::log('delete_truck', null, [
+            'truck_id' => $truck->id,
+            'name' => $truck->name,
+        ]);
+
         $truck->delete();
 
         return redirect()->route('admin.trucks.index')->with('success', __('Truck deleted successfully.'));

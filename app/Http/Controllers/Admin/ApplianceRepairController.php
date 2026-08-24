@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\TruckAppliance;
+use App\Models\UserAction;
 use App\Testing\RepairDiagnosisRepository;
 use App\Testing\RepairReevaluationPresenter;
 use App\Testing\RepairResultRepository;
@@ -149,6 +150,11 @@ class ApplianceRepairController extends Controller
                 'user_id' => $request->user()->id,
             ]);
         });
+
+        $actionType = UserAction::actionTypeForStatus($resultingStatus);
+        if ($actionType) {
+            UserAction::log($actionType, $appliance->id);
+        }
 
         return redirect()
             ->route('admin.inventory.show', $appliance)

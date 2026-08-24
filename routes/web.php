@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\ApplianceDemanufactureController;
 use App\Http\Controllers\Admin\ApplianceTestingController;
 use App\Http\Controllers\Admin\TruckApplianceController;
 use App\Http\Controllers\Admin\TruckController;
+use App\Http\Controllers\Admin\UserActionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -187,6 +188,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('testing-flows/{flow}', [TestingFlowController::class, 'update'])
         ->middleware('permission:testing-flows.manage')
         ->name('testing-flows.update');
+
+    Route::get('user-actions', [UserActionController::class, 'index'])
+        ->middleware('permission:user-actions.view')
+        ->name('user-actions.index');
 
     Route::get('inventory', [InventoryController::class, 'index'])
         ->middleware('permission:inventory.view')

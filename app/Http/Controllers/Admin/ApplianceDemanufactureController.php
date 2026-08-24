@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\DemanPart;
 use App\Models\TruckAppliance;
+use App\Models\UserAction;
 use App\Testing\DemanPromptRepository;
 use App\Testing\RepairReevaluationPresenter;
 use App\Testing\RepairResultRepository;
@@ -128,6 +129,16 @@ class ApplianceDemanufactureController extends Controller
                 'user_id' => $request->user()->id,
             ]);
         });
+
+        UserAction::log('deman_unit', $appliance->id);
+
+        foreach ($partsToStore as $part) {
+            UserAction::log('pull_part', $appliance->id, [
+                'part_number' => $part['part_number'],
+                'price' => $part['price'],
+                'condition' => $part['condition'],
+            ]);
+        }
 
         return redirect()
             ->route('admin.inventory.deman.show', $appliance)

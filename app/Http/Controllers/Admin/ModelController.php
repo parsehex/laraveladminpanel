@@ -9,6 +9,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Model;
 use App\Models\Part;
+use App\Models\UserAction;
 use App\Support\PageSize;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -76,7 +77,13 @@ class ModelController extends Controller
 
         $this->syncBrand($data['brand'] ?? null, $request->user()->id);
 
-        Model::create($data);
+        $model = Model::create($data);
+
+        UserAction::log('add_model', null, [
+            'model_id' => $model->id,
+            'model_number' => $model->model_number,
+            'category' => $model->category_id,
+        ]);
 
         return redirect()->route('admin.models.index')->with('success', __('Model created successfully.'));
     }
@@ -145,6 +152,14 @@ class ModelController extends Controller
                 'updated_by' => $request->user()->id,
             ]
         );
+
+        if ($model->wasRecentlyCreated) {
+            UserAction::log('add_model', null, [
+                'model_id' => $model->id,
+                'model_number' => $model->model_number,
+                'from_import' => true,
+            ]);
+        }
 
         foreach ($data['csv_files'] as $file) {
             $filename = $file->getClientOriginalName();
@@ -281,6 +296,12 @@ class ModelController extends Controller
     public function destroy(Request $request, Model $model)
     {
         $this->authorize('delete', $model);
+
+        UserAction::log('delete_model', null, [
+            'model_id' => $model->id,
+            'model_number' => $model->model_number,
+            'category' => $model->category_id,
+        ]);
 
         $model->update(['deleted_by' => $request->user()->id]);
         $model->delete();

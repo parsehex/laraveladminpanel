@@ -13,6 +13,9 @@
         if (localStorage.getItem('sidebarCollapsed') === '1') {
             document.documentElement.classList.add('sidebar-collapsed');
         }
+        if (localStorage.getItem('sidebarFolder.manage') === '1') {
+            document.documentElement.classList.add('sidebar-folder-manage-open');
+        }
     </script>
 
     <!-- Tailwind CSS -->
