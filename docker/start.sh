@@ -23,6 +23,8 @@ php artisan migrate --force
 
 php artisan db:seed --class=FlowSeeder --force
 
+php artisan permission:cache-reset
+
 php artisan package:discover --ansi
 
 exec /usr/bin/supervisord

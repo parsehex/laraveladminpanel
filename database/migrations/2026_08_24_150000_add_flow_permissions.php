@@ -47,6 +47,10 @@ return new class extends Migration
                 'role_id' => $adminRoleId,
             ]);
         }
+
+        // Raw DB writes bypass Spatie model events; clear the permission cache
+        // so sidebar/middleware see the new grants without a Roles UI save.
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
     }
 
     public function down(): void
@@ -57,5 +61,7 @@ return new class extends Migration
 
         DB::table('role_has_permissions')->whereIn('permission_id', $permissionIds)->delete();
         DB::table('permissions')->whereIn('id', $permissionIds)->delete();
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
     }
 };
