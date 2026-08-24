@@ -2,6 +2,7 @@
 
 namespace App\Testing;
 
+use Illuminate\Support\Facades\File;
 use InvalidArgumentException;
 
 class TestingFlowImporter
@@ -21,7 +22,7 @@ class TestingFlowImporter
     /**
      * @var array<string, string>
      */
-    private const NAMES = [
+    public const NAMES = [
         'refrigerators' => 'Refrigerators',
         'washers' => 'Washers',
         'dryers' => 'Dryers',
@@ -36,6 +37,55 @@ class TestingFlowImporter
     public function __construct(
         private readonly TestingFlowRepository $repository,
     ) {}
+
+    /**
+     * Seed/upsert testing flows from resources/testing-flows/*.json into the DB.
+     * Runtime never reads these files — seed/import only.
+     *
+     * @return list<string> imported slugs (with skipped notes)
+     */
+    public function importFromJsonTemplates(bool $overwrite = false): array
+    {
+        $dir = resource_path('testing-flows');
+        if (! File::isDirectory($dir)) {
+            throw new InvalidArgumentException("Templates directory not found: {$dir}");
+        }
+
+        $imported = [];
+
+        foreach (File::files($dir) as $file) {
+            if ($file->getExtension() !== 'json') {
+                continue;
+            }
+
+            $slug = strtolower($file->getFilenameWithoutExtension());
+            $existing = $this->repository->get($slug);
+
+            if ($existing !== null && ! $overwrite) {
+                $imported[] = $slug.' (skipped)';
+                continue;
+            }
+
+            $decoded = json_decode(File::get($file->getPathname()), true);
+            if (! is_array($decoded)) {
+                throw new InvalidArgumentException("Invalid JSON in {$file->getFilename()}");
+            }
+
+            $normalized = $this->repository->normalizeFlow($decoded, $slug);
+            $normalized['version'] = (int) ($normalized['version'] ?? 1);
+
+            $errors = $this->repository->validate($normalized);
+            if ($errors !== []) {
+                throw new InvalidArgumentException("Invalid flow {$slug}: ".implode(' ', $errors));
+            }
+
+            // Seed/replace head without bumping version history.
+            $this->repository->save($normalized, bumpVersion: false);
+            $imported[] = $slug;
+        }
+
+        return $imported;
+    }
 
     /**
      * @return list<string> imported slugs
@@ -54,11 +104,6 @@ class TestingFlowImporter
         }
 
         $imported = [];
-        $dir = $this->repository->templatesPath();
-
-        if (! is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
 
         foreach ($raw as $slug => $flow) {
             if (! is_array($flow)) {
@@ -66,23 +111,24 @@ class TestingFlowImporter
             }
 
             $slug = strtolower((string) $slug);
-            $templatePath = $dir.'/'.$slug.'.json';
+            $existing = $this->repository->get($slug);
 
-            if (! $overwrite && is_file($templatePath)) {
+            if ($existing !== null && ! $overwrite) {
                 $imported[] = $slug.' (skipped)';
                 continue;
             }
 
             $normalized = $this->convertLegacyFlow($slug, $flow);
+            if ($existing !== null && $overwrite) {
+                $normalized['version'] = (int) ($existing['version'] ?? 1);
+            }
+
             $errors = $this->repository->validate($normalized);
             if ($errors !== []) {
                 throw new InvalidArgumentException("Invalid flow {$slug}: ".implode(' ', $errors));
             }
 
-            file_put_contents(
-                $templatePath,
-                json_encode($normalized, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n"
-            );
+            $this->repository->save($normalized, bumpVersion: false);
             $imported[] = $slug;
         }
 

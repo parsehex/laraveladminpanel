@@ -21,7 +21,7 @@
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <p class="text-sm text-gray-500">Slug <code class="text-gray-800">{{ $flow['slug'] }}</code> · Version <strong>v{{ $flow['version'] }}</strong></p>
-                    <p class="text-xs text-gray-400 mt-1">Saving bumps the version and archives the previous JSON under storage.</p>
+                    <p class="text-xs text-gray-400 mt-1">Saving bumps the version and archives the previous definition in the database.</p>
                 </div>
                 <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Save flow</button>
             </div>

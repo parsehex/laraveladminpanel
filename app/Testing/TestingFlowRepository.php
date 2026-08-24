@@ -2,63 +2,36 @@
 
 namespace App\Testing;
 
+use App\Models\TestingFlow;
+use App\Models\TestingFlowVersion;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class TestingFlowRepository
 {
-    public function templatesPath(): string
-    {
-        return resource_path('testing-flows');
-    }
-
-    public function storagePath(): string
-    {
-        return storage_path('app/testing-flows');
-    }
-
-    public function versionsPath(string $slug): string
-    {
-        return $this->storagePath().'/versions/'.$slug;
-    }
-
     public function resultsPath(): string
     {
         return storage_path('app/testing-results');
     }
 
     /**
-     * @return list<array{slug: string, name: string, version: int, updated_at: ?string, step_count: int, source: string}>
+     * @return list<array{slug: string, name: string, version: int, updated_at: ?string, step_count: int}>
      */
     public function list(): array
     {
-        $slugs = collect()
-            ->merge($this->jsonBasenames($this->templatesPath()))
-            ->merge($this->jsonBasenames($this->storagePath()))
-            ->unique()
-            ->sort()
-            ->values();
-
-        return $slugs
-            ->map(function (string $slug) {
-                $flow = $this->get($slug);
-                if ($flow === null) {
-                    return null;
-                }
-
-                return [
-                    'slug' => $flow['slug'],
-                    'name' => $flow['name'],
-                    'version' => (int) ($flow['version'] ?? 1),
-                    'updated_at' => $flow['updated_at'] ?? null,
-                    'step_count' => count($flow['steps'] ?? []),
-                    'source' => $this->overlayExists($slug) ? 'storage' : 'template',
-                ];
-            })
-            ->filter()
-            ->values()
+        return TestingFlow::query()
+            ->orderBy('slug')
+            ->get()
+            ->map(fn (TestingFlow $flow) => [
+                'slug' => $flow->slug,
+                'name' => $flow->name,
+                'version' => (int) $flow->version,
+                'updated_at' => optional($flow->updated_at)?->utc()->toIso8601String(),
+                'step_count' => count($flow->steps ?? []),
+            ])
             ->all();
     }
 
@@ -68,15 +41,9 @@ class TestingFlowRepository
     public function get(string $slug): ?array
     {
         $slug = $this->normalizeSlug($slug);
-        $path = $this->resolveReadablePath($slug);
+        $flow = TestingFlow::query()->where('slug', $slug)->first();
 
-        if ($path === null) {
-            return null;
-        }
-
-        $data = json_decode(File::get($path), true);
-
-        return is_array($data) ? $this->normalizeFlow($data, $slug) : null;
+        return $flow ? $this->modelToArray($flow) : null;
     }
 
     /**
@@ -90,46 +57,53 @@ class TestingFlowRepository
             throw new InvalidArgumentException('Flow slug is required.');
         }
 
-        $existing = $this->get($slug);
-        $flow = $this->normalizeFlow($flow, $slug);
-        $errors = $this->validate($flow);
-
+        $normalized = $this->normalizeFlow($flow, $slug);
+        $errors = $this->validate($normalized);
         if ($errors !== []) {
             throw new InvalidArgumentException(implode(' ', $errors));
         }
 
-        File::ensureDirectoryExists($this->storagePath());
+        return DB::transaction(function () use ($slug, $normalized, $bumpVersion) {
+            /** @var TestingFlow|null $existing */
+            $existing = TestingFlow::query()->where('slug', $slug)->lockForUpdate()->first();
 
-        if ($existing !== null && $bumpVersion) {
-            $previousVersion = (int) ($existing['version'] ?? 1);
-            $this->archiveVersion($slug, $existing, $previousVersion);
-            $flow['version'] = $previousVersion + 1;
-        } elseif ($existing === null) {
-            $flow['version'] = (int) ($flow['version'] ?? 1);
-        } else {
-            $flow['version'] = (int) ($existing['version'] ?? 1);
-        }
+            if ($existing !== null && $bumpVersion) {
+                TestingFlowVersion::query()->create([
+                    'testing_flow_id' => $existing->id,
+                    'version' => (int) $existing->version,
+                    'name' => $existing->name,
+                    'start' => $existing->start,
+                    'steps' => $existing->steps,
+                    'created_at' => now(),
+                ]);
+                $normalized['version'] = (int) $existing->version + 1;
+            } else {
+                $normalized['version'] = (int) ($normalized['version'] ?? ($existing->version ?? 1));
+            }
 
-        $flow['updated_at'] = now()->utc()->toIso8601String();
+            $model = TestingFlow::query()->updateOrCreate(
+                ['slug' => $slug],
+                [
+                    'name' => $normalized['name'],
+                    'version' => $normalized['version'],
+                    'start' => $normalized['start'],
+                    'steps' => $normalized['steps'],
+                ]
+            );
 
-        $target = $this->storageFile($slug);
-        $temp = $target.'.'.Str::random(8).'.tmp';
-        File::put($temp, json_encode($flow, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n");
-        File::move($temp, $target);
-
-        return $flow;
+            return $this->modelToArray($model->fresh());
+        });
     }
 
     public function delete(string $slug): bool
     {
         $slug = $this->normalizeSlug($slug);
-        $path = $this->storageFile($slug);
-
-        if (! File::exists($path)) {
+        $flow = TestingFlow::query()->where('slug', $slug)->first();
+        if ($flow === null) {
             return false;
         }
 
-        return File::delete($path);
+        return (bool) $flow->delete();
     }
 
     /**
@@ -323,6 +297,7 @@ class TestingFlowRepository
 
         return is_array($data) ? $data : null;
     }
+
     /**
      * @param  array<string, mixed>  $flow
      * @return list<string>
@@ -463,57 +438,18 @@ class TestingFlowRepository
     }
 
     /**
-     * @param  array<string, mixed>  $flow
+     * @return array<string, mixed>
      */
-    private function archiveVersion(string $slug, array $flow, int $version): void
+    private function modelToArray(TestingFlow $flow): array
     {
-        $dir = $this->versionsPath($slug);
-        File::ensureDirectoryExists($dir);
-        $path = $dir.'/v'.$version.'.json';
-        File::put($path, json_encode($flow, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n");
-    }
-
-    private function resolveReadablePath(string $slug): ?string
-    {
-        $overlay = $this->storageFile($slug);
-        if (File::exists($overlay)) {
-            return $overlay;
-        }
-
-        $template = $this->templateFile($slug);
-
-        return File::exists($template) ? $template : null;
-    }
-
-    private function overlayExists(string $slug): bool
-    {
-        return File::exists($this->storageFile($slug));
-    }
-
-    private function storageFile(string $slug): string
-    {
-        return $this->storagePath().'/'.$slug.'.json';
-    }
-
-    private function templateFile(string $slug): string
-    {
-        return $this->templatesPath().'/'.$slug.'.json';
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function jsonBasenames(string $directory): array
-    {
-        if (! File::isDirectory($directory)) {
-            return [];
-        }
-
-        return collect(File::files($directory))
-            ->filter(fn ($file) => $file->getExtension() === 'json')
-            ->map(fn ($file) => $file->getFilenameWithoutExtension())
-            ->values()
-            ->all();
+        return $this->normalizeFlow([
+            'slug' => $flow->slug,
+            'name' => $flow->name,
+            'version' => $flow->version,
+            'updated_at' => optional($flow->updated_at)?->utc()->toIso8601String(),
+            'start' => $flow->start,
+            'steps' => $flow->steps ?? [],
+        ], $flow->slug);
     }
 
     private function normalizeSlug(string $slug): string

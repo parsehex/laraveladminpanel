@@ -111,10 +111,12 @@
             $showManageFolder = canAccess('users.view')
                 || canAccess('roles.view')
                 || canAccess('testing-flows.manage')
+                || canAccess('deman-flows.manage')
                 || canAccess('user-actions.view');
             $manageFolderActive = request()->routeIs('admin.users.*')
                 || request()->routeIs('admin.roles.*')
                 || request()->routeIs('admin.testing-flows.*')
+                || request()->routeIs('admin.deman-flows.*')
                 || request()->routeIs('admin.user-actions.*');
         @endphp
 
@@ -160,6 +162,14 @@
                    class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.testing-flows.*') ? 'is-active' : '' }}">
                     <i class="fas fa-clipboard-check mr-3 w-5 text-center"></i>
                     <span>Testing Flows</span>
+                </a>
+                @endcanAccess
+
+                @canAccess('deman-flows.manage')
+                <a href="{{ route('admin.deman-flows.index') }}" @click="sidebarOpen = false"
+                   class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.deman-flows.*') ? 'is-active' : '' }}">
+                    <i class="fas fa-recycle mr-3 w-5 text-center"></i>
+                    <span>Deman Flows</span>
                 </a>
                 @endcanAccess
 

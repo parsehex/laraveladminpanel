@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SalesController;
 use App\Http\Controllers\Admin\SuggestionController;
 use App\Http\Controllers\Admin\TestingFlowController;
+use App\Http\Controllers\Admin\DemanFlowController;
 use App\Http\Controllers\Admin\ApplianceRepairController;
 use App\Http\Controllers\Admin\ApplianceDemanufactureController;
 use App\Http\Controllers\Admin\ApplianceTestingController;
@@ -188,6 +189,16 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('testing-flows/{flow}', [TestingFlowController::class, 'update'])
         ->middleware('permission:testing-flows.manage')
         ->name('testing-flows.update');
+
+    Route::get('deman-flows', [DemanFlowController::class, 'index'])
+        ->middleware('permission:deman-flows.manage')
+        ->name('deman-flows.index');
+    Route::get('deman-flows/{flow}/edit', [DemanFlowController::class, 'edit'])
+        ->middleware('permission:deman-flows.manage')
+        ->name('deman-flows.edit');
+    Route::put('deman-flows/{flow}', [DemanFlowController::class, 'update'])
+        ->middleware('permission:deman-flows.manage')
+        ->name('deman-flows.update');
 
     Route::get('user-actions', [UserActionController::class, 'index'])
         ->middleware('permission:user-actions.view')

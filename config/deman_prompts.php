@@ -1,5 +1,8 @@
 <?php
 
+// Seed source only (php artisan deman-flows:import / FlowSeeder).
+// Runtime loads deman prompts from the deman_flows / deman_flow_prompts tables.
+
 return [
     'refrigerators' => [
         'compressor' => 'Compressor system (e.g., compressor, condenser coils)',

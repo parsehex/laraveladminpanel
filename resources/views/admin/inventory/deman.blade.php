@@ -148,6 +148,9 @@
 
             @if($prompts === [])
             <p class="text-sm text-gray-600">No category-specific prompts configured. Add custom parts below.</p>
+            @canAccess('deman-flows.manage')
+            <a href="{{ route('admin.deman-flows.index') }}" class="inline-flex text-sm font-semibold text-red-800 underline">Manage deman flows</a>
+            @endcanAccess
             @else
             <div class="space-y-4">
                 @foreach($prompts as $key => $description)
