@@ -11,6 +11,7 @@ use App\Models\Subcategory;
 use App\Models\Model as ApplianceModel;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
+use App\Models\UserAction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -33,7 +34,7 @@ class TruckApplianceController extends Controller
 
         $this->syncBrand($data['brand'] ?? null, $request->user()->id);
 
-        $truck->appliances()->create([
+        $appliance = $truck->appliances()->create([
             ...$data,
             'unit_label' => $this->nextUnitLabel($truck),
             'quantity' => 1,
@@ -44,6 +45,8 @@ class TruckApplianceController extends Controller
         ]);
 
         $this->recalculatePrices($truck);
+
+        UserAction::log('create_appliance', $appliance->id, $data);
 
         return redirect()->route('admin.trucks.show', $truck)->with('success', __('Appliance added successfully.'));
     }
@@ -61,6 +64,8 @@ class TruckApplianceController extends Controller
         $appliance->update($data);
         $this->recalculatePrices($truck);
 
+        UserAction::log('update_appliance', $appliance->id, $data);
+
         return redirect()->route('admin.trucks.show', $truck)->with('success', __('Appliance updated successfully.'));
     }
 
@@ -68,6 +73,11 @@ class TruckApplianceController extends Controller
     {
         abort_unless($request->user()?->can('appliance.delete'), 403);
         abort_unless($appliance->truck_id === $truck->id, 404);
+
+        UserAction::log('delete_appliance', $appliance->id, [
+            'truck_id' => $truck->id,
+            'photos_deleted' => count($appliance->photos ?? []),
+        ]);
 
         $appliance->delete();
         $this->recalculatePrices($truck);
@@ -382,7 +392,7 @@ class TruckApplianceController extends Controller
             return $model;
         }
 
-        return ApplianceModel::query()->create([
+        $model = ApplianceModel::query()->create([
             'model_number' => $modelNumber,
             'product_name' => $productName ?: null,
             'brand' => $brand ?: null,
@@ -392,6 +402,15 @@ class TruckApplianceController extends Controller
             'created_by' => $userId,
             'updated_by' => $userId,
         ]);
+
+        UserAction::log('add_model', null, [
+            'model_id' => $model->id,
+            'model_number' => $modelNumber,
+            'category_id' => $categoryId,
+            'from_truck' => true,
+        ]);
+
+        return $model;
     }
 
     private function normalizeIdentifier(string $value): string

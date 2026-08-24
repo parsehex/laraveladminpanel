@@ -151,38 +151,41 @@
                             </td>
                         </tr>
                         <tr id="model-view-{{ $model->id }}" class="hidden bg-gray-50">
-                            <td colspan="7" class="px-4 py-4">
-                                <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                                    <div>
-                                        <dt class="font-medium text-gray-500">Model #</dt>
-                                        <dd class="text-gray-900">{{ $model->model_number }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="font-medium text-gray-500">Product Name</dt>
-                                        <dd class="text-gray-900">{{ $model->product_name ?: '-' }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="font-medium text-gray-500">Brand</dt>
-                                        <dd class="text-gray-900">{{ $model->brand ?: '-' }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="font-medium text-gray-500">Category</dt>
-                                        <dd class="text-gray-900">{{ $model->category?->name ?? '-' }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="font-medium text-gray-500">MSRP</dt>
-                                        <dd class="text-gray-900">${{ number_format((float) $model->msrp, 2) }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="font-medium text-gray-500">Variations</dt>
-                                        <dd class="text-gray-900">{{ collect($model->variations ?: [$model->model_number.'-default'])->implode(', ') }}</dd>
-                                    </div>
-                                </dl>
+                            <td colspan="7" class="p-0 align-top">
+                                <div data-table-inline-panel class="bg-gray-50 px-4 py-4">
+                                    <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                                        <div>
+                                            <dt class="font-medium text-gray-500">Model #</dt>
+                                            <dd class="text-gray-900">{{ $model->model_number }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="font-medium text-gray-500">Product Name</dt>
+                                            <dd class="text-gray-900">{{ $model->product_name ?: '-' }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="font-medium text-gray-500">Brand</dt>
+                                            <dd class="text-gray-900">{{ $model->brand ?: '-' }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="font-medium text-gray-500">Category</dt>
+                                            <dd class="text-gray-900">{{ $model->category?->name ?? '-' }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="font-medium text-gray-500">MSRP</dt>
+                                            <dd class="text-gray-900">${{ number_format((float) $model->msrp, 2) }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="font-medium text-gray-500">Variations</dt>
+                                            <dd class="text-gray-900">{{ collect($model->variations ?: [$model->model_number.'-default'])->implode(', ') }}</dd>
+                                        </div>
+                                    </dl>
+                                </div>
                             </td>
                         </tr>
                         @canAccess('parts.view')
                         <tr id="model-parts-{{ $model->id }}" class="hidden bg-blue-50/50">
-                            <td colspan="7" class="px-4 py-4">
+                            <td colspan="7" class="p-0 align-top">
+                                <div data-table-inline-panel class="bg-blue-50/50 px-4 py-4">
                                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                                     <div>
                                         <h3 class="text-base font-semibold text-gray-900">Related Parts for {{ $model->model_number }}</h3>
@@ -227,25 +230,28 @@
                                         </tbody>
                                     </table>
                                 </div>
+                                </div>
                             </td>
                         </tr>
                         @endcanAccess
                         @canAccess('models.edit')
                         <tr id="model-edit-{{ $model->id }}" class="{{ $errors->any() && old('_form') === 'edit-'.$model->id ? '' : 'hidden' }} bg-gray-50">
-                            <td colspan="7" class="px-4 py-4">
-                                <form method="POST" action="{{ route('admin.models.update', $model) }}" class="space-y-6">
-                                    @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="_form" value="edit-{{ $model->id }}">
-                                    @include('admin.models.partials.form', ['model' => $model, 'categories' => $categories, 'prefix' => 'edit-'.$model->id])
+                            <td colspan="7" class="p-0 align-top">
+                                <div data-table-inline-panel class="bg-gray-50 px-4 py-4">
+                                    <form method="POST" action="{{ route('admin.models.update', $model) }}" class="space-y-6">
+                                        @csrf
+                                        @method('PUT')
+                                        <input type="hidden" name="_form" value="edit-{{ $model->id }}">
+                                        @include('admin.models.partials.form', ['model' => $model, 'categories' => $categories, 'prefix' => 'edit-'.$model->id])
 
-                                    <div class="flex justify-end gap-2">
-                                        <button type="button" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600" data-toggle-row="model-edit-{{ $model->id }}">Cancel</button>
-                                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                                            Update
-                                        </button>
-                                    </div>
-                                </form>
+                                        <div class="flex justify-start gap-2">
+                                            <button type="button" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600" data-toggle-row="model-edit-{{ $model->id }}">Cancel</button>
+                                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                                Update
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @endcanAccess
@@ -324,6 +330,9 @@
     $('[data-toggle-row]').on('click', function () {
         const $row = $('#' + $(this).data('toggle-row')).toggleClass('hidden');
         if (! $row.hasClass('hidden')) {
+            if (typeof syncTableInlinePanels === 'function') {
+                syncTableInlinePanels($row.closest('[data-wide-table], .overflow-x-auto').get(0) || document);
+            }
             $row[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
             $row.find('input, select, textarea').filter(':visible:first').trigger('focus');
         }

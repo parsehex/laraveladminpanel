@@ -230,26 +230,28 @@
                     </tr>
                     @canAccess('appliance.edit')
                     <tr id="appliance-edit-{{ $appliance->id }}" class="{{ $errors->any() && old('_form') === 'edit-appliance-'.$appliance->id ? '' : 'hidden' }} bg-gray-50">
-                        <td colspan="16" class="px-4 py-4">
-                            <form method="POST" action="{{ route('admin.trucks.appliances.update', [$truck, $appliance]) }}" class="space-y-6">
-                                @csrf
-                                @method('PUT')
-                                <input type="hidden" name="_form" value="edit-appliance-{{ $appliance->id }}">
-                                @include('admin.trucks.partials.appliance-form', [
-                                    'truck' => $truck,
-                                    'appliance' => $appliance,
-                                    'categories' => $categories->merge($appliance->category ? collect([$appliance->category]) : collect())->unique('id'),
-                                    'models' => $models->merge($appliance->model ? collect([$appliance->model]) : collect())->unique('id'),
-                                    'prefix' => 'edit-appliance-'.$appliance->id,
-                                ])
+                        <td colspan="16" class="p-0 align-top">
+                            <div data-table-inline-panel class="bg-gray-50 px-4 py-4">
+                                <form method="POST" action="{{ route('admin.trucks.appliances.update', [$truck, $appliance]) }}" class="space-y-6">
+                                    @csrf
+                                    @method('PUT')
+                                    <input type="hidden" name="_form" value="edit-appliance-{{ $appliance->id }}">
+                                    @include('admin.trucks.partials.appliance-form', [
+                                        'truck' => $truck,
+                                        'appliance' => $appliance,
+                                        'categories' => $categories->merge($appliance->category ? collect([$appliance->category]) : collect())->unique('id'),
+                                        'models' => $models->merge($appliance->model ? collect([$appliance->model]) : collect())->unique('id'),
+                                        'prefix' => 'edit-appliance-'.$appliance->id,
+                                    ])
 
-                                <div class="flex justify-end gap-2">
-                                    <button type="button" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600" data-toggle-row="appliance-edit-{{ $appliance->id }}">Cancel</button>
-                                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                                        <i class="fas fa-save mr-2"></i>Update
-                                    </button>
-                                </div>
-                            </form>
+                                    <div class="flex justify-start gap-2">
+                                        <button type="button" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600" data-toggle-row="appliance-edit-{{ $appliance->id }}">Cancel</button>
+                                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                            <i class="fas fa-save mr-2"></i>Update
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     @endcanAccess
@@ -397,6 +399,9 @@
         const $row = $('#' + $(this).data('toggle-row')).toggleClass('hidden');
 
         if (! $row.hasClass('hidden')) {
+            if (typeof syncTableInlinePanels === 'function') {
+                syncTableInlinePanels($row.closest('[data-wide-table], .overflow-x-auto').get(0) || document);
+            }
             $row[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
             $row.find('input, select, textarea').filter(':visible:first').trigger('focus');
         }

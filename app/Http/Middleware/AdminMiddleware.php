@@ -16,7 +16,7 @@ class AdminMiddleware
 
         $user = auth()->user();
 
-        if ($request->routeIs('admin.profile.*')) {
+        if ($request->routeIs('admin.profile.*', 'admin.suggestions.store')) {
             return $next($request);
         }
 

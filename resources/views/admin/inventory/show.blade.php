@@ -180,6 +180,42 @@
         </div>
     </section>
 
+    @if($status === 'Testing')
+    <section class="legacy-panel">
+        <div class="legacy-panel-heading bg-sky-600">Testing checklist</div>
+        <div class="legacy-panel-body">
+            <a href="{{ route('admin.inventory.testing.show', $appliance) }}" class="legacy-btn bg-sky-600 inline-flex items-center">
+                <i class="fas fa-clipboard-check mr-2"></i>Start Testing
+            </a>
+            <p class="mt-2 text-[10px] text-gray-500">Walk the category checklist, then the unit status updates from the result.</p>
+        </div>
+    </section>
+    @endif
+
+    @if($status === 'Repair')
+    <section class="legacy-panel">
+        <div class="legacy-panel-heading bg-orange-600">Repair / triage</div>
+        <div class="legacy-panel-body">
+            <a href="{{ route('admin.inventory.repair.show', $appliance) }}" class="legacy-btn bg-orange-600 inline-flex items-center">
+                <i class="fas fa-wrench mr-2"></i>Open Repair
+            </a>
+            <p class="mt-2 text-[10px] text-gray-500">Log diagnosis notes and re-test failed checklist steps.</p>
+        </div>
+    </section>
+    @endif
+
+    @if($status === 'Demanufacture')
+    <section class="legacy-panel">
+        <div class="legacy-panel-heading bg-red-700">Demanufacture</div>
+        <div class="legacy-panel-body">
+            <a href="{{ route('admin.inventory.deman.show', $appliance) }}" class="legacy-btn bg-red-700 inline-flex items-center">
+                <i class="fas fa-recycle mr-2"></i>Open Demanufacture
+            </a>
+            <p class="mt-2 text-[10px] text-gray-500">Log salvaged parts pulled from this unit.</p>
+        </div>
+    </section>
+    @endif
+
     <section class="legacy-panel">
         <div class="legacy-panel-heading bg-blue-600">Actions</div>
         <div class="legacy-panel-body flex flex-wrap gap-1">
@@ -217,7 +253,21 @@
     @endcanAccess
 
     <section class="legacy-panel">
-        <div class="legacy-panel-heading bg-blue-600">Status History</div>
+        <div class="legacy-panel-heading bg-blue-600 flex items-center justify-between gap-2">
+            <span>Status History</span>
+            <div class="flex items-center gap-3 text-xs font-semibold text-white/90">
+                @if(($testingResultCount ?? 0) > 0)
+                <a href="{{ route('admin.inventory.testing-results.index', $appliance) }}" class="underline hover:text-white">
+                    Testing results ({{ $testingResultCount }})
+                </a>
+                @endif
+                @if(($repairResultCount ?? 0) > 0)
+                <a href="{{ route('admin.inventory.repair-results.index', $appliance) }}" class="underline hover:text-white">
+                    Repair results ({{ $repairResultCount }})
+                </a>
+                @endif
+            </div>
+        </div>
         <div class="legacy-panel-body">
             <div class="overflow-x-auto">
                 <table class="legacy-table">
@@ -233,10 +283,20 @@
                     <tbody>
                         @forelse($appliance->statusHistories->sortByDesc('created_at') as $history)
                         @php($rowClass = $statusStyles[$history->status]['class'] ?? 'status-white')
+                        @php($resultId = $testingResultLinks[$history->id] ?? null)
+                        @php($repairResultId = $repairResultLinks[$history->id] ?? null)
                         <tr class="status-row {{ $rowClass }}">
                             <td><span class="status-chip {{ $rowClass }}">{{ $history->status }}</span></td>
-                            <td>{{ $history->created_at?->format('Y-m-d H:i:s') }}</td>
-                            <td>{{ $history->notes ?: 'N/A' }}</td>
+                            <td>
+                                @if($resultId)
+                                <a href="{{ route('admin.inventory.testing-results.show', [$appliance, $resultId]) }}" class="text-blue-700 underline font-medium" title="View testing result">{{ $history->created_at?->format('Y-m-d H:i:s') }}</a>
+                                @elseif($repairResultId)
+                                <a href="{{ route('admin.inventory.repair-results.show', [$appliance, $repairResultId]) }}" class="text-blue-700 underline font-medium" title="View repair re-evaluation">{{ $history->created_at?->format('Y-m-d H:i:s') }}</a>
+                                @else
+                                {{ $history->created_at?->format('Y-m-d H:i:s') }}
+                                @endif
+                            </td>
+                            <td>{{ $history->displayNotes() }}</td>
                             <td>{{ $history->user?->name ?? '-' }}</td>
                             <td>{{ $history->parts_ordered ? 'Yes' : 'No' }}</td>
                         </tr>
@@ -255,79 +315,7 @@
         </div>
     </section>
 
-    <section class="legacy-panel">
-        <div class="legacy-panel-heading bg-blue-600">Parts Used</div>
-        <div class="legacy-panel-body">
-            <div class="overflow-x-auto">
-                <table class="legacy-table">
-                    <thead>
-                        <tr>
-                            <th>Description</th>
-                            <th>Cost</th>
-                            <th>Source / Part #</th>
-                            <th>Added</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($appliance->parts->sortByDesc('created_at') as $part)
-                        <tr>
-                            <td>{{ $part->description }}</td>
-                            <td>${{ number_format($part->cost, 2) }}</td>
-                            <td>{{ $part->part?->part_number ?: ($part->part_number ?: ($part->source ?: 'N/A')) }}</td>
-                            <td>{{ $part->created_at?->format('Y-m-d H:i:s') }}</td>
-                            <td>
-                                @canAccess('appliance.edit')
-                                <form method="POST" action="{{ route('admin.inventory.parts.destroy', [$appliance, $part]) }}" onsubmit="return confirm('Remove this part?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 underline">Delete</button>
-                                </form>
-                                @else
-                                -
-                                @endcanAccess
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="5" class="text-center">No parts added yet.</td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </section>
-
-    @canAccess('appliance.edit')
-    <section class="legacy-panel">
-        <div class="legacy-panel-heading bg-yellow-400 text-black">Add Part</div>
-        <div class="legacy-panel-body">
-            <form method="POST" action="{{ route('admin.inventory.parts.store', $appliance) }}" class="grid grid-cols-1 md:grid-cols-3 gap-2" id="add-part-form">
-                @csrf
-                <input type="hidden" name="part_id" id="selected-part-id" value="{{ old('part_id') }}">
-                <div>
-                    <label>Part Description (Start typing to search inventory)</label>
-                    <div class="relative">
-                        <input name="description" id="part-description-input" value="{{ old('description') }}" placeholder="Search or enter manually..." class="legacy-input" autocomplete="off" required>
-                        <div id="part-search-results" class="hidden absolute z-30 mt-1 w-full border border-gray-300 bg-white shadow max-h-56 overflow-y-auto"></div>
-                    </div>
-                </div>
-                <div>
-                    <label>Cost ($)</label>
-                    <input type="number" step="0.01" min="0" name="cost" id="part-cost-input" value="{{ old('cost', 0) }}" class="legacy-input" required>
-                </div>
-                <div>
-                    <label>Source / Part #</label>
-                    <input id="part-number-preview" value="Auto-generated after save" class="legacy-input bg-gray-100 text-gray-600" readonly>
-                </div>
-                <div class="md:col-span-3">
-                    <button type="submit" class="legacy-btn bg-yellow-500 text-black">Add Part</button>
-                </div>
-            </form>
-        </div>
-    </section>
-    @endcanAccess
+    @include('admin.inventory.partials.parts-panel')
 
     <section class="legacy-panel">
         <div class="legacy-panel-heading bg-blue-600">Photos</div>
@@ -971,66 +959,6 @@
         }
     });
 
-    let partSearchTimer = null;
-    const $partDescription = $('#part-description-input');
-    const $partResults = $('#part-search-results');
-    const $partId = $('#selected-part-id');
-    const $partCost = $('#part-cost-input');
-    const $partNumberPreview = $('#part-number-preview');
-
-    function hidePartResults() {
-        $partResults.addClass('hidden').empty();
-    }
-
-    function clearSelectedPart() {
-        $partId.val('');
-        $partNumberPreview.val('Auto-generated after save');
-    }
-
-    $partDescription.on('input', function () {
-        const query = $(this).val().trim();
-        clearSelectedPart();
-        clearTimeout(partSearchTimer);
-
-        if (query.length < 2) {
-            hidePartResults();
-            return;
-        }
-
-        partSearchTimer = setTimeout(function () {
-            $.getJSON('{{ route('admin.inventory.parts.search') }}', { q: query })
-                .done(function (parts) {
-                    $partResults.empty();
-
-                    if (!parts.length) {
-                        // $partResults.append('<div class="px-3 py-2 text-gray-500">No matching parts found.</div>');
-                    }
-
-                    parts.forEach(function (part) {
-                        const $row = $('<button type="button" class="block w-full px-3 py-2 text-left hover:bg-blue-50 border-b border-gray-100"></button>');
-                        $row.append($('<div class="font-semibold text-gray-900"></div>').text(part.label));
-                        $row.append($('<div class="text-gray-500"></div>').text('Cost: $' + Number(part.cost).toFixed(2) + ' | Stock: ' + part.stock));
-                        $row.on('click', function () {
-                            $partId.val(part.id);
-                            $partDescription.val(part.description);
-                            $partCost.val(Number(part.cost).toFixed(2));
-                            $partNumberPreview.val(part.part_number);
-                            hidePartResults();
-                        });
-                        $partResults.append($row);
-                    });
-
-                    $partResults.removeClass('hidden');
-                });
-        }, 250);
-    });
-
-    $(document).on('click', function (event) {
-        if (!$(event.target).closest('#add-part-form').length) {
-            hidePartResults();
-        }
-    });
-
     $('[data-photo-url]').on('click', function () {
         Swal.fire({
             imageUrl: $(this).data('photo-url'),
@@ -1059,4 +987,5 @@
         $('#photo-upload-meta').text(count ? count + ' image' + (count === 1 ? '' : 's') + ' selected' : 'Up to 5 images at one time');
     });
 </script>
+@include('admin.inventory.partials.parts-search-script')
 @endpush

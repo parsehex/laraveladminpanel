@@ -91,6 +91,11 @@ class TruckAppliance extends EloquentModel
         return $this->hasMany(AppliancePart::class, 'truck_appliance_id');
     }
 
+    public function demanParts()
+    {
+        return $this->hasMany(DemanPart::class, 'truck_appliance_id');
+    }
+
     public function usesNegativePartsCost(): bool
     {
         return in_array($this->status, ['Demanufacture', 'Scrap'], true);

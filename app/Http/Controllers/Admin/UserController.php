@@ -7,6 +7,7 @@ use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserAction;
 use App\Support\PageSize;
 use Illuminate\Http\Request;
 
@@ -100,6 +101,11 @@ public function store(StoreUserRequest $request)
             return redirect()->route('admin.users.index')
                 ->with('error', 'You cannot delete your own account.');
         }
+
+        UserAction::log('delete_user', null, [
+            'deleted_user_id' => $user->id,
+            'username' => $user->name,
+        ]);
 
         $user->delete();
 

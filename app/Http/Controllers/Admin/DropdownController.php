@@ -8,6 +8,7 @@ use App\Models\Category;
 use App\Models\KitCatalogPart;
 use App\Models\Model;
 use App\Models\Subcategory;
+use App\Models\UserAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -210,6 +211,13 @@ class DropdownController extends Controller
             'status' => 1,
             'created_by' => $request->user()->id,
             'updated_by' => $request->user()->id,
+        ]);
+
+        UserAction::log('add_model', null, [
+            'model_id' => $model->id,
+            'model_number' => $model->model_number,
+            'category' => $data['category'] ?? null,
+            'from_dropdown' => true,
         ]);
 
         return response()->json([

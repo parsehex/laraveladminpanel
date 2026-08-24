@@ -11,8 +11,15 @@ use App\Http\Controllers\Admin\PartController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SalesController;
+use App\Http\Controllers\Admin\SuggestionController;
+use App\Http\Controllers\Admin\TestingFlowController;
+use App\Http\Controllers\Admin\DemanFlowController;
+use App\Http\Controllers\Admin\ApplianceRepairController;
+use App\Http\Controllers\Admin\ApplianceDemanufactureController;
+use App\Http\Controllers\Admin\ApplianceTestingController;
 use App\Http\Controllers\Admin\TruckApplianceController;
 use App\Http\Controllers\Admin\TruckController;
+use App\Http\Controllers\Admin\UserActionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -54,7 +61,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->name('profile.password.edit');
     Route::put('/profile/change-password', [ProfileController::class, 'updatePassword'])
         ->name('profile.password.update');
-    Route::post('/dashboard/suggestions', [AdminDashboardController::class, 'storeSuggestion'])
+    Route::post('/suggestions', [SuggestionController::class, 'store'])
+        ->name('suggestions.store');
+    Route::post('/dashboard/suggestions', [SuggestionController::class, 'store'])
         ->middleware('permission:admin.dashboard')
         ->name('dashboard.suggestions.store');
     Route::post('/dashboard/suggestions/{suggestion}/responses', [AdminDashboardController::class, 'storeSuggestionResponse'])
@@ -171,6 +180,30 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->middleware('permission:kits.view')
         ->name('kits.sop');
 
+    Route::get('testing-flows', [TestingFlowController::class, 'index'])
+        ->middleware('permission:testing-flows.manage')
+        ->name('testing-flows.index');
+    Route::get('testing-flows/{flow}/edit', [TestingFlowController::class, 'edit'])
+        ->middleware('permission:testing-flows.manage')
+        ->name('testing-flows.edit');
+    Route::put('testing-flows/{flow}', [TestingFlowController::class, 'update'])
+        ->middleware('permission:testing-flows.manage')
+        ->name('testing-flows.update');
+
+    Route::get('deman-flows', [DemanFlowController::class, 'index'])
+        ->middleware('permission:deman-flows.manage')
+        ->name('deman-flows.index');
+    Route::get('deman-flows/{flow}/edit', [DemanFlowController::class, 'edit'])
+        ->middleware('permission:deman-flows.manage')
+        ->name('deman-flows.edit');
+    Route::put('deman-flows/{flow}', [DemanFlowController::class, 'update'])
+        ->middleware('permission:deman-flows.manage')
+        ->name('deman-flows.update');
+
+    Route::get('user-actions', [UserActionController::class, 'index'])
+        ->middleware('permission:user-actions.view')
+        ->name('user-actions.index');
+
     Route::get('inventory', [InventoryController::class, 'index'])
         ->middleware('permission:inventory.view')
         ->name('inventory.index');
@@ -186,6 +219,39 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('inventory/stickers', [InventoryController::class, 'stickers'])
         ->middleware('permission:inventory.view')
         ->name('inventory.stickers');
+    Route::get('inventory/{appliance}/repair', [ApplianceRepairController::class, 'show'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.repair.show');
+    Route::post('inventory/{appliance}/repair/diagnosis', [ApplianceRepairController::class, 'storeDiagnosis'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.repair.diagnosis.store');
+    Route::post('inventory/{appliance}/repair/reevaluation', [ApplianceRepairController::class, 'storeReevaluation'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.repair.reevaluation.store');
+    Route::get('inventory/{appliance}/repair-results', [ApplianceRepairController::class, 'indexResults'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.repair-results.index');
+    Route::get('inventory/{appliance}/repair-results/{result}', [ApplianceRepairController::class, 'showResult'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.repair-results.show');
+    Route::get('inventory/{appliance}/deman', [ApplianceDemanufactureController::class, 'show'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.deman.show');
+    Route::post('inventory/{appliance}/deman', [ApplianceDemanufactureController::class, 'store'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.deman.store');
+    Route::get('inventory/{appliance}/testing', [ApplianceTestingController::class, 'show'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.testing.show');
+    Route::post('inventory/{appliance}/testing', [ApplianceTestingController::class, 'store'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.testing.store');
+    Route::get('inventory/{appliance}/testing-results', [ApplianceTestingController::class, 'indexResults'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.testing-results.index');
+    Route::get('inventory/{appliance}/testing-results/{result}', [ApplianceTestingController::class, 'showResult'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.testing-results.show');
     Route::get('inventory/{appliance}', [InventoryController::class, 'show'])
         ->middleware('permission:inventory.view')
         ->name('inventory.show');

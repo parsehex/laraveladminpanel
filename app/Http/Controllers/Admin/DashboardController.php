@@ -116,23 +116,6 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function storeSuggestion(Request $request)
-    {
-        $data = $request->validate([
-            'suggestion' => ['required', 'string', 'max:2000'],
-            'urgency' => ['required', 'in:low,normal,high'],
-        ]);
-        Suggestion::create([
-            'user_id' => $request->user()->id,
-            'username' => $request->user()->name,
-            'suggestion' => $data['suggestion'],
-            'urgency' => $data['urgency'],
-            'status' => 'pending',
-        ]);
-
-        return back()->with('success', __('Suggestion submitted successfully.'));
-    }
-
     public function storeSuggestionResponse(Request $request, Suggestion $suggestion)
     {
         $data = $request->validate([
