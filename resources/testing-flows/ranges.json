@@ -1,0 +1,193 @@
+{
+    "slug": "ranges",
+    "name": "Ranges",
+    "version": 1,
+    "updated_at": "2026-08-22T17:27:22+00:00",
+    "start": "1",
+    "steps": {
+        "1": {
+            "id": "1",
+            "question": "Outside condition & inside condition",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "A",
+                    "text": "Looks Brand new no scratches no dents",
+                    "next": "2",
+                    "status": null
+                },
+                {
+                    "key": "B",
+                    "text": "Scratch and dent no internal damage",
+                    "next": "2",
+                    "status": null
+                },
+                {
+                    "key": "C",
+                    "text": "Internal Damage or extreme external damage",
+                    "next": "power_on",
+                    "status": null
+                }
+            ]
+        },
+        "2": {
+            "id": "2",
+            "question": "Does Unit turn on?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "3",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "3": {
+            "id": "3",
+            "question": "Does the interface light up?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "4",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "4": {
+            "id": "4",
+            "question": "Do all of the buttons push & do the knobs turn?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "5",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "5": {
+            "id": "5",
+            "question": "Surface elements: Do all burners glow red, indicator lights on, turn off properly when adjusted, and variable burners operate separately?",
+            "type": "radio",
+            "note": true,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes (all checks pass)",
+                    "next": "6",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "6": {
+            "id": "6",
+            "question": "Oven heat test: Broil >100\u00b0F briefly; Bake at 200/350/400\u00b0F cycles \u00b18-10\u00b0F (manual/digital); Broil high 500+\u00b0F cycles on/off?",
+            "type": "radio",
+            "note": true,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes (all temps cycle correctly)",
+                    "next": "pass",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "power_on": {
+            "id": "power_on",
+            "question": "Does it power on and lights go on?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "2",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "severe",
+                    "status": null
+                }
+            ]
+        },
+        "severe": {
+            "id": "severe",
+            "question": "Due to severe damage and no power, send to:",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "repair",
+                    "text": "Repair",
+                    "next": null,
+                    "status": "Repair"
+                },
+                {
+                    "key": "deman",
+                    "text": "Demanufacture",
+                    "next": null,
+                    "status": "Demanufacture"
+                }
+            ]
+        },
+        "pass": {
+            "id": "pass",
+            "question": "Unit passes - Send to sales.",
+            "type": "none",
+            "note": false,
+            "next": null,
+            "status": "Show Room",
+            "options": []
+        },
+        "repair": {
+            "id": "repair",
+            "question": "Send to Repair",
+            "type": "none",
+            "note": false,
+            "next": null,
+            "status": "Repair",
+            "options": []
+        }
+    }
+}

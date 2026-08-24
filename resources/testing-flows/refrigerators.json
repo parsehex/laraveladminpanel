@@ -1,0 +1,313 @@
+{
+    "slug": "refrigerators",
+    "name": "Refrigerators",
+    "version": 1,
+    "updated_at": "2026-08-22T17:27:22+00:00",
+    "start": "1",
+    "steps": {
+        "1": {
+            "id": "1",
+            "question": "Outside condition & inside condition",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "A",
+                    "text": "Looks Brand new no scratches no dents",
+                    "next": "2",
+                    "status": null
+                },
+                {
+                    "key": "B",
+                    "text": "Scratch and dent no internal damage",
+                    "next": "2",
+                    "status": null
+                },
+                {
+                    "key": "C",
+                    "text": "Internal Damage or extreme external damage",
+                    "next": "power_on",
+                    "status": null
+                }
+            ]
+        },
+        "2": {
+            "id": "2",
+            "question": "Does Unit Power On?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "3",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No - Check/Replace Power Cord Then Retest",
+                    "next": "cord_retest",
+                    "status": null
+                }
+            ]
+        },
+        "cord_retest": {
+            "id": "cord_retest",
+            "question": "After checking/replacing power cord, does it power on?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "3",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "3": {
+            "id": "3",
+            "question": "Interface works?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "4",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "compressor_check",
+                    "status": null
+                }
+            ]
+        },
+        "compressor_check": {
+            "id": "compressor_check",
+            "question": "Does Compressor Turn On?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes - Swap Interface",
+                    "next": "interface_retest",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "interface_retest": {
+            "id": "interface_retest",
+            "question": "After swapping interface, does it work?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "4",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "4": {
+            "id": "4",
+            "question": "Does the fridge get to 37\u00b0F (\u00b11\u00b0)? With or without offset, if offset is it maxed out?",
+            "type": "radio",
+            "note": true,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "5",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "5": {
+            "id": "5",
+            "question": "Does freezer get to 0\u00b0F (\u00b15\u00b0)? With or without offset, if offset is it maxed out?",
+            "type": "radio",
+            "note": true,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "6",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "6": {
+            "id": "6",
+            "question": "Defrost: Does the unit go into defrost regularly (24-48 hours)?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "7",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "7": {
+            "id": "7",
+            "question": "Does this unit have Ice maker & Water dispenser?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "8",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "pass",
+                    "status": null
+                }
+            ]
+        },
+        "8": {
+            "id": "8",
+            "question": "Does the ice maker make ice?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "9",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "9": {
+            "id": "9",
+            "question": "Does the water dispenser dispense water?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "pass",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "power_on": {
+            "id": "power_on",
+            "question": "Does it power on and lights go on?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "2",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "severe",
+                    "status": null
+                }
+            ]
+        },
+        "severe": {
+            "id": "severe",
+            "question": "Due to severe damage and no power, send to:",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "repair",
+                    "text": "Repair",
+                    "next": null,
+                    "status": "Repair"
+                },
+                {
+                    "key": "deman",
+                    "text": "Demanufacture",
+                    "next": null,
+                    "status": "Demanufacture"
+                }
+            ]
+        },
+        "pass": {
+            "id": "pass",
+            "question": "Unit passes. Make any temporary fixes permanent.",
+            "type": "none",
+            "note": false,
+            "next": null,
+            "status": "Show Room",
+            "options": []
+        },
+        "repair": {
+            "id": "repair",
+            "question": "Send to Repair",
+            "type": "none",
+            "note": false,
+            "next": null,
+            "status": "Repair",
+            "options": []
+        }
+    }
+}

@@ -1,0 +1,153 @@
+{
+    "slug": "range_hoods",
+    "name": "Range Hoods",
+    "version": 1,
+    "updated_at": "2026-08-22T17:27:22+00:00",
+    "start": "1",
+    "steps": {
+        "1": {
+            "id": "1",
+            "question": "Outside condition & inside condition",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "A",
+                    "text": "Looks Brand new no scratches no dents",
+                    "next": "2",
+                    "status": null
+                },
+                {
+                    "key": "B",
+                    "text": "Scratch and dent no internal damage",
+                    "next": "2",
+                    "status": null
+                },
+                {
+                    "key": "C",
+                    "text": "Internal Damage or extreme external damage",
+                    "next": "power_on",
+                    "status": null
+                }
+            ]
+        },
+        "2": {
+            "id": "2",
+            "question": "Powers on?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "3",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "3": {
+            "id": "3",
+            "question": "Lights functional?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "4",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "4": {
+            "id": "4",
+            "question": "All fan speeds work?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "pass",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "repair",
+                    "status": null
+                }
+            ]
+        },
+        "power_on": {
+            "id": "power_on",
+            "question": "Does it power on and lights go on?",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "yes",
+                    "text": "Yes",
+                    "next": "2",
+                    "status": null
+                },
+                {
+                    "key": "no",
+                    "text": "No",
+                    "next": "severe",
+                    "status": null
+                }
+            ]
+        },
+        "severe": {
+            "id": "severe",
+            "question": "Due to severe damage and no power, send to:",
+            "type": "radio",
+            "note": false,
+            "options": [
+                {
+                    "key": "repair",
+                    "text": "Repair",
+                    "next": null,
+                    "status": "Repair"
+                },
+                {
+                    "key": "deman",
+                    "text": "Demanufacture",
+                    "next": null,
+                    "status": "Demanufacture"
+                }
+            ]
+        },
+        "pass": {
+            "id": "pass",
+            "question": "Unit passes - Send to sales.",
+            "type": "none",
+            "note": false,
+            "next": null,
+            "status": "Show Room",
+            "options": []
+        },
+        "repair": {
+            "id": "repair",
+            "question": "Send to Repair",
+            "type": "none",
+            "note": false,
+            "next": null,
+            "status": "Repair",
+            "options": []
+        }
+    }
+}
