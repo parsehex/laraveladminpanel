@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\KitCatalogPartController;
 use App\Http\Controllers\Admin\KitController;
 use App\Http\Controllers\Admin\ModelController;
+use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\NotificationSettingsController;
 use App\Http\Controllers\Admin\PartController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
@@ -124,12 +126,30 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('deliveries', [DeliveryController::class, 'index'])
         ->middleware('permission:deliveries.view')
         ->name('deliveries.index');
+    Route::get('deliveries/appliances/search', [DeliveryController::class, 'searchAppliances'])
+        ->middleware('permission:deliveries.view')
+        ->name('deliveries.appliances.search');
     Route::post('deliveries', [DeliveryController::class, 'store'])
         ->middleware('permission:deliveries.create')
         ->name('deliveries.store');
-    Route::delete('deliveries/{delivery}', [DeliveryController::class, 'destroy'])
-        ->middleware('permission:deliveries.delete')
-        ->name('deliveries.destroy');
+    Route::post('deliveries/{delivery}/complete', [DeliveryController::class, 'complete'])
+        ->middleware('permission:deliveries.complete')
+        ->name('deliveries.complete');
+    Route::post('deliveries/{delivery}/restore', [DeliveryController::class, 'restore'])
+        ->middleware('permission:deliveries.complete')
+        ->name('deliveries.restore');
+
+    Route::get('notification-settings', [NotificationSettingsController::class, 'index'])
+        ->name('notification-settings.index');
+    Route::put('notification-settings', [NotificationSettingsController::class, 'update'])
+        ->name('notification-settings.update');
+
+    Route::get('notifications', [NotificationController::class, 'index'])
+        ->name('notifications.index');
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])
+        ->name('notifications.read-all');
+    Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead'])
+        ->name('notifications.read');
 
     Route::get('kits', [KitController::class, 'index'])
         ->middleware('permission:kits.view')

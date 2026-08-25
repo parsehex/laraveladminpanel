@@ -24,11 +24,47 @@
             </div>
 
             <!-- Notifications -->
-            <!-- <div class="relative">
-                <button type="button" class="h-10 w-10 rounded-full border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-white flex items-center justify-center">
+            <div class="relative" x-data="adminNotifications()" x-init="init()">
+                <button type="button"
+                        @click="toggle()"
+                        class="relative h-10 w-10 rounded-full border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-white flex items-center justify-center"
+                        aria-label="Notifications">
                     <i class="fas fa-bell"></i>
+                    <span x-show="unreadCount > 0"
+                          x-cloak
+                          x-text="unreadCount > 99 ? '99+' : unreadCount"
+                          class="absolute -right-1 -top-1 min-w-[1.25rem] rounded-full bg-red-600 px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white"></span>
                 </button>
-            </div> -->
+
+                <div x-cloak
+                     x-show="open"
+                     @click.away="open = false"
+                     class="absolute right-0 mt-3 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-md shadow-lg border border-slate-200 z-[1001] overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                        <p class="text-sm font-semibold text-slate-900">Notifications</p>
+                        <button type="button"
+                                class="text-xs font-semibold text-blue-600 hover:text-blue-800 disabled:text-slate-400"
+                                @click="markAllRead()"
+                                :disabled="unreadCount === 0 || loading">
+                            Mark all read
+                        </button>
+                    </div>
+                    <div class="max-h-80 overflow-y-auto">
+                        <p x-show="loading && items.length === 0" x-cloak class="px-4 py-6 text-sm text-slate-500 text-center">Loading…</p>
+                        <p x-show="!loading && items.length === 0" x-cloak class="px-4 py-6 text-sm text-slate-500 text-center">No notifications.</p>
+                        <template x-for="item in items" :key="item.id">
+                            <a :href="item.url || '#'"
+                               @click="markRead(item)"
+                               class="block border-b border-slate-50 px-4 py-3 hover:bg-slate-50"
+                               :class="item.read_at ? 'opacity-70' : ''">
+                                <p class="text-sm font-semibold text-slate-900" x-text="item.title"></p>
+                                <p class="mt-0.5 text-xs text-slate-600" x-text="item.message"></p>
+                                <p class="mt-1 text-[11px] text-slate-400" x-text="item.created_at"></p>
+                            </a>
+                        </template>
+                    </div>
+                </div>
+            </div>
             
             <!-- User Dropdown -->
             <div class="relative" x-data="{ open: false }">
@@ -65,4 +101,91 @@
     </div>
 </header>
 
+<script>
+window.adminNotifications = function () {
+    return {
+        open: false,
+        loading: false,
+        items: [],
+        unreadCount: 0,
+        endpoints: {
+            index: @json(route('admin.notifications.index')),
+            readAll: @json(route('admin.notifications.read-all')),
+            read: @json(url('/admin/notifications')),
+        },
+        csrf: @json(csrf_token()),
+        init() {
+            this.refresh();
+            setInterval(() => this.refresh(false), 60000);
+        },
+        toggle() {
+            this.open = !this.open;
+            if (this.open) {
+                this.refresh();
+            }
+        },
+        async refresh(showLoading = true) {
+            if (showLoading) {
+                this.loading = true;
+            }
+
+            try {
+                const response = await fetch(this.endpoints.index, {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) {
+                    return;
+                }
+                const data = await response.json();
+                this.items = data.notifications || [];
+                this.unreadCount = data.unread_count || 0;
+            } finally {
+                this.loading = false;
+            }
+        },
+        async markRead(item) {
+            if (!item || item.read_at) {
+                return;
+            }
+
+            try {
+                await fetch(this.endpoints.read + '/' + encodeURIComponent(item.id) + '/read', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': this.csrf,
+                    },
+                    credentials: 'same-origin',
+                });
+                item.read_at = new Date().toISOString();
+                this.unreadCount = Math.max(0, this.unreadCount - 1);
+            } catch (e) {}
+        },
+        async markAllRead() {
+            if (this.unreadCount === 0) {
+                return;
+            }
+
+            this.loading = true;
+            try {
+                await fetch(this.endpoints.readAll, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': this.csrf,
+                    },
+                    credentials: 'same-origin',
+                });
+                this.items = this.items.map((item) => ({ ...item, read_at: item.read_at || new Date().toISOString() }));
+                this.unreadCount = 0;
+            } finally {
+                this.loading = false;
+            }
+        },
+    };
+};
+</script>
 <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>

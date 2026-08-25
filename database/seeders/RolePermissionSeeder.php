@@ -49,7 +49,7 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'sales.edit', 'module_name' => 'sales', 'description' => 'Edit sales'],
             ['name' => 'deliveries.view', 'module_name' => 'deliveries', 'description' => 'List deliveries'],
             ['name' => 'deliveries.create', 'module_name' => 'deliveries', 'description' => 'Create deliveries'],
-            ['name' => 'deliveries.delete', 'module_name' => 'deliveries', 'description' => 'Delete deliveries'],
+            ['name' => 'deliveries.complete', 'module_name' => 'deliveries', 'description' => 'Complete or restore deliveries'],
             ['name' => 'kits.view', 'module_name' => 'kits', 'description' => 'View kits module'],
             ['name' => 'kits.manage', 'module_name' => 'kits', 'description' => 'Manage kits, inventory, and assignments'],
             ['name' => 'kits.build', 'module_name' => 'kits', 'description' => 'Build assigned kits and send messages'],
