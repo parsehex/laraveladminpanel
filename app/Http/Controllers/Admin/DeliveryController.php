@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Delivery;
 use App\Models\TruckAppliance;
+use App\Models\UserAction;
 use App\Notifications\DeliveryCreatedNotification;
 use App\Support\ModuleNotifier;
 use App\Support\PageSize;
@@ -164,6 +165,19 @@ class DeliveryController extends Controller
             (int) $request->user()->id
         );
 
+        UserAction::log('create_delivery', null, [
+            'delivery_id' => $delivery->id,
+            'customer_name' => $delivery->customer_name,
+            'customer_number' => $delivery->customer_number,
+            'delivery_type' => $delivery->delivery_type,
+            'delivery_fee' => (float) $delivery->delivery_fee,
+            'delivery_timeframe' => $delivery->delivery_timeframe,
+            'haul_away' => $delivery->haul_away,
+            'collect_payment' => $delivery->collect_payment,
+            'appliance_ids' => $appliances->pluck('id')->values()->all(),
+            'appliance_count' => $appliances->count(),
+        ]);
+
         return back()->with('success', __('Delivery added successfully.'));
     }
 
@@ -171,6 +185,12 @@ class DeliveryController extends Controller
     {
         if ($delivery->completed_at === null) {
             $delivery->update(['completed_at' => now()]);
+
+            UserAction::log('complete_delivery', null, [
+                'delivery_id' => $delivery->id,
+                'customer_name' => $delivery->customer_name,
+                'delivery_type' => $delivery->delivery_type,
+            ]);
         }
 
         return back()->with('success', __('Delivery marked complete.'));
@@ -180,6 +200,12 @@ class DeliveryController extends Controller
     {
         if ($delivery->completed_at !== null) {
             $delivery->update(['completed_at' => null]);
+
+            UserAction::log('restore_delivery', null, [
+                'delivery_id' => $delivery->id,
+                'customer_name' => $delivery->customer_name,
+                'delivery_type' => $delivery->delivery_type,
+            ]);
         }
 
         return back()->with('success', __('Delivery restored to active.'));
