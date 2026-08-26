@@ -114,6 +114,7 @@ class RolePermissionSeeder extends Seeder
                 'sales.view', 'sales.create',
                 'deliveries.view', 'deliveries.create',
                 'kits.view', 'kits.manage', 'kits.build',
+                'kit-parts.view', 'kit-parts.create', 'kit-parts.edit',
                 'parts.view',
                 'models.view',
                 'appliance.create', 'appliance.edit',

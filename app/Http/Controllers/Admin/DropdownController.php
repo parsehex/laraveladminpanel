@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\KitCatalogPart;
+use App\Models\KitInventory;
 use App\Models\Model;
 use App\Models\Subcategory;
 use App\Models\UserAction;
@@ -322,6 +323,14 @@ class DropdownController extends Controller
         } else {
             $part = KitCatalogPart::create($payload);
         }
+
+        KitInventory::updateOrCreate(
+            ['part_name' => $part->part_number],
+            [
+                'current_stock' => $part->total_stock,
+                'min_level' => 0,
+            ]
+        );
 
         return response()->json([
             'message' => __('Part added successfully.'),

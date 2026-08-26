@@ -125,6 +125,57 @@ class KitController extends Controller
         return back()->with('success', __('Kit added.'));
     }
 
+    public function update(Request $request, Kit $kit)
+    {
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:255', Rule::unique('kits', 'code')->ignore($kit->id)],
+            'name' => ['required', 'string', 'max:255'],
+            'sop' => ['nullable', 'string'],
+        ]);
+
+        $newCode = strtoupper(trim($data['code']));
+        $oldCode = $kit->code;
+
+        DB::transaction(function () use ($kit, $data, $newCode, $oldCode) {
+            $kit->update([
+                'code' => $newCode,
+                'name' => trim($data['name']),
+                'sop' => $data['sop'] ?? null,
+            ]);
+
+            if ($oldCode !== $newCode) {
+                $existing = KitInventory::query()->where('part_name', $newCode)->first();
+                $oldInventory = KitInventory::query()->where('part_name', $oldCode)->first();
+
+                if ($existing && $oldInventory) {
+                    $existing->update([
+                        'amazon_stock' => $oldInventory->amazon_stock,
+                        'shopify_stock' => $oldInventory->shopify_stock,
+                        'amazon_min_level' => $oldInventory->amazon_min_level,
+                        'shopify_min_level' => $oldInventory->shopify_min_level,
+                    ]);
+                    $oldInventory->delete();
+                } elseif ($oldInventory) {
+                    $oldInventory->update(['part_name' => $newCode]);
+                } else {
+                    KitInventory::firstOrCreate(
+                        ['part_name' => $newCode],
+                        [
+                            'amazon_stock' => 0,
+                            'shopify_stock' => 0,
+                            'amazon_min_level' => 0,
+                            'shopify_min_level' => 0,
+                        ]
+                    );
+                }
+            }
+        });
+
+        return redirect()
+            ->route('admin.kits.index', ['edit_kit' => $kit->id])
+            ->with('success', __('Kit updated.'));
+    }
+
     public function destroy(Kit $kit)
     {
         DB::transaction(function () use ($kit) {
@@ -183,9 +234,10 @@ class KitController extends Controller
         abort_unless($assignment->assigned_to === $request->user()->id || $request->user()->can('kits.manage'), 403);
         abort_unless($assignment->status === KitAssignment::STATUS_PENDING, 422);
 
-        DB::transaction(function () use ($assignment) {
-            $assignment->load('kit.parts');
+        $assignment->load('kit.parts');
+        $this->assertKitAssignmentStock($assignment->kit, $assignment->quantity);
 
+        DB::transaction(function () use ($assignment) {
             foreach ($assignment->kit->parts as $part) {
                 KitCatalogPart::query()
                     ->where('part_number', $part->part_name)

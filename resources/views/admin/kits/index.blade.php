@@ -84,6 +84,20 @@
                 </form>
 
                 @if($editKit)
+                <form method="POST" action="{{ route('admin.kits.update', $editKit) }}" class="mt-5 border-b border-gray-200 pb-5 space-y-4">
+                    @csrf
+                    @method('PATCH')
+                    <h3 class="text-base font-semibold text-gray-900">Update Kit</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input name="code" value="{{ old('code', $editKit->code) }}" placeholder="Kit Code" class="px-3 py-2 border border-gray-300 rounded-md" required>
+                        <input name="name" value="{{ old('name', $editKit->name) }}" placeholder="Name" class="px-3 py-2 border border-gray-300 rounded-md" required>
+                        <textarea name="sop" placeholder="SOP (optional)" class="px-3 py-2 border border-gray-300 rounded-md md:col-span-2">{{ old('sop', $editKit->sop) }}</textarea>
+                    </div>
+                    <div class="flex justify-end">
+                        <button class="px-4 py-2 rounded-md bg-blue-600 text-white font-semibold">Update Kit</button>
+                    </div>
+                </form>
+
                 <div class="mt-5">
                     <h3 class="text-base font-semibold text-gray-900">Current Parts</h3>
                     <div class="mt-3 overflow-x-auto">

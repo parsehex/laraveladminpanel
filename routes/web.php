@@ -157,6 +157,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('kits', [KitController::class, 'store'])
         ->middleware('permission:kits.manage')
         ->name('kits.store');
+    Route::patch('kits/{kit}', [KitController::class, 'update'])
+        ->middleware('permission:kits.manage')
+        ->name('kits.update');
     Route::delete('kits/{kit}', [KitController::class, 'destroy'])
         ->middleware('permission:kits.manage')
         ->name('kits.destroy');
