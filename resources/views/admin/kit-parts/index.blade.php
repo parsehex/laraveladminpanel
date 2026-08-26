@@ -27,7 +27,7 @@
         <form method="POST" action="{{ route('admin.kit-parts.store') }}" class="space-y-6">
             @csrf
             <input type="hidden" name="_form" value="create">
-            @include('admin.parts.partials.form', ['part' => $blankPart, 'models' => $models, 'prefix' => 'create-kit-part'])
+            @include('admin.kit-parts.partials.form', ['part' => $blankPart, 'models' => $models, 'prefix' => 'create-kit-part'])
 
             <div class="flex justify-end gap-2 pt-2">
                 <button type="button" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600" data-toggle-create>Cancel</button>
@@ -134,7 +134,7 @@
                                     @csrf
                                     @method('PUT')
                                     <input type="hidden" name="_form" value="edit-{{ $part->id }}">
-                                    @include('admin.parts.partials.form', ['part' => $part, 'models' => $models, 'prefix' => 'edit-kit-part-'.$part->id])
+                                    @include('admin.kit-parts.partials.form', ['part' => $part, 'models' => $models, 'prefix' => 'edit-kit-part-'.$part->id])
 
                                     <div class="flex justify-start gap-2">
                                         <button type="button" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600" data-toggle-row="part-edit-{{ $part->id }}">Cancel</button>

@@ -1,0 +1,24 @@
+---
+description: parts.model_compatibility is NOT the source of truth for model↔part links
+globs: app/Models/Part.php,app/Models/Model.php,app/Http/Controllers/Admin/PartController.php,app/Http/Controllers/Admin/ModelController.php,app/Http/Controllers/Admin/KitCatalogPartController.php,resources/views/admin/parts/**,resources/views/admin/models/**,resources/views/admin/kit-parts/**
+alwaysApply: false
+---
+
+# Model ↔ part linking
+
+## Appliance Parts (`parts` table)
+
+- **Source of truth:** `model_parts` (`model_id`, `part_id`, `variation`).
+- Use Eloquent `Part::models()` / `Model::parts()` (belongsToMany through `model_parts`).
+- **`parts.model_compatibility` is deprecated.** Do not use it to load, filter, or decide which models a part belongs to. It may still be refreshed as a denormalized cache on sync, but it is not authoritative and is often empty for imported WCI data.
+
+## Kit Parts (`kit_catalog_parts` table)
+
+- Kit parts are a **separate catalog**. They do **not** use `model_parts`.
+- They still store compatibility as a comma-separated string on `kit_catalog_parts.model_compatibility`.
+- Kit Parts has its **own** form partial (`admin/kit-parts/partials/form`). Do **not** include `admin/parts/partials/form` from kit-parts — that form assumes `Part::models()`.
+
+## When changing this area
+
+- Prefer extending `model_parts` / relations for appliance parts.
+- Do not "fix" kit-parts by adding `models()` on `KitCatalogPart` unless you also add a real kit-part↔model pivot.

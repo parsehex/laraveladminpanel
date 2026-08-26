@@ -1,11 +1,14 @@
 @php
     $part = $part ?? null;
     $models = $models ?? collect();
-    $prefix = $prefix ?? 'part';
-    if ($part) {
-        $part->loadMissing('models');
-    }
-    $partModels = $part?->models ?? collect();
+    $prefix = $prefix ?? 'kit-part';
+    $compatibilityTokens = collect(preg_split('/\s*[,;|]\s*/', (string) ($part?->model_compatibility ?? ''), -1, PREG_SPLIT_NO_EMPTY))
+        ->map(fn ($token) => trim($token))
+        ->filter()
+        ->values();
+    $partModels = $models
+        ->filter(fn ($model) => $compatibilityTokens->contains($model->model_number))
+        ->values();
     $selectedModelIds = collect(old('model_ids', $partModels->pluck('id')->all()))
         ->map(fn ($id) => (string) $id);
     $formModels = $models
@@ -52,7 +55,7 @@
             </button>
             @endcanAccess
         </div>
-        <p class="mt-1 text-xs text-gray-500">Links this part to models via the <code>model_parts</code> table. Existing diagram variations are kept for models you leave selected.</p>
+        <p class="mt-1 text-xs text-gray-500">Stored as comma-separated model numbers on this kit part (kit parts do not use the <code>model_parts</code> table).</p>
         @error('model_ids')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
         @enderror

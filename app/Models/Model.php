@@ -51,6 +51,10 @@ class Model extends EloquentModel
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    /**
+     * Parts linked via model_parts (source of truth for appliance model↔part).
+     * Do not use parts.model_compatibility for this.
+     */
     public function parts(): BelongsToMany
     {
         return $this->belongsToMany(Part::class, 'model_parts')

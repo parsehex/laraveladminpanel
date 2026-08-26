@@ -35,7 +35,10 @@ class KitCatalogPartController extends Controller
         }
 
         $parts = PageSize::paginate($query, $request);
-        $modelNumbers = $parts->getCollection()->pluck('model_compatibility')->filter()->unique()->values();
+        $modelNumbers = $parts->getCollection()
+            ->flatMap(fn (KitCatalogPart $part) => $part->compatibilityModelNumbers())
+            ->unique()
+            ->values();
         $models = Model::query()
             ->whereIn('model_number', $modelNumbers)
             ->orderBy('model_number')
@@ -148,8 +151,20 @@ class KitCatalogPartController extends Controller
 
     private function validatedPayload(Request $request, ?KitCatalogPart $part = null): array
     {
-        $data = $request->validate($this->rules($part));
+        $data = $request->validate([
+            ...$this->rules($part),
+            'model_ids' => ['nullable', 'array'],
+            'model_ids.*' => ['integer', 'exists:models,id'],
+            'model_ids_present' => ['nullable', 'boolean'],
+        ]);
+
         $data['part_number'] = $this->normalizeIdentifier($data['part_number']);
+
+        if ($request->boolean('model_ids_present')) {
+            $data['model_compatibility'] = $this->modelCompatibilityFromIds($request->input('model_ids', []));
+        }
+
+        unset($data['model_ids'], $data['model_ids_present']);
 
         return $data;
     }
@@ -164,12 +179,35 @@ class KitCatalogPartController extends Controller
                 Rule::unique('kit_catalog_parts', 'part_number')->ignore($part)->whereNull('deleted_at'),
             ],
             'product_name' => ['nullable', 'string', 'max:255'],
-            'model_compatibility' => ['nullable', 'string', 'max:255'],
             'total_stock' => ['nullable', 'integer', 'min:0'],
             'retail_price' => ['required', 'numeric', 'min:0'],
             'your_price' => ['required', 'numeric', 'min:0'],
             'cross_reference' => ['nullable', 'string', 'max:255'],
         ];
+    }
+
+    /**
+     * @param  array<int|string>  $modelIds
+     */
+    private function modelCompatibilityFromIds(array $modelIds): ?string
+    {
+        $ids = collect($modelIds)
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return null;
+        }
+
+        $label = Model::query()
+            ->whereIn('id', $ids)
+            ->orderBy('model_number')
+            ->pluck('model_number')
+            ->implode(', ');
+
+        return $label !== '' ? $label : null;
     }
 
     private function rulesForImport(): array

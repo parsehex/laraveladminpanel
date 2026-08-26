@@ -17,6 +17,8 @@ class Part extends Model
     protected $fillable = [
         'part_number',
         'product_name',
+        // DEPRECATED / not source of truth: do not query or write this for model↔part links.
+        // Use the model_parts table (Part::models() / Model::parts()). Kept only as a legacy denormalized cache.
         'model_compatibility',
         'total_stock',
         'retail_price',
