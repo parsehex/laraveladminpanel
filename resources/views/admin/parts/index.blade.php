@@ -47,10 +47,13 @@
             @if(request('direction'))
                 <input type="hidden" name="direction" value="{{ request('direction') }}">
             @endif
+            @if(request('is_from_model_section'))
+                <input type="hidden" name="is_from_model_section" value="1">
+            @endif
             <div class="md:col-span-3">
-                <label for="search" class="block text-sm font-medium text-gray-700 mb-1">{{request('is_from_model_section') ? "Search Model Compatibility" : "Search by any feild"}}</label>
+                <label for="search" class="block text-sm font-medium text-gray-700 mb-1">{{ request('is_from_model_section') ? 'Search Model Compatibility' : 'Search by any field' }}</label>
                 <input type="text" id="search" name="search" value="{{ request('search') }}"
-                       placeholder="{{request('is_from_model_section') ? 'Search Model Compatibility' : 'Search by any feild'}}"
+                       placeholder="{{ request('is_from_model_section') ? 'Search Model Compatibility' : 'Search by any field' }}"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div class="flex items-end gap-2">
@@ -87,7 +90,7 @@
                         <x-admin.data-table.cell column="total_stock" align="right">{{ $part->total_stock }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="part_number" class="font-medium text-gray-900">{{ $part->part_number }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="product_name" truncate title="{{ $part->product_name ?: '-' }}">{{ $part->product_name ?: '-' }}</x-admin.data-table.cell>
-                        <x-admin.data-table.cell column="model_compatibility" truncate title="{{ $part->model_compatibility ?: '-' }}">{{ $part->model_compatibility ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="model_compatibility" truncate title="{{ $part->compatible_models_label ?: '-' }}">{{ $part->compatible_models_label ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="retail_price" align="right">${{ number_format($part->retail_price, 2) }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="your_price" align="right">${{ number_format($part->your_price, 2) }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="cross_reference" truncate title="{{ $part->cross_reference ?: '-' }}">{{ $part->cross_reference ?: '-' }}</x-admin.data-table.cell>
@@ -133,7 +136,7 @@
                                     </div>
                                     <div>
                                         <dt class="font-medium text-gray-500">Model Compatibility</dt>
-                                        <dd class="text-gray-900">{{ $part->model_compatibility ?: '-' }}</dd>
+                                        <dd class="text-gray-900">{{ $part->compatible_models_label ?: '-' }}</dd>
                                     </div>
                                     <div>
                                         <dt class="font-medium text-gray-500">Updated</dt>

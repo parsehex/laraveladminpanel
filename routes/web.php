@@ -344,12 +344,18 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('models/export', [ModelController::class, 'export'])
         ->middleware('permission:models.view')
         ->name('models.export');
+    Route::get('models/proxy-image', [ModelController::class, 'proxyImage'])
+        ->middleware('permission:models.view')
+        ->name('models.proxy-image');
     Route::post('models/import-scraped', [ModelController::class, 'importScraped'])
         ->middleware('permission:models.create')
         ->name('models.import-scraped');
     Route::post('models', [ModelController::class, 'store'])
         ->middleware('permission:models.create')
         ->name('models.store');
+    Route::get('models/{model}', [ModelController::class, 'show'])
+        ->middleware('permission:models.view')
+        ->name('models.show');
     Route::put('models/{model}', [ModelController::class, 'update'])
         ->middleware('permission:models.edit')
         ->name('models.update');

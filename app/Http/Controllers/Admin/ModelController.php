@@ -13,12 +13,13 @@ use App\Models\UserAction;
 use App\Support\PageSize;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class ModelController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:models.view')->only('index');
+        $this->middleware('permission:models.view')->only(['index', 'show', 'proxyImage']);
         $this->middleware('permission:models.create')->only('store');
         $this->middleware('permission:models.create')->only('importScraped');
         $this->middleware('permission:models.edit')->only('update');
@@ -30,11 +31,8 @@ class ModelController extends Controller
         $this->authorize('viewAny', Model::class);
 
         $query = Model::query()
-            ->with([
-                'category',
-                'relatedParts' => fn ($query) => $query->orderBy('part_number'),
-            ])
-            ->withCount('relatedParts')
+            ->with('category')
+            ->withCount('parts as related_parts_count')
             ->latest();
 
         if ($request->filled('category')) {
@@ -63,6 +61,114 @@ class ModelController extends Controller
             ->get();
 
         return view('admin.models.index', compact('models', 'categories'));
+    }
+
+    public function show(Request $request, Model $model)
+    {
+        $this->authorize('view', $model);
+
+        $model->load('category');
+
+        $variations = collect($model->variations ?: [])
+            ->filter(fn ($value) => filled($value))
+            ->values();
+
+        if ($variations->isEmpty()) {
+            $variations = DB::table('model_parts')
+                ->where('model_id', $model->id)
+                ->whereNotNull('variation')
+                ->distinct()
+                ->orderBy('variation')
+                ->pluck('variation');
+        }
+
+        if ($variations->isEmpty()) {
+            $variations = collect(['default']);
+        }
+
+        $variation = (string) $request->get('variation', $variations->first());
+        $variationFallback = false;
+
+        if (! $variations->contains($variation)) {
+            $variation = (string) $variations->first();
+            $variationFallback = true;
+        }
+
+        $search = $request->string('search')->trim()->toString();
+
+        $partsQuery = Part::query()
+            ->select('parts.*', 'model_parts.variation as pivot_variation')
+            ->join('model_parts', 'model_parts.part_id', '=', 'parts.id')
+            ->where('model_parts.model_id', $model->id)
+            ->where('model_parts.variation', $variation)
+            ->whereNull('parts.deleted_at')
+            ->orderBy('parts.diagram_name')
+            ->orderBy('parts.part_number');
+
+        if ($search !== '') {
+            $partsQuery->where(function ($query) use ($search) {
+                $query->whereLike('parts.product_name', '%'.$search.'%')
+                    ->orWhereLike('parts.part_number', '%'.$search.'%')
+                    ->orWhereLike('parts.diagram_name', '%'.$search.'%');
+            });
+        }
+
+        $parts = $partsQuery->get();
+        $diagrams = $this->groupPartsByDiagram($parts);
+
+        return view('admin.models.show', [
+            'model' => $model,
+            'variations' => $variations,
+            'variation' => $variation,
+            'variationFallback' => $variationFallback,
+            'search' => $search,
+            'parts' => $parts,
+            'diagrams' => $diagrams,
+        ]);
+    }
+
+    public function proxyImage(Request $request)
+    {
+        $this->authorize('viewAny', Model::class);
+
+        $url = (string) $request->query('url', '');
+
+        if (! filter_var($url, FILTER_VALIDATE_URL) || ! preg_match('#^https?://#i', $url)) {
+            abort(400, 'Invalid URL');
+        }
+
+        $placeholder = base64_decode(
+            'PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjEwMCIgeT0iNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjOTk5Ij5ObyBJbWFnZTwvdGV4dD48L3N2Zz4='
+        );
+
+        try {
+            $response = Http::timeout(30)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'Referer' => 'https://www.google.com',
+                ])
+                ->withOptions(['verify' => false])
+                ->get($url);
+
+            if (! $response->successful() || $response->body() === '') {
+                return response($placeholder, 200, [
+                    'Content-Type' => 'image/svg+xml',
+                    'Cache-Control' => 'public, max-age=300',
+                ]);
+            }
+
+            $contentType = $response->header('Content-Type') ?: 'image/jpeg';
+
+            return response($response->body(), 200, [
+                'Content-Type' => $contentType,
+                'Cache-Control' => 'public, max-age=3600',
+            ]);
+        } catch (\Throwable) {
+            return response($placeholder, 200, [
+                'Content-Type' => 'image/svg+xml',
+                'Cache-Control' => 'public, max-age=300',
+            ]);
+        }
     }
 
     public function store(StoreModelRequest $request)
@@ -307,6 +413,61 @@ class ModelController extends Controller
         $model->delete();
 
         return redirect()->route('admin.models.index')->with('success', __('Model deleted successfully.'));
+    }
+
+    private function groupPartsByDiagram($parts): array
+    {
+        $diagrams = [];
+        $currentDiag = null;
+        $currentImage = null;
+
+        foreach ($parts as $part) {
+            $fullDiag = trim((string) ($part->diagram_name ?? ''));
+            $proposedDiag = $this->cleanDiagramName($fullDiag);
+
+            if ($fullDiag !== '') {
+                $currentDiag = $proposedDiag !== '' ? $proposedDiag : 'Uncategorized';
+                $currentImage = (string) ($part->image_url ?? '');
+            } elseif ($currentDiag === null || $currentDiag === '') {
+                $currentDiag = 'Uncategorized';
+                $currentImage = '';
+            }
+
+            $diagName = $currentDiag;
+
+            if (! isset($diagrams[$diagName])) {
+                $diagrams[$diagName] = [
+                    'name' => $diagName,
+                    'key' => $this->sanitizeDiagramKey($diagName),
+                    'image_url' => $currentImage,
+                    'parts' => [],
+                ];
+            }
+
+            $diagrams[$diagName]['parts'][] = $part;
+        }
+
+        return $diagrams;
+    }
+
+    private function cleanDiagramName(?string $name): string
+    {
+        $name = trim((string) $name);
+        $wciPos = strpos($name, 'WCI');
+
+        if ($wciPos !== false && $wciPos > 0) {
+            $name = trim(substr($name, $wciPos + 3));
+        }
+
+        return $name;
+    }
+
+    private function sanitizeDiagramKey(string $key): string
+    {
+        $sanitized = preg_replace('/\s+/', '_', $key) ?? '';
+        $sanitized = preg_replace('/[^a-zA-Z0-9_-]/', '', $sanitized) ?? '';
+
+        return $sanitized !== '' ? $sanitized : 'diagram';
     }
 
     private function syncBrand(?string $brand, int $userId): void

@@ -192,7 +192,16 @@
             }
 
             if (selected) {
-                $select.val(optionId).trigger('change');
+                if ($select.prop('multiple')) {
+                    const current = $select.val() || [];
+                    const next = current.map(String);
+                    if (! next.includes(String(optionId))) {
+                        next.push(String(optionId));
+                    }
+                    $select.val(next).trigger('change');
+                } else {
+                    $select.val(optionId).trigger('change');
+                }
                 $select.trigger({
                     type: 'select2:select',
                     params: {
@@ -242,7 +251,9 @@
                         }
                     },
                     allowClear: true,
-                    placeholder: $select.find('option[value=""]').text() || endpoints[type].placeholder,
+                    placeholder: $select.prop('multiple')
+                        ? (endpoints[type].placeholder || 'Search...')
+                        : ($select.find('option[value=""]').text() || endpoints[type].placeholder),
                     width: '100%'
                 });
             });

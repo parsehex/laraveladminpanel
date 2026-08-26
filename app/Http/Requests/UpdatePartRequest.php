@@ -17,7 +17,9 @@ class UpdatePartRequest extends FormRequest
         return [
             'part_number' => ['required', 'string', 'max:255', Rule::unique('parts', 'part_number')->ignore($this->route('part'))->whereNull('deleted_at')],
             'product_name' => ['nullable', 'string', 'max:255'],
-            'model_compatibility' => ['nullable', 'string', 'max:255'],
+            'model_ids' => ['nullable', 'array'],
+            'model_ids.*' => ['integer', 'exists:models,id'],
+            'model_ids_present' => ['nullable', 'boolean'],
             'total_stock' => ['nullable', 'integer', 'min:0'],
             'retail_price' => ['required', 'numeric', 'min:0'],
             'your_price' => ['required', 'numeric', 'min:0'],

@@ -2,6 +2,29 @@
     $part = $part ?? null;
     $models = $models ?? collect();
     $prefix = $prefix ?? 'part';
+    $usesModelPartsRelation = $part && method_exists($part, 'models');
+
+    if ($usesModelPartsRelation) {
+        $part->loadMissing('models');
+        $partModels = $part->models;
+        $defaultSelectedIds = $partModels->pluck('id')->all();
+    } else {
+        $compatibilityTokens = collect(preg_split('/\s*[,;]\s*/', (string) ($part?->model_compatibility ?? ''), -1, PREG_SPLIT_NO_EMPTY))
+            ->map(fn ($token) => trim($token))
+            ->filter()
+            ->values();
+        $partModels = $models
+            ->filter(fn ($model) => $compatibilityTokens->contains($model->model_number))
+            ->values();
+        $defaultSelectedIds = $partModels->pluck('id')->all();
+    }
+
+    $selectedModelIds = collect(old('model_ids', $defaultSelectedIds))->map(fn ($id) => (string) $id);
+    $formModels = $models
+        ->concat($partModels)
+        ->unique('id')
+        ->sortBy('model_number')
+        ->values();
 @endphp
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -23,25 +46,35 @@
         @enderror
     </div>
 
-    <div>
-        <label for="{{ $prefix }}-model-compatibility" class="block text-sm font-medium text-gray-700 mb-2">Model Compatibility</label>
+    <div class="md:col-span-2">
+        <label for="{{ $prefix }}-model-ids" class="block text-sm font-medium text-gray-700 mb-2">Model Compatibility</label>
+        <input type="hidden" name="model_ids_present" value="1">
         <div class="flex gap-2">
-            <select id="{{ $prefix }}-model-compatibility" name="model_compatibility" data-ajax-dropdown="model"
+            <select id="{{ $prefix }}-model-ids" name="model_ids[]" multiple data-ajax-dropdown="model" data-value-field="id"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                <option value="">-- Select Model --</option>
-                @foreach($models as $model)
-                    <option value="{{ $model->model_number }}" {{ old('model_compatibility', $part?->model_compatibility) === $model->model_number ? 'selected' : '' }}>
+                @foreach($formModels as $model)
+                    <option value="{{ $model->id }}" @selected($selectedModelIds->contains((string) $model->id))>
                         {{ $model->model_number }}{{ $model->product_name ? ' - '.$model->product_name : '' }}
                     </option>
                 @endforeach
             </select>
             @canAccess('models.create')
-            <button type="button" class="mt-1 h-8 w-8 flex-shrink-0 rounded-md bg-blue-600 text-xs text-white hover:bg-blue-700" title="Add model" data-open-quick-create="model" data-target="#{{ $prefix }}-model-compatibility">
+            <button type="button" class="mt-1 h-8 w-8 flex-shrink-0 rounded-md bg-blue-600 text-xs text-white hover:bg-blue-700" title="Add model" data-open-quick-create="model" data-target="#{{ $prefix }}-model-ids">
                 <i class="fas fa-plus"></i>
             </button>
             @endcanAccess
         </div>
-        @error('model_compatibility')
+        <p class="mt-1 text-xs text-gray-500">
+            @if($usesModelPartsRelation)
+                Links this part to models via model_parts. Existing diagram variations are kept for models you leave selected.
+            @else
+                Stores compatible model numbers on this kit part (comma-separated).
+            @endif
+        </p>
+        @error('model_ids')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+        @error('model_ids.*')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
         @enderror
     </div>

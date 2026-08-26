@@ -10,6 +10,7 @@ use App\Models\Part;
 use App\Support\DataTable;
 use App\Support\PageSize;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PartController extends Controller
 {
@@ -26,18 +27,26 @@ class PartController extends Controller
         $this->authorize('viewAny', Part::class);
 
         $dataTable = $this->partsIndexDataTable();
-        $query = Part::query();
+        $query = Part::query()->with(['models' => fn ($query) => $query->orderBy('model_number')]);
 
         if ($request->filled('search')) {
-            $search = $request->string('search')->trim();
+            $search = $request->string('search')->trim()->toString();
+
             if ($request->filled('is_from_model_section')) {
-                $query->whereLike('model_compatibility', '%'.$search.'%');
+                $query->where(function ($query) use ($search) {
+                    $query->whereHas('models', fn ($models) => $models->whereLike('model_number', '%'.$search.'%'))
+                        ->orWhereLike('model_compatibility', '%'.$search.'%');
+                });
             } else {
                 $query->where(function ($query) use ($search) {
                     $query->whereLike('part_number', '%'.$search.'%')
                         ->orWhereLike('product_name', '%'.$search.'%')
                         ->orWhereLike('model_compatibility', '%'.$search.'%')
-                        ->orWhereLike('cross_reference', '%'.$search.'%');
+                        ->orWhereLike('cross_reference', '%'.$search.'%')
+                        ->orWhereHas('models', function ($models) use ($search) {
+                            $models->whereLike('model_number', '%'.$search.'%')
+                                ->orWhereLike('product_name', '%'.$search.'%');
+                        });
                 });
             }
         }
@@ -45,13 +54,13 @@ class PartController extends Controller
         $dataTable->applySorting($query, $request);
 
         $parts = PageSize::paginate($query, $request);
-        $modelNumbers = $parts->getCollection()
-            ->pluck('model_compatibility')
-            ->filter()
+        $modelIds = $parts->getCollection()
+            ->flatMap(fn (Part $part) => $part->models->pluck('id'))
             ->unique()
             ->values();
+
         $models = Model::query()
-            ->whereIn('model_number', $modelNumbers)
+            ->whereIn('id', $modelIds)
             ->orderBy('model_number')
             ->get(['id', 'model_number', 'product_name']);
 
@@ -123,7 +132,7 @@ class PartController extends Controller
     {
         $this->authorize('create', Part::class);
 
-        $data = $request->validated();
+        $data = $request->safe()->except(['model_ids', 'model_ids_present']);
         $data['created_by'] = $request->user()->id;
         $data['updated_by'] = $request->user()->id;
 
@@ -133,7 +142,11 @@ class PartController extends Controller
             $part->restore();
             $part->update($data);
         } else {
-            Part::create($data);
+            $part = Part::create($data);
+        }
+
+        if ($request->boolean('model_ids_present')) {
+            $part->syncCompatibleModels($request->input('model_ids', []));
         }
 
         return redirect()->route('admin.parts.index')->with('success', __('Part created successfully.'));
@@ -164,10 +177,12 @@ class PartController extends Controller
                 continue;
             }
 
+            $modelCompatibility = trim((string) $this->csvValue($row, $columns, ['models_it_applies_to', 'model_compatibility', 'models'], 6)) ?: null;
+
             $payload = validator([
                 'part_number' => $partNumber,
                 'product_name' => trim((string) $this->csvValue($row, $columns, ['product_name', 'product', 'name'], null)) ?: null,
-                'model_compatibility' => trim((string) $this->csvValue($row, $columns, ['models_it_applies_to', 'model_compatibility', 'models'], 6)) ?: null,
+                'model_compatibility' => $modelCompatibility,
                 'total_stock' => 0,
                 'retail_price' => $this->csvValue($row, $columns, ['retail_price', 'retail'], 2),
                 'your_price' => $this->csvValue($row, $columns, ['your_price', 'cost'], 3),
@@ -197,9 +212,11 @@ class PartController extends Controller
                 $part->update($payload);
             } else {
                 $payload['created_by'] = $request->user()->id;
-                Part::create($payload);
+                $part = Part::create($payload);
                 $imported++;
             }
+
+            $this->syncModelsFromCompatibilityString($part, $modelCompatibility);
         }
 
         fclose($handle);
@@ -213,10 +230,14 @@ class PartController extends Controller
     {
         $this->authorize('update', $part);
 
-        $data = $request->validated();
+        $data = $request->safe()->except(['model_ids', 'model_ids_present']);
         $data['updated_by'] = $request->user()->id;
 
         $part->update($data);
+
+        if ($request->boolean('model_ids_present')) {
+            $part->syncCompatibleModels($request->input('model_ids', []));
+        }
 
         return redirect()->route('admin.parts.index')->with('success', __('Part updated successfully.'));
     }
@@ -228,6 +249,41 @@ class PartController extends Controller
         $part->delete();
 
         return redirect()->route('admin.parts.index')->with('success', __('Part deleted successfully.'));
+    }
+
+    private function syncModelsFromCompatibilityString(Part $part, ?string $compatibility): void
+    {
+        if ($compatibility === null || trim($compatibility) === '') {
+            return;
+        }
+
+        $numbers = collect(preg_split('/[,;|]+/', $compatibility) ?: [])
+            ->map(fn ($value) => $this->normalizeIdentifier((string) $value))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($numbers->isEmpty()) {
+            return;
+        }
+
+        $modelIds = Model::query()
+            ->whereIn('model_number', $numbers)
+            ->pluck('id')
+            ->all();
+
+        if ($modelIds === []) {
+            return;
+        }
+
+        $existingIds = DB::table('model_parts')
+            ->where('part_id', $part->id)
+            ->distinct()
+            ->pluck('model_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $part->syncCompatibleModels(array_values(array_unique([...$existingIds, ...$modelIds])));
     }
 
     private function normalizeIdentifier(string $value): string

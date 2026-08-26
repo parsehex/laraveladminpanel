@@ -127,13 +127,18 @@
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                 @canAccess('models.view')
-                                <button type="button" class="text-blue-600 hover:text-blue-900" title="View" data-toggle-row="model-view-{{ $model->id }}">
+                                <a href="{{ route('admin.models.show', $model) }}" class="text-blue-600 hover:text-blue-900" title="View parts">
                                     <i class="fas fa-eye"></i>
-                                </button>
+                                </a>
+                                @endcanAccess
+                                @canAccess('models.view')
+                                <a href="{{ route('admin.models.show', $model) }}" class="inline-flex items-center px-3 py-1 text-sm border border-blue-300 text-blue-600 rounded hover:bg-blue-50">
+                                    Parts ({{ $model->related_parts_count }})
+                                </a>
                                 @endcanAccess
                                 @canAccess('parts.view')
-                                <button type="button" class="px-3 py-1 text-sm border border-blue-300 text-blue-600 rounded hover:bg-blue-50" data-toggle-row="model-parts-{{ $model->id }}">
-                                    Parts ({{ $model->related_parts_count }})
+                                <button type="button" class="px-3 py-1 text-sm border border-sky-300 text-sky-700 rounded hover:bg-sky-50" data-toggle-row="model-parts-{{ $model->id }}" title="Quick preview">
+                                    Preview
                                 </button>
                                 @endcanAccess
                                 @canAccess('models.edit')
@@ -150,85 +155,26 @@
                                 @endcanAccess
                             </td>
                         </tr>
-                        <tr id="model-view-{{ $model->id }}" class="hidden bg-gray-50">
-                            <td colspan="7" class="p-0 align-top">
-                                <div data-table-inline-panel class="bg-gray-50 px-4 py-4">
-                                    <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                                        <div>
-                                            <dt class="font-medium text-gray-500">Model #</dt>
-                                            <dd class="text-gray-900">{{ $model->model_number }}</dd>
-                                        </div>
-                                        <div>
-                                            <dt class="font-medium text-gray-500">Product Name</dt>
-                                            <dd class="text-gray-900">{{ $model->product_name ?: '-' }}</dd>
-                                        </div>
-                                        <div>
-                                            <dt class="font-medium text-gray-500">Brand</dt>
-                                            <dd class="text-gray-900">{{ $model->brand ?: '-' }}</dd>
-                                        </div>
-                                        <div>
-                                            <dt class="font-medium text-gray-500">Category</dt>
-                                            <dd class="text-gray-900">{{ $model->category?->name ?? '-' }}</dd>
-                                        </div>
-                                        <div>
-                                            <dt class="font-medium text-gray-500">MSRP</dt>
-                                            <dd class="text-gray-900">${{ number_format((float) $model->msrp, 2) }}</dd>
-                                        </div>
-                                        <div>
-                                            <dt class="font-medium text-gray-500">Variations</dt>
-                                            <dd class="text-gray-900">{{ collect($model->variations ?: [$model->model_number.'-default'])->implode(', ') }}</dd>
-                                        </div>
-                                    </dl>
-                                </div>
-                            </td>
-                        </tr>
                         @canAccess('parts.view')
                         <tr id="model-parts-{{ $model->id }}" class="hidden bg-blue-50/50">
                             <td colspan="7" class="p-0 align-top">
                                 <div data-table-inline-panel class="bg-blue-50/50 px-4 py-4">
-                                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                     <div>
                                         <h3 class="text-base font-semibold text-gray-900">Related Parts for {{ $model->model_number }}</h3>
-                                        <p class="text-sm text-gray-500">{{ $model->related_parts_count }} part{{ $model->related_parts_count === 1 ? '' : 's' }} linked by model compatibility.</p>
+                                        <p class="text-sm text-gray-500">
+                                            {{ $model->related_parts_count }} part link{{ $model->related_parts_count === 1 ? '' : 's' }} via model_parts
+                                            (diagrams &amp; variations on the model page).
+                                        </p>
                                     </div>
-                                    <a href="{{ route('admin.parts.index', ['search' => $model->model_number,'is_from_model_section' => true]) }}" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-                                        <i class="fas fa-search mr-2"></i>Open in Parts
-                                    </a>
-                                </div>
-
-                                <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-                                    <table class="min-w-full divide-y divide-gray-200">
-                                        <thead class="bg-gray-50">
-                                            <tr>
-                                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Part #</th>
-                                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Product Name</th>
-                                                <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Stock</th>
-                                                <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Retail</th>
-                                                <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Your Price</th>
-                                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Cross Reference</th>
-                                                <th class="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-500">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-gray-100">
-                                            @forelse($model->relatedParts as $part)
-                                                <tr>
-                                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">{{ $part->part_number }}</td>
-                                                    <td class="px-4 py-3 text-sm text-gray-700">{{ $part->product_name ?: '-' }}</td>
-                                                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-700">{{ number_format((int) $part->total_stock) }}</td>
-                                                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-700">${{ number_format((float) $part->retail_price, 2) }}</td>
-                                                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-700">${{ number_format((float) $part->your_price, 2) }}</td>
-                                                    <td class="px-4 py-3 text-sm text-gray-700">{{ $part->cross_reference ?: '-' }}</td>
-                                                    <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
-                                                        <a href="{{ route('admin.parts.index', ['search' => $model->model_number, 'part_id' => $part->id]) }}" class="font-semibold text-blue-600 hover:text-blue-800">Open</a>
-                                                    </td>
-                                                </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">No related parts found for this model.</td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
+                                    <div class="flex flex-wrap gap-2">
+                                        <a href="{{ route('admin.models.show', $model) }}" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+                                            <i class="fas fa-diagram-project mr-2"></i>Open Model Parts
+                                        </a>
+                                        <a href="{{ route('admin.parts.index', ['search' => $model->model_number, 'is_from_model_section' => true]) }}" class="inline-flex items-center justify-center rounded-md bg-gray-600 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-700">
+                                            <i class="fas fa-search mr-2"></i>Open in Parts
+                                        </a>
+                                    </div>
                                 </div>
                                 </div>
                             </td>

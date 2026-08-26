@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -51,8 +51,18 @@ class Model extends EloquentModel
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    public function relatedParts(): HasMany
+    public function parts(): BelongsToMany
     {
-        return $this->hasMany(Part::class, 'model_compatibility', 'model_number');
+        return $this->belongsToMany(Part::class, 'model_parts')
+            ->withPivot('variation')
+            ->withTimestamps();
+    }
+
+    /**
+     * Distinct parts linked via model_parts (source of truth for model↔part).
+     */
+    public function relatedParts(): BelongsToMany
+    {
+        return $this->parts()->distinct();
     }
 }
