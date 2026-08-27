@@ -4,19 +4,14 @@ namespace App\Testing;
 
 use App\Models\TestingFlow;
 use App\Models\TestingFlowVersion;
+use App\Models\TestingResult;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class TestingFlowRepository
 {
-    public function resultsPath(): string
-    {
-        return storage_path('app/testing-results');
-    }
-
     /**
      * @return list<array{slug: string, name: string, version: int, updated_at: ?string, step_count: int}>
      */
@@ -111,15 +106,22 @@ class TestingFlowRepository
      */
     public function storeResult(array $payload): string
     {
-        File::ensureDirectoryExists($this->resultsPath());
-
         $applianceId = (int) ($payload['appliance_id'] ?? 0);
-        $stamp = now()->format('YmdHis');
-        $resultId = $applianceId.'-'.$stamp.'-'.Str::lower(Str::random(4));
-        $path = $this->resultsPath().'/'.$resultId.'.json';
+        $resultId = $applianceId.'-'.now()->format('YmdHis').'-'.Str::lower(Str::random(4));
 
-        $payload['result_id'] = $resultId;
-        File::put($path, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n");
+        TestingResult::query()->create([
+            'result_id' => $resultId,
+            'truck_appliance_id' => $applianceId,
+            'flow_slug' => (string) ($payload['flow_slug'] ?? ''),
+            'flow_version' => (int) ($payload['flow_version'] ?? 1),
+            'resulting_status' => (string) ($payload['resulting_status'] ?? ''),
+            'answers' => is_array($payload['answers'] ?? null) ? $payload['answers'] : [],
+            'notes' => $payload['notes'] ?? null,
+            'flow_snapshot' => is_array($payload['flow_snapshot'] ?? null) ? $payload['flow_snapshot'] : [],
+            'user_id' => $payload['user_id'] ?? null,
+            'user_name' => $payload['user_name'] ?? null,
+            'completed_at' => $this->parseTimestamp($payload['completed_at'] ?? null) ?? now(),
+        ]);
 
         return $resultId;
     }
@@ -129,36 +131,20 @@ class TestingFlowRepository
      */
     public function listResultsForAppliance(int $applianceId): array
     {
-        if (! File::isDirectory($this->resultsPath())) {
-            return [];
-        }
-
-        return collect(File::files($this->resultsPath()))
-            ->filter(fn ($file) => $file->getExtension() === 'json')
-            ->map(function ($file) use ($applianceId) {
-                $resultId = $file->getFilenameWithoutExtension();
-                if (! $this->isValidResultId($resultId)) {
-                    return null;
-                }
-
-                $data = $this->decodeResultFile($file->getPathname());
-                if ($data === null || (int) ($data['appliance_id'] ?? 0) !== $applianceId) {
-                    return null;
-                }
-
-                return [
-                    'result_id' => (string) ($data['result_id'] ?? $resultId),
-                    'appliance_id' => $applianceId,
-                    'flow_slug' => (string) ($data['flow_slug'] ?? ''),
-                    'flow_version' => (int) ($data['flow_version'] ?? 1),
-                    'resulting_status' => (string) ($data['resulting_status'] ?? ''),
-                    'completed_at' => $data['completed_at'] ?? null,
-                    'user_name' => $data['user_name'] ?? null,
-                ];
-            })
-            ->filter()
-            ->sortByDesc(fn (array $row) => $row['completed_at'] ?? '')
-            ->values()
+        return TestingResult::query()
+            ->where('truck_appliance_id', $applianceId)
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (TestingResult $result) => [
+                'result_id' => $result->result_id,
+                'appliance_id' => $applianceId,
+                'flow_slug' => (string) $result->flow_slug,
+                'flow_version' => (int) $result->flow_version,
+                'resulting_status' => (string) $result->resulting_status,
+                'completed_at' => optional($result->completed_at)?->utc()->toIso8601String(),
+                'user_name' => $result->user_name,
+            ])
             ->all();
     }
 
@@ -171,21 +157,19 @@ class TestingFlowRepository
             return null;
         }
 
-        $path = $this->resultsPath().'/'.$resultId.'.json';
-        if (! File::exists($path)) {
-            return null;
-        }
-
-        $data = $this->decodeResultFile($path);
-
-        return is_array($data) ? $data : null;
+        return TestingResult::query()->where('result_id', $resultId)->first()?->toPayload();
     }
 
     public function resultBelongsToAppliance(string $resultId, int $applianceId): bool
     {
-        $result = $this->getResult($resultId);
+        if (! $this->isValidResultId($resultId)) {
+            return false;
+        }
 
-        return $result !== null && (int) ($result['appliance_id'] ?? 0) === $applianceId;
+        return TestingResult::query()
+            ->where('result_id', $resultId)
+            ->where('truck_appliance_id', $applianceId)
+            ->exists();
     }
 
     /**
@@ -193,31 +177,12 @@ class TestingFlowRepository
      */
     public function latestResultForAppliance(int $applianceId): ?array
     {
-        $latest = null;
-        $latestAt = null;
-
-        if (! File::isDirectory($this->resultsPath())) {
-            return null;
-        }
-
-        foreach (File::files($this->resultsPath()) as $file) {
-            if ($file->getExtension() !== 'json') {
-                continue;
-            }
-
-            $data = $this->decodeResultFile($file->getPathname());
-            if ($data === null || (int) ($data['appliance_id'] ?? 0) !== $applianceId) {
-                continue;
-            }
-
-            $completedAt = $data['completed_at'] ?? null;
-            if ($latest === null || ($completedAt !== null && ($latestAt === null || $completedAt > $latestAt))) {
-                $latest = $data;
-                $latestAt = $completedAt;
-            }
-        }
-
-        return $latest;
+        return TestingResult::query()
+            ->where('truck_appliance_id', $applianceId)
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id')
+            ->first()
+            ?->toPayload();
     }
 
     /**
@@ -288,14 +253,17 @@ class TestingFlowRepository
         return (bool) preg_match('/^\d+-\d{14}-[a-z0-9]{4}$/', $resultId);
     }
 
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function decodeResultFile(string $path): ?array
+    private function parseTimestamp(mixed $value): ?Carbon
     {
-        $data = json_decode(File::get($path), true);
+        if ($value === null || $value === '') {
+            return null;
+        }
 
-        return is_array($data) ? $data : null;
+        try {
+            return Carbon::parse($value);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

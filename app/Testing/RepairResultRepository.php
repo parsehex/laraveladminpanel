@@ -2,32 +2,34 @@
 
 namespace App\Testing;
 
+use App\Models\RepairResult;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
 class RepairResultRepository
 {
-    public function resultsPath(): string
-    {
-        return storage_path('app/repair-results');
-    }
-
     /**
      * @param  array<string, mixed>  $payload
      */
     public function store(array $payload): string
     {
-        File::ensureDirectoryExists($this->resultsPath());
-
         $applianceId = (int) ($payload['appliance_id'] ?? 0);
-        $stamp = now()->format('YmdHis');
-        $resultId = $applianceId.'-'.$stamp.'-'.Str::lower(Str::random(4));
-        $path = $this->resultsPath().'/'.$resultId.'.json';
+        $resultId = $this->makeResultId($applianceId);
 
-        $payload['result_id'] = $resultId;
-        $payload['type'] = $payload['type'] ?? 'reevaluation';
-        File::put($path, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n");
+        RepairResult::query()->create([
+            'result_id' => $resultId,
+            'truck_appliance_id' => $applianceId,
+            'type' => $payload['type'] ?? 'reevaluation',
+            'source_testing_result_id' => $payload['source_testing_result_id'] ?? null,
+            'source_flow_slug' => $payload['source_flow_slug'] ?? null,
+            'source_flow_version' => isset($payload['source_flow_version']) ? (int) $payload['source_flow_version'] : null,
+            'resulting_status' => (string) ($payload['resulting_status'] ?? ''),
+            'answers' => is_array($payload['answers'] ?? null) ? $payload['answers'] : [],
+            'failed_steps_snapshot' => is_array($payload['failed_steps_snapshot'] ?? null) ? $payload['failed_steps_snapshot'] : [],
+            'user_id' => $payload['user_id'] ?? null,
+            'user_name' => $payload['user_name'] ?? null,
+            'completed_at' => $this->parseTimestamp($payload['completed_at'] ?? null) ?? now(),
+        ]);
 
         return $resultId;
     }
@@ -37,35 +39,19 @@ class RepairResultRepository
      */
     public function listForAppliance(int $applianceId): array
     {
-        if (! File::isDirectory($this->resultsPath())) {
-            return [];
-        }
-
-        return collect(File::files($this->resultsPath()))
-            ->filter(fn ($file) => $file->getExtension() === 'json')
-            ->map(function ($file) use ($applianceId) {
-                $resultId = $file->getFilenameWithoutExtension();
-                if (! $this->isValidResultId($resultId)) {
-                    return null;
-                }
-
-                $data = $this->decode($file->getPathname());
-                if ($data === null || (int) ($data['appliance_id'] ?? 0) !== $applianceId) {
-                    return null;
-                }
-
-                return [
-                    'result_id' => (string) ($data['result_id'] ?? $resultId),
-                    'appliance_id' => $applianceId,
-                    'resulting_status' => (string) ($data['resulting_status'] ?? ''),
-                    'completed_at' => $data['completed_at'] ?? null,
-                    'user_name' => $data['user_name'] ?? null,
-                    'source_testing_result_id' => $data['source_testing_result_id'] ?? null,
-                ];
-            })
-            ->filter()
-            ->sortByDesc(fn (array $row) => $row['completed_at'] ?? '')
-            ->values()
+        return RepairResult::query()
+            ->where('truck_appliance_id', $applianceId)
+            ->orderByDesc('completed_at')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (RepairResult $result) => [
+                'result_id' => $result->result_id,
+                'appliance_id' => $applianceId,
+                'resulting_status' => (string) $result->resulting_status,
+                'completed_at' => optional($result->completed_at)?->utc()->toIso8601String(),
+                'user_name' => $result->user_name,
+                'source_testing_result_id' => $result->source_testing_result_id,
+            ])
             ->all();
     }
 
@@ -78,16 +64,21 @@ class RepairResultRepository
             return null;
         }
 
-        $path = $this->resultsPath().'/'.$resultId.'.json';
+        $result = RepairResult::query()->where('result_id', $resultId)->first();
 
-        return File::exists($path) ? $this->decode($path) : null;
+        return $result?->toPayload();
     }
 
     public function belongsToAppliance(string $resultId, int $applianceId): bool
     {
-        $result = $this->get($resultId);
+        if (! $this->isValidResultId($resultId)) {
+            return false;
+        }
 
-        return $result !== null && (int) ($result['appliance_id'] ?? 0) === $applianceId;
+        return RepairResult::query()
+            ->where('result_id', $resultId)
+            ->where('truck_appliance_id', $applianceId)
+            ->exists();
     }
 
     /**
@@ -153,13 +144,21 @@ class RepairResultRepository
         return (bool) preg_match('/^\d+-\d{14}-[a-z0-9]{4}$/', $resultId);
     }
 
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function decode(string $path): ?array
+    private function makeResultId(int $applianceId): string
     {
-        $data = json_decode(File::get($path), true);
+        return $applianceId.'-'.now()->format('YmdHis').'-'.Str::lower(Str::random(4));
+    }
 
-        return is_array($data) ? $data : null;
+    private function parseTimestamp(mixed $value): ?Carbon
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }
