@@ -1,6 +1,6 @@
-# Laravel 11 Multi-Authentication Admin Dashboard
+# Laravel 13 Multi-Authentication Admin Dashboard
 
-A complete Laravel 11 project with multi-authentication system featuring Admin and User roles, custom authentication (no Breeze), and a responsive admin dashboard.
+A complete Laravel 13 project with multi-authentication system featuring Admin and User roles, custom authentication (no Breeze), and a responsive admin dashboard.
 
 ## Features
 
