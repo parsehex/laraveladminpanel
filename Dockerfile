@@ -36,7 +36,7 @@ RUN npm run build
 # ==================================================
 # Stage 3 - Production Image
 # ==================================================
-FROM php:8.3-fpm-bookworm
+FROM php:8.4-fpm-bookworm
 
 ENV APP_ENV=production
 
