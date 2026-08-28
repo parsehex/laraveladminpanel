@@ -7,9 +7,6 @@
     <title>@yield('title', 'Admin Dashboard')</title>
     <script>
         // Apply persisted UI prefs before render to avoid a flash of the wrong layout.
-        if (localStorage.getItem('tableDensity') === 'compact') {
-            document.documentElement.classList.add('table-density-compact');
-        }
         if (localStorage.getItem('sidebarCollapsed') === '1') {
             document.documentElement.classList.add('sidebar-collapsed');
         }
@@ -163,24 +160,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
-        // Shared table density control, used in the admin navbar
-        window.applyTableDensity = function (mode) {
-            document.documentElement.classList.toggle('table-density-compact', mode === 'compact');
-        };
-
-        window.setTableDensity = function (mode) {
-            applyTableDensity(mode);
-            localStorage.setItem('tableDensity', mode);
-        };
-
-        window.addEventListener('storage', function (event) {
-            if (event.key !== 'tableDensity') {
-                return;
-            }
-
-            applyTableDensity(event.newValue === 'compact' ? 'compact' : 'comfortable');
-        });
-
         window.adminDataTable = function (storageKey, columnConfig) {
             if (!storageKey || !columnConfig.length) {
                 return {

@@ -5,7 +5,7 @@
                 <i class="fas fa-bars"></i>
             </button>
             <div class="min-w-0">
-            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Workspace</p>
+                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Workspace</p>
                 <h2 class="truncate text-lg font-extrabold text-gray-800 sm:text-xl">@yield('page-title', 'Dashboard')</h2>
             </div>
             @hasSection('page-actions')
@@ -16,13 +16,6 @@
         </div>
         
         <div class="flex flex-shrink-0 items-center space-x-2 sm:space-x-4">
-            <x-admin.table-density-toggle />
-
-            <div class="hidden md:block rounded-xl border border-slate-200 bg-white/80 px-4 py-2 shadow-sm">
-                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Signed In</p>
-                <p class="max-w-44 truncate text-sm font-semibold text-slate-800">{{ auth()->user()->name }}</p>
-            </div>
-
             <!-- Notifications -->
             <div class="relative" x-data="adminNotifications()" x-init="init()">
                 <button type="button"

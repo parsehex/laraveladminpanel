@@ -29,3 +29,6 @@ Homestead.json
 .phpactor.json
 auth.json
 .DS_Store
+
+# Local database dumps (never commit)
+/storage/app/db-dumps/

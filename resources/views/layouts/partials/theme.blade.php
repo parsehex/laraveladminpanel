@@ -218,25 +218,6 @@
         }
     }
 
-    /* Compact table density */
-    .table-density-compact table th,
-    .table-density-compact table td {
-        padding: 0.35rem 0.6rem !important;
-        font-size: 0.78rem !important;
-    }
-
-    .table-density-compact table a[class*="h-8"],
-    .table-density-compact table button[class*="h-8"] {
-        height: 1.75rem !important;
-        width: 1.75rem !important;
-    }
-
-    .table-density-compact .appliance-status-chip,
-    .table-density-compact .status-chip {
-        padding: 0.15rem 0.5rem !important;
-        font-size: 0.7rem !important;
-    }
-
     .bg-white.rounded-lg,
     .bg-white.rounded-md {
         background: var(--ui-panel) !important;

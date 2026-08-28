@@ -16,11 +16,6 @@
         </div>
         
         <div class="flex flex-shrink-0 items-center space-x-2 sm:space-x-4">
-            <div class="hidden md:block rounded-xl border border-slate-200 bg-white/80 px-4 py-2 shadow-sm">
-                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Signed In</p>
-                <p class="max-w-44 truncate text-sm font-semibold text-slate-800">{{ auth()->user()->name }}</p>
-            </div>
-
             <div class="relative">
                 <button type="button" class="h-10 w-10 rounded-full border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-white flex items-center justify-center">
                     <i class="fas fa-bell"></i>
