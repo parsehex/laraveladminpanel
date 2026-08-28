@@ -1,7 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\ApplianceDemanufactureController;
+use App\Http\Controllers\Admin\ApplianceRepairController;
+use App\Http\Controllers\Admin\ApplianceTestingController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DeliveryController;
+use App\Http\Controllers\Admin\DemanFlowController;
 use App\Http\Controllers\Admin\DropdownController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\KitCatalogPartController;
@@ -15,10 +19,6 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SalesController;
 use App\Http\Controllers\Admin\SuggestionController;
 use App\Http\Controllers\Admin\TestingFlowController;
-use App\Http\Controllers\Admin\DemanFlowController;
-use App\Http\Controllers\Admin\ApplianceRepairController;
-use App\Http\Controllers\Admin\ApplianceDemanufactureController;
-use App\Http\Controllers\Admin\ApplianceTestingController;
 use App\Http\Controllers\Admin\TruckApplianceController;
 use App\Http\Controllers\Admin\TruckController;
 use App\Http\Controllers\Admin\UserActionController;
@@ -366,6 +366,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->middleware('permission:models.delete')
         ->name('models.destroy');
 
+    Route::post('trucks/import', [TruckController::class, 'import'])
+        ->middleware('permission:trucks.create')
+        ->name('trucks.import');
     Route::post('trucks/{truck}/appliances', [TruckApplianceController::class, 'store'])
         ->middleware('permission:appliance.create')
         ->name('trucks.appliances.store');

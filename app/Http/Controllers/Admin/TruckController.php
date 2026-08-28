@@ -14,13 +14,15 @@ use App\Support\PageSize;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class TruckController extends Controller
 {
     public function __construct()
     {
         $this->middleware('permission:trucks.view')->only(['index', 'show']);
-        $this->middleware('permission:trucks.create')->only(['create', 'store']);
+        $this->middleware('permission:trucks.create')->only(['create', 'store', 'import']);
         $this->middleware('permission:trucks.edit')->only(['edit', 'update']);
         $this->middleware('permission:trucks.delete')->only(['destroy']);
         $this->authorizeResource(Truck::class, 'truck');
@@ -91,6 +93,91 @@ class TruckController extends Controller
         ]);
 
         return redirect()->route('admin.trucks.index')->with('success', __('Truck created successfully.'));
+    }
+
+    public function import(Request $request)
+    {
+        abort_unless($request->user()?->can('trucks.create'), 403);
+
+        $data = $request->validate([
+            'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
+        ]);
+
+        $handle = fopen($data['csv_file']->getRealPath(), 'r');
+        $headers = fgetcsv($handle) ?: [];
+        $columns = $this->csvColumns($headers);
+        $imported = 0;
+        $updated = 0;
+
+        DB::transaction(function () use ($handle, $columns, $request, &$imported, &$updated) {
+            while (($row = fgetcsv($handle)) !== false) {
+                if (collect($row)->filter(fn ($value) => trim((string) $value) !== '')->isEmpty()) {
+                    continue;
+                }
+
+                $name = trim((string) $this->csvValue($row, $columns, ['name', 'truck_name'], 0));
+                if ($name === '') {
+                    continue;
+                }
+
+                $arrivalDate = trim((string) $this->csvValue($row, $columns, ['arrival_date', 'record_date', 'date'], 4));
+                $status = strtolower(trim((string) $this->csvValue($row, $columns, ['status'], 5)));
+
+                $payload = validator([
+                    'name' => $name,
+                    'units_on_truck' => (int) $this->csvValue($row, $columns, ['units_on_truck', 'units', 'count_units'], 1),
+                    'cost_of_truck' => $this->csvMoney($this->csvValue($row, $columns, ['cost_of_truck', 'purchase_price', 'cost'], 2)),
+                    'shipping_cost' => $this->csvMoney($this->csvValue($row, $columns, ['shipping_cost', 'shipping'], 3)),
+                    'arrival_date' => $arrivalDate !== '' ? $arrivalDate : now()->toDateString(),
+                    'status' => $status !== '' ? $status : 'active',
+                    'notes' => trim((string) $this->csvValue($row, $columns, ['notes'], 6)) ?: null,
+                ], [
+                    'name' => ['required', 'string', 'max:255'],
+                    'units_on_truck' => ['required', 'integer', 'min:0'],
+                    'cost_of_truck' => ['required', 'numeric', 'min:0'],
+                    'shipping_cost' => ['nullable', 'numeric', 'min:0'],
+                    'arrival_date' => ['required', 'date'],
+                    'status' => ['required', Rule::in(['active', 'inactive', 'breakdown'])],
+                    'notes' => ['nullable', 'string', 'max:5000'],
+                ])->validate();
+
+                $payload['shipping_cost'] = $payload['shipping_cost'] ?? 0;
+                $payload['updated_by'] = $request->user()->id;
+
+                $existing = Truck::query()->where('name', $payload['name'])->first();
+
+                if ($existing) {
+                    $existing->update($payload);
+                    $updated++;
+
+                    UserAction::log('edit_truck', null, [
+                        'truck_id' => $existing->id,
+                        'name' => $existing->name,
+                        'from_import' => true,
+                    ]);
+
+                    continue;
+                }
+
+                $truck = Truck::create([
+                    ...$payload,
+                    'created_by' => $request->user()->id,
+                ]);
+                $imported++;
+
+                UserAction::log('add_truck', null, [
+                    'truck_id' => $truck->id,
+                    'name' => $truck->name,
+                    'from_import' => true,
+                ]);
+            }
+        });
+
+        fclose($handle);
+
+        return redirect()
+            ->route('admin.trucks.index')
+            ->with('success', __("Import successful! Added {$imported}, updated {$updated}."));
     }
 
     public function show(Request $request, Truck $truck)
@@ -336,5 +423,36 @@ class TruckController extends Controller
                 ],
             ],
         );
+    }
+
+    private function csvColumns(array $headers): array
+    {
+        $columns = [];
+
+        foreach ($headers as $index => $header) {
+            $key = strtolower(trim((string) $header));
+            $key = preg_replace('/[^a-z0-9]+/', '_', $key);
+            $columns[trim($key, '_')] = $index;
+        }
+
+        return $columns;
+    }
+
+    private function csvValue(array $row, array $columns, array $keys, ?int $fallbackIndex = null): mixed
+    {
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $columns)) {
+                return $row[$columns[$key]] ?? null;
+            }
+        }
+
+        return $fallbackIndex !== null ? ($row[$fallbackIndex] ?? null) : null;
+    }
+
+    private function csvMoney(mixed $value): float
+    {
+        $normalized = preg_replace('/[^0-9.\-]/', '', (string) $value);
+
+        return $normalized === '' || $normalized === '-' ? 0.0 : (float) $normalized;
     }
 }

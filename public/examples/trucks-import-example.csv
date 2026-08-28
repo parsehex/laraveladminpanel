@@ -1,0 +1,4 @@
+Name,Units on Truck,Cost of Truck,Shipping Cost,Arrival Date,Status,Notes
+Route 7 Delivery,24,185000.00,2500.00,2026-09-01,active,Regional route; restock washers and dryers.
+Warehouse Transfer A,12,92000.50,0,2026-08-27,active,
+Seasonal overflow,6,45000.00,1200.00,2026-10-15,inactive,Parked until Q4 promotion.
