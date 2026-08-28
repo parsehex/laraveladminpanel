@@ -1,4 +1,4 @@
-Unit Label,Category,Sub Category,Brand,Model #,Product Name,Quantity,Our Cost,Serial #,Receiving Condition,MSRP,Fuel Type,Status,Total Parts Cost
-Unit 1,Washer,Top Load,Whirlpool,WTW5000DW1,Top Load Washer,1,175.00,CX1234567,A-Grade,399.00,Electric,Testing,15.00
-Unit 2,Dryer,Electric Dryer,Whirlpool,WED4815EW1,Electric Dryer,1,150.00,MX7654321,B-Grade,349.00,Electric,Ready,0.00
-Unit 3,Refrigerator,French Door,Samsung,RF28R7351SR,French Door Refrigerator,1,425.00,RF2026001,C-Grade,899.00,Electric,Demanufacture,40.00
+Unit Label,Category,Sub Category,Brand,Model #,Product Name,Quantity,Our Cost,Serial #,Receiving Condition,MSRP,Fuel Type,Status,Total Parts Cost,Sold Price,Sold By,Sold Date
+Unit 1,Washer,Top Load,Whirlpool,WTW5000DW1,Top Load Washer,1,175.00,CX1234567,A-Grade,399.00,Electric,Testing,15.00,,,
+Unit 2,Dryer,Electric Dryer,Whirlpool,WED4815EW1,Electric Dryer,1,150.00,MX7654321,B-Grade,349.00,Electric,Ready,0.00,,,
+Unit 3,Refrigerator,French Door,Samsung,RF28R7351SR,French Door Refrigerator,1,425.00,RF2026001,C-Grade,899.00,Electric,Sold,40.00,275.00,Ben Smith,2026-08-15 14:30

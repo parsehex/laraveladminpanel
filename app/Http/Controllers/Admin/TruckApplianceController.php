@@ -7,15 +7,15 @@ use App\Http\Requests\StoreTruckApplianceRequest;
 use App\Http\Requests\UpdateTruckApplianceRequest;
 use App\Models\Brand;
 use App\Models\Category;
-use App\Models\Subcategory;
 use App\Models\Model as ApplianceModel;
+use App\Models\Subcategory;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\UserAction;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-
 
 class TruckApplianceController extends Controller
 {
@@ -128,7 +128,7 @@ class TruckApplianceController extends Controller
 
         return response()->streamDownload(function () use ($truck) {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Unit Label', 'Category', 'Sub-Category', 'Brand', 'Model #', 'Product Name', 'Quantity', 'Our Cost', 'Serial #', 'Receiving Condition', 'MSRP', 'Fuel Type', 'Status', 'Total Parts Cost']);
+            fputcsv($handle, ['Unit Label', 'Category', 'Sub-Category', 'Brand', 'Model #', 'Product Name', 'Quantity', 'Our Cost', 'Serial #', 'Receiving Condition', 'MSRP', 'Fuel Type', 'Status', 'Total Parts Cost', 'Sold Price', 'Sold By', 'Sold Date']);
             $fallbackUnitNumber = $this->maxUnitNumber($truck) + 1;
 
             $appliances = $truck->appliances->sortBy(function (TruckAppliance $appliance) {
@@ -159,6 +159,9 @@ class TruckApplianceController extends Controller
                     $appliance->fuel_type,
                     $appliance->status,
                     $appliance->total_parts_cost,
+                    $appliance->sold_price,
+                    $appliance->sold_by,
+                    $appliance->sold_at?->format('Y-m-d H:i'),
                 ]);
             }
 
@@ -206,6 +209,13 @@ class TruckApplianceController extends Controller
                 $fuelType = trim((string) $this->csvValue($row, $columns, ['fuel_type'], 10));
                 $status = trim((string) $this->csvValue($row, $columns, ['status'], null));
                 $totalPartsCost = $this->csvMoney($this->csvValue($row, $columns, ['total_parts_cost', 'parts_cost'], null));
+                $soldPrice = $this->csvNullableMoney($this->csvValue($row, $columns, ['sold_price'], null));
+                $soldBy = trim((string) $this->csvValue($row, $columns, ['sold_by'], null));
+                $soldAtRaw = trim((string) $this->csvValue($row, $columns, ['sold_at', 'sold_date'], null));
+                $hasSoldInfo = $status === 'Sold'
+                    || $soldPrice !== null
+                    || $soldBy !== ''
+                    || $soldAtRaw !== '';
 
                 $category = $categoryName !== ''
                     ? Category::firstOrCreate(
@@ -213,11 +223,11 @@ class TruckApplianceController extends Controller
                         ['status' => 1, 'created_by' => $request->user()->id, 'updated_by' => $request->user()->id]
                     )
                     : null;
-                $categoryId = Category::where("name",$categoryName)->first(['id','name']);
+                $categoryId = Category::where('name', $categoryName)->first(['id', 'name']);
                 $subCategory = $categoryId?->id ? Subcategory::firstOrCreate(
-                    ['name' => $subcategory ,'category_id' => $categoryId?->id],
+                    ['name' => $subcategory, 'category_id' => $categoryId?->id],
                     ['status' => 1, 'created_by' => $request->user()->id, 'updated_by' => $request->user()->id]
-                ) : null ;
+                ) : null;
                 $model = $modelNumber !== ''
                     ? $this->resolveModel($modelNumber, $msrp, $productName, $brand, $category?->id, $request->user()->id)
                     : null;
@@ -225,14 +235,24 @@ class TruckApplianceController extends Controller
                 validator([
                     'msrp' => $msrp,
                     'receiving_condition' => $receivingCondition ?: null,
-                    'status' => $status ?: null,
+                    'status' => $hasSoldInfo ? 'Sold' : ($status ?: null),
                     'total_parts_cost' => $totalPartsCost,
+                    'sold_price' => $soldPrice,
+                    'sold_by' => $soldBy !== '' ? $soldBy : null,
+                    'sold_at' => $soldAtRaw !== '' ? $soldAtRaw : null,
                 ], [
                     'msrp' => ['required', 'numeric', 'min:0'],
                     'receiving_condition' => ['nullable', Rule::in(TruckAppliance::RECEIVING_CONDITIONS)],
                     'status' => ['nullable', Rule::in(InventoryController::STATUSES)],
                     'total_parts_cost' => ['nullable', 'numeric', 'min:0'],
+                    'sold_price' => ['nullable', 'numeric', 'min:0'],
+                    'sold_by' => ['nullable', 'string', 'max:255'],
+                    'sold_at' => ['nullable', 'date'],
                 ])->validate();
+
+                if ($hasSoldInfo) {
+                    $status = 'Sold';
+                }
 
                 $this->syncBrand($brand, $request->user()->id);
 
@@ -253,6 +273,18 @@ class TruckApplianceController extends Controller
                     'total_parts_cost' => $totalPartsCost,
                     'updated_by' => $request->user()->id,
                 ];
+
+                if ($hasSoldInfo) {
+                    $payload['status'] = 'Sold';
+                    $payload['sold_price'] = $soldPrice;
+                    $payload['sold_by'] = $soldBy !== '' ? $soldBy : $request->user()->name;
+                    $payload['sold_at'] = $soldAtRaw !== '' ? Carbon::parse($soldAtRaw) : now();
+                    $payload['location'] = null;
+                } else {
+                    $payload['sold_price'] = null;
+                    $payload['sold_by'] = null;
+                    $payload['sold_at'] = null;
+                }
 
                 $existing = $serialNumber !== ''
                     ? $truck->appliances()->where('serial_number', $serialNumber)->first()
@@ -469,5 +501,14 @@ class TruckApplianceController extends Controller
         $normalized = preg_replace('/[^0-9.\-]/', '', (string) $value);
 
         return $normalized === '' || $normalized === '-' ? 0.0 : (float) $normalized;
+    }
+
+    private function csvNullableMoney(mixed $value): ?float
+    {
+        if (trim((string) $value) === '') {
+            return null;
+        }
+
+        return $this->csvMoney($value);
     }
 }

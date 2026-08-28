@@ -186,7 +186,7 @@
     @canAccess('appliance.create')
     <x-admin.csv-import-modal
         :example-url="asset('examples/truck-appliances-import-example.csv')"
-        description="Upload a CSV to add or update appliances on the selected truck. Rows with a matching serial number will be updated."
+        description="Upload a CSV to add or update appliances on the selected truck. Rows with a matching serial number will be updated. Optional sold columns: Sold Price, Sold By, Sold Date (or set Status to Sold)."
     />
     @endcanAccess
 </div>

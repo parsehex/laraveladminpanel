@@ -110,6 +110,45 @@ CSV;
         ]);
     }
 
+    public function test_import_can_set_sold_info_on_appliances(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+
+        $user = User::factory()->admin()->active()->create(['name' => 'Importer User']);
+        $user->syncRoles(['admin']);
+
+        $truck = Truck::query()->create([
+            'name' => 'Sold Truck',
+            'units_on_truck' => 1,
+            'cost_of_truck' => 500,
+            'shipping_cost' => 0,
+            'arrival_date' => now()->toDateString(),
+            'status' => 'active',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $csv = <<<'CSV'
+Unit Label,Category,Sub Category,Brand,Model #,Product Name,Quantity,Our Cost,Serial #,Receiving Condition,MSRP,Fuel Type,Status,Total Parts Cost,Sold Price,Sold By,Sold Date
+Unit 1,Washer,Top Load,Whirlpool,WTW5000DW1,Top Load Washer,1,175.00,SOLD1234,A-Grade,399.00,Electric,Sold,15.00,275.00,Ben Smith,2026-08-15 14:30
+CSV;
+
+        $file = UploadedFile::fake()->createWithContent('appliances.csv', $csv);
+
+        $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
+            'csv_file' => $file,
+        ])->assertRedirect();
+
+        $appliance = TruckAppliance::query()->where('serial_number', 'SOLD1234')->first();
+
+        $this->assertNotNull($appliance);
+        $this->assertSame('Sold', $appliance->status);
+        $this->assertSame('275.00', $appliance->sold_price);
+        $this->assertSame('Ben Smith', $appliance->sold_by);
+        $this->assertSame('2026-08-15 14:30', $appliance->sold_at?->format('Y-m-d H:i'));
+        $this->assertNull($appliance->location);
+    }
+
     public function test_user_without_permission_cannot_import_appliances(): void
     {
         $this->seed(RolePermissionSeeder::class);
