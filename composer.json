@@ -54,7 +54,8 @@
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi"
         ],
-        "test:db:setup": "bash scripts/setup-test-database.sh"
+        "test:db:setup": "bash scripts/setup-test-database.sh",
+        "restore:dev": "bash scripts/restore-coworker-dump.sh"
     },
     "extra": {
         "laravel": {
