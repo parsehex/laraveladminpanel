@@ -7,41 +7,43 @@ use App\Http\Requests\Admin\StoreRoleRequest;
 use App\Http\Requests\Admin\UpdateRoleRequest;
 use App\Models\Permission;
 use App\Models\Role;
-use App\Support\PageSize;
-use Illuminate\Http\Request;
+use App\Support\DataTable;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
 
 class RoleController extends Controller
 {
-    public function index(Request $request)
+    public function index(): View
     {
         $this->authorizePermission('roles.view');
 
-        $query = Role::query()->withCount('permissions');
+        $permissionModules = $this->permissionModules();
+        $dataTable = $this->rolesIndexDataTable($permissionModules);
 
-        if ($request->filled('search')) {
-            $search = $request->string('search');
-            $query->whereLike('name', '%'.$search.'%');
-        }
+        $roles = Role::query()
+            ->with('permissions')
+            ->withCount('users')
+            ->orderBy('name')
+            ->get();
 
-        $roles = PageSize::paginate($query->orderBy('name'), $request);
-
-        return view('admin.roles.index', compact('roles'));
+        return view('admin.roles.index', [
+            'roles' => $roles,
+            'permissionModules' => $permissionModules,
+            'dataTable' => $dataTable,
+            'protectedRoleNames' => config('authorization.protected_role_names', []),
+        ]);
     }
 
-    public function create()
+    public function create(): RedirectResponse
     {
         $this->authorizePermission('roles.create');
 
-        $permissions = Permission::query()
-            ->orderBy('module_name')
-            ->orderBy('name')
-            ->get()
-            ->groupBy(fn (Permission $p) => $p->module_name ?? 'general');
-
-        return view('admin.roles.create', compact('permissions'));
+        return redirect()->route('admin.roles.index');
     }
 
-    public function store(StoreRoleRequest $request)
+    public function store(StoreRoleRequest $request): RedirectResponse
     {
         $role = Role::create([
             'name' => $request->validated('name'),
@@ -55,22 +57,14 @@ class RoleController extends Controller
         return redirect()->route('admin.roles.index')->with('success', __('Role created successfully.'));
     }
 
-    public function edit(Role $role)
+    public function edit(Role $role): RedirectResponse
     {
         $this->authorizePermission('roles.edit');
 
-        $permissions = Permission::query()
-            ->orderBy('module_name')
-            ->orderBy('name')
-            ->get()
-            ->groupBy(fn (Permission $p) => $p->module_name ?? 'general');
-
-        $role->load('permissions');
-
-        return view('admin.roles.edit', compact('role', 'permissions'));
+        return redirect()->route('admin.roles.index');
     }
 
-    public function update(UpdateRoleRequest $request, Role $role)
+    public function update(UpdateRoleRequest $request, Role $role): RedirectResponse
     {
         if (in_array($role->name, config('authorization.protected_role_names', []), true)) {
             if ($role->name !== $request->validated('name')) {
@@ -89,7 +83,7 @@ class RoleController extends Controller
         return redirect()->route('admin.roles.index')->with('success', __('Role updated successfully.'));
     }
 
-    public function destroy(Role $role)
+    public function destroy(Role $role): RedirectResponse
     {
         $this->authorizePermission('roles.delete');
 
@@ -104,5 +98,65 @@ class RoleController extends Controller
         $role->delete();
 
         return redirect()->route('admin.roles.index')->with('success', __('Role deleted successfully.'));
+    }
+
+    /**
+     * @return Collection<string, Collection<int, Permission>>
+     */
+    private function permissionModules(): Collection
+    {
+        return Permission::query()
+            ->orderBy('module_name')
+            ->orderBy('name')
+            ->get()
+            ->groupBy(fn (Permission $permission) => $permission->module_name ?? 'general');
+    }
+
+    /**
+     * @param  Collection<string, Collection<int, Permission>>  $permissionModules
+     */
+    private function rolesIndexDataTable(Collection $permissionModules): DataTable
+    {
+        $moduleColumns = $permissionModules->keys()->map(fn (string $module) => [
+            'key' => $this->permissionModuleColumnKey($module),
+            'label' => Str::headline($module),
+            'align' => 'center',
+            'sortable' => false,
+        ])->all();
+
+        return new DataTable(
+            storageKey: 'rolesIndexTableColumns',
+            defaultSort: ['name', 'asc'],
+            columns: [
+                [
+                    'key' => 'name',
+                    'label' => 'Role',
+                    'sortable' => false,
+                ],
+                [
+                    'key' => 'description',
+                    'label' => 'Description',
+                    'sortable' => false,
+                ],
+                [
+                    'key' => 'all',
+                    'label' => 'All',
+                    'align' => 'center',
+                    'sortable' => false,
+                ],
+                ...$moduleColumns,
+                [
+                    'key' => 'actions',
+                    'label' => 'Actions',
+                    'align' => 'right',
+                    'sortable' => false,
+                ],
+            ],
+        );
+    }
+
+    private function permissionModuleColumnKey(string $module): string
+    {
+        return 'module-'.Str::slug($module);
     }
 }

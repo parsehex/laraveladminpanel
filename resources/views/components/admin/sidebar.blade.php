@@ -115,12 +115,7 @@
                 || canAccess('deman-flows.manage')
                 || canAccess('user-actions.view')
                 || $isAdminUser;
-            $manageFolderActive = request()->routeIs('admin.users.*')
-                || request()->routeIs('admin.roles.*')
-                || request()->routeIs('admin.testing-flows.*')
-                || request()->routeIs('admin.deman-flows.*')
-                || request()->routeIs('admin.user-actions.*')
-                || request()->routeIs('admin.notification-settings.*');
+            $manageFolderActive = isManageNavFolderActive();
         @endphp
 
         @if($showManageFolder)

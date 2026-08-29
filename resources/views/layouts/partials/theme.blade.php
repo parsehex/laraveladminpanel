@@ -89,6 +89,25 @@
         box-shadow: inset 3px 0 0 var(--ui-accent);
     }
 
+    /* Dark pill flyouts (collapsed sidebar labels, dense table headers, etc.) */
+    .ui-flyout-tooltip {
+        white-space: nowrap;
+        background: #0f1f38;
+        color: #fff;
+        padding: 0.45rem 0.85rem;
+        border-radius: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0;
+        text-transform: none;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.28);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 120ms ease, visibility 120ms ease;
+        z-index: 60;
+    }
+
     .ui-nav-folder-children .ui-nav-link {
         margin-left: 1.15rem;
         padding-left: 1.1rem;

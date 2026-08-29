@@ -43,3 +43,17 @@ if (! function_exists('hasAllPermissions')) {
         return $user && method_exists($user, 'hasAllPermissions') && $user->hasAllPermissions($permissions);
     }
 }
+
+if (! function_exists('isManageNavFolderActive')) {
+    function isManageNavFolderActive(): bool
+    {
+        return request()->routeIs(
+            'admin.users.*',
+            'admin.roles.*',
+            'admin.testing-flows.*',
+            'admin.deman-flows.*',
+            'admin.user-actions.*',
+            'admin.notification-settings.*',
+        );
+    }
+}
