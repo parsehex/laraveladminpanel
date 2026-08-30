@@ -9,6 +9,7 @@
     $cost = $appliance->salesCost(); $profit = (float) ($appliance->sold_price ?? 0) - $cost;
     $modelNumber = $appliance->model?->model_number ?? ('#'.$appliance->id);
     $heading = trim(implode(' ', array_filter([$appliance->brand, $modelNumber])));
+    $productName = trim($appliance->product_name ?: ($appliance->model?->product_name ?? ''));
     $unitLabel = $appliance->unit_label ?: null;
     $brandName = $appliance->brand ?: null;
     $serialNumber = $appliance->serial_number ?: null;
@@ -35,8 +36,9 @@
     $statusClass = $statusStyles[$status]['class'] ?? 'status-white';
 @endphp
 
-@section('title', $heading)
-@section('page-title', $heading)
+@section('title', $productName ?: $heading)
+@section('page-title', 'Appliance Detail')
+@section('page-subtitle', $heading)
 
 @section('page-actions')
     <div class="relative" x-data="{ open: false }">
@@ -69,21 +71,26 @@
 
 @section('content')
 <div class="inventory-detail-shell text-[13px] text-gray-900">
-    <div class="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span class="status-chip {{ $statusClass }}">{{ $status }}</span>
-        @foreach($identityFields as $index => $field)
-            @if($index > 0)
-            <span class="text-gray-300">·</span>
-            @endif
-            <span class="inline-flex items-center gap-1 text-sm text-gray-600">
-                <span>{{ $field['label'] }}: {{ $field['value'] ?: '—' }}</span>
-                @if($field['value'])
-                <button type="button" data-copy-text="{{ $field['value'] }}" class="identity-copy-btn" title="{{ $field['title'] }}">
-                    <i class="fas fa-copy"></i>
-                </button>
+    <div class="identity-hero mb-4">
+        @if($productName)
+        <p class="identity-product-name">{{ $productName }}</p>
+        @endif
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span class="status-chip {{ $statusClass }}">{{ $status }}</span>
+            @foreach($identityFields as $index => $field)
+                @if($index > 0)
+                <span class="text-gray-300">·</span>
                 @endif
-            </span>
-        @endforeach
+                <span class="inline-flex items-center gap-1 text-sm text-gray-600">
+                    <span>{{ $field['label'] }}: {{ $field['value'] ?: '—' }}</span>
+                    @if($field['value'])
+                    <button type="button" data-copy-text="{{ $field['value'] }}" class="identity-copy-btn" title="{{ $field['title'] }}">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    @endif
+                </span>
+            @endforeach
+        </div>
     </div>
 
     <section class="legacy-panel">
@@ -373,6 +380,20 @@
 <style>
     .inventory-detail-shell {
         max-width: none;
+    }
+
+    .identity-hero {
+        border: 1px solid #d1d5db;
+        background: #f9fafb;
+        padding: 10px 12px;
+    }
+
+    .identity-product-name {
+        margin: 0 0 8px;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.3;
+        color: #111827;
     }
 
     .legacy-panel {

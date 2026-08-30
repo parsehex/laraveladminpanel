@@ -1,7 +1,8 @@
 @extends('layouts.admin')
 
 @section('title', 'Edit User')
-@section('page-title', 'Edit User: '.$user->name)
+@section('page-title', 'Edit Profile')
+@section('page-subtitle', $user->name)
 
 @section('page-actions')
     <a href="{{ route(\App\Support\PanelRedirector::routeNameFor(auth()->user())) }}" class="inline-flex items-center text-sm font-semibold text-slate-600 hover:text-slate-900">

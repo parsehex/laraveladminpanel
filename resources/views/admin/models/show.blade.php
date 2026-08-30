@@ -1,7 +1,8 @@
 @extends('layouts.admin')
 
 @section('title', 'Model Parts: '.$model->model_number)
-@section('page-title', 'Model Parts: '.$model->model_number)
+@section('page-title', 'Model Parts')
+@section('page-subtitle', $model->model_number)
 
 @php
     $placeholderSvg = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjEwMCIgeT0iNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjOTk5Ij5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';

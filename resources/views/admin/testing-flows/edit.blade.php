@@ -1,7 +1,8 @@
 @extends('layouts.admin')
 
 @section('title', 'Edit '.$flow['name'].' Testing Flow')
-@section('page-title', 'Edit '.$flow['name'])
+@section('page-title', 'Edit Testing Flow')
+@section('page-subtitle', $flow['name'])
 
 @section('page-actions')
     <a href="{{ route('admin.testing-flows.index') }}" class="inline-flex items-center justify-center rounded-md bg-gray-500 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-600">Back</a>

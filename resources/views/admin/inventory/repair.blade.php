@@ -1,7 +1,13 @@
 @extends('layouts.admin')
 
+@php
+    $modelNumber = $appliance->model?->model_number ?? ('#'.$appliance->id);
+    $heading = trim(implode(' ', array_filter([$appliance->brand, $modelNumber])));
+@endphp
+
 @section('title', 'Repair · '.($appliance->unit_label ?: '#'.$appliance->id))
 @section('page-title', 'Repair / Triage')
+@section('page-subtitle', $heading)
 
 @section('page-actions')
     <a href="{{ route('admin.inventory.show', $appliance) }}" class="inline-flex items-center justify-center rounded-md bg-gray-500 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-600">Back to unit</a>

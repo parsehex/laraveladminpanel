@@ -1,7 +1,8 @@
 @extends('layouts.admin')
 
 @section('title', $truck->name)
-@section('page-title', $truck->name)
+@section('page-title', 'Truck')
+@section('page-subtitle', $truck->name)
 
 @section('page-actions')
     @canAccess('trucks.edit')

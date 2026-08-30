@@ -1,7 +1,8 @@
 @extends('layouts.admin')
 
 @section('title', 'Edit truck')
-@section('page-title', 'Edit: '.$truck->name)
+@section('page-title', 'Edit Truck')
+@section('page-subtitle', $truck->name)
 
 @section('page-actions')
     <a href="{{ route('admin.trucks.index') }}" class="inline-flex items-center text-sm font-semibold text-slate-600 hover:text-slate-900">

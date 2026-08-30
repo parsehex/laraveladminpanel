@@ -5,8 +5,12 @@
                 <i class="fas fa-bars"></i>
             </button>
             <div class="min-w-0">
-                <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Workspace</p>
-                <h2 class="truncate text-lg font-extrabold text-gray-800 sm:text-xl">@yield('page-title', 'Dashboard')</h2>
+                @hasSection('page-subtitle')
+                    <p class="truncate text-sm font-semibold text-slate-600">@yield('page-title')</p>
+                    <h2 class="truncate text-lg font-extrabold text-gray-800 sm:text-xl">@yield('page-subtitle')</h2>
+                @else
+                    <h2 class="truncate text-lg font-extrabold text-gray-800 sm:text-xl">@yield('page-title', 'Dashboard')</h2>
+                @endif
             </div>
             @hasSection('page-actions')
                 <div class="flex flex-shrink-0 flex-wrap items-center gap-2">

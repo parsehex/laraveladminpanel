@@ -1,7 +1,8 @@
 @extends('layouts.admin')
 
 @section('title', 'User Details')
-@section('page-title', $user->name)
+@section('page-title', 'User Details')
+@section('page-subtitle', $user->name)
 
 @section('page-actions')
     @canAccess('users.edit')
