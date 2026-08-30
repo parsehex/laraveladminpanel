@@ -1,6 +1,6 @@
 <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-       class="ui-sidebar fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] -translate-x-full flex-shrink-0 overflow-y-auto text-white transition-transform duration-200 ease-out lg:static lg:w-64 lg:max-w-none lg:translate-x-0">
-    <div class="flex items-center h-20 px-5">
+       class="ui-sidebar fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] -translate-x-full flex-shrink-0 text-white transition-transform duration-200 ease-out lg:static lg:w-64 lg:max-w-none lg:translate-x-0 lg:min-h-0">
+    <div class="sidebar-header flex h-20 items-center px-5">
         <div class="ui-brand-mark h-11 w-11 rounded-2xl flex items-center justify-center font-extrabold text-lg">B</div>
         <div class="ml-3 min-w-0 leading-tight">
             <h1 class="text-lg font-extrabold tracking-tight text-white">Ben's Appliances</h1>

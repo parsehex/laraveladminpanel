@@ -1,5 +1,5 @@
 <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-       class="ui-sidebar fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] -translate-x-full flex-shrink-0 text-white transition-[width,transform] duration-200 ease-out lg:relative lg:w-64 lg:max-w-none lg:translate-x-0 lg:transform-none">
+       class="ui-sidebar fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] -translate-x-full flex-shrink-0 text-white transition-[width,transform] duration-200 ease-out lg:relative lg:w-64 lg:max-w-none lg:translate-x-0 lg:transform-none lg:min-h-0">
     <div class="sidebar-header flex h-20 items-center px-5">
         <a href="{{ route(\App\Support\PanelRedirector::routeNameFor(auth()->user())) }}"
            @click="sidebarOpen = false"

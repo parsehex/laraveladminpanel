@@ -60,7 +60,22 @@
             linear-gradient(180deg, rgba(33, 58, 97, 0.98) 0%, rgba(23, 42, 73, 1) 52%, rgba(15, 32, 59, 1) 100%);
         box-shadow: 18px 0 45px rgba(15, 23, 42, 0.16);
         overflow-x: hidden;
+    }
+
+    .ui-sidebar .sidebar-header {
+        flex-shrink: 0;
+        z-index: 10;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background:
+            linear-gradient(180deg, rgba(33, 58, 97, 0.98) 0%, rgba(23, 42, 73, 1) 100%);
+    }
+
+    .ui-sidebar > nav {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-x: hidden;
         overflow-y: auto;
+        overscroll-behavior: contain;
     }
 
     .ui-brand-mark {
@@ -140,6 +155,15 @@
         backdrop-filter: blur(18px);
     }
 
+    @media (max-width: 1023px) {
+        aside.ui-sidebar {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+    }
+
     /* Desktop sidebar width is set in CSS so the first paint matches the persisted state
        instead of waiting on Tailwind/Alpine. aside.ui-sidebar beats utility width classes. */
     @media (min-width: 1024px) {
@@ -149,10 +173,24 @@
             transition: width 200ms ease-out;
         }
 
+        html:not(.sidebar-collapsed) aside.ui-sidebar {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+
         html.sidebar-collapsed aside.ui-sidebar {
             width: 5rem;
             max-width: 5rem;
+            display: block;
             /* overflow-y-auto clips flyouts and, if mixed with visible, becomes auto on both axes. */
+            overflow: visible;
+        }
+
+        html.sidebar-collapsed .ui-sidebar > nav {
+            flex: none;
+            min-height: auto;
             overflow: visible;
         }
 
