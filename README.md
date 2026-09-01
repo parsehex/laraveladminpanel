@@ -20,7 +20,7 @@ A complete Laravel 13 project with multi-authentication system featuring Admin a
 1. **Clone and Install Dependencies**
 
 ```bash
-git clone https://github.com/Bensappliances/laraveladminpanel
+git clone https://github.com/parsehex/laraveladminpanel
 cd laraveladminpanel
 composer install
 ```
