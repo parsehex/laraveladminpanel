@@ -108,13 +108,12 @@
         @endcanAccess
 
         @php
-            $isAdminUser = auth()->user()?->hasRole('admin') || auth()->user()?->role === 'admin';
             $showManageFolder = canAccess('users.view')
                 || canAccess('roles.view')
                 || canAccess('testing-flows.manage')
                 || canAccess('deman-flows.manage')
                 || canAccess('user-actions.view')
-                || $isAdminUser;
+                || canAccess('notification-settings.manage');
             $manageFolderActive = isManageNavFolderActive();
         @endphp
 
@@ -155,13 +154,13 @@
                 </a>
                 @endcanAccess
 
-                @if($isAdminUser)
+                @canAccess('notification-settings.manage')
                 <a href="{{ route('admin.notification-settings.index') }}" @click="sidebarOpen = false"
                    class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.notification-settings.*') ? 'is-active' : '' }}">
                     <i class="fas fa-bell mr-3 w-5 text-center"></i>
                     <span>Notifications</span>
                 </a>
-                @endif
+                @endcanAccess
 
                 @canAccess('testing-flows.manage')
                 <a href="{{ route('admin.testing-flows.index') }}" @click="sidebarOpen = false"

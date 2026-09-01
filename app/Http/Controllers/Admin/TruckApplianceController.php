@@ -97,7 +97,7 @@ class TruckApplianceController extends Controller
         $percent = (float) $data['cost_percent'] / 100;
 
         if ($request->has('apply_all')) {
-            abort_unless($request->user()?->hasRole('admin') || $request->user()?->role === 'admin', 403);
+            abort_unless($request->user()?->can('appliance.cost-override'), 403);
 
             Truck::query()->with('appliances')->each(function (Truck $truck) use ($percent) {
                 foreach ($truck->appliances as $appliance) {

@@ -12,7 +12,7 @@ class NotificationSettingsController extends Controller
 {
     public function index(Request $request)
     {
-        abort_unless($this->userIsAdmin($request->user()), 403);
+        abort_unless($request->user()?->can('notification-settings.manage'), 403);
 
         $staffUsers = User::query()
             ->where('status', 'active')
@@ -28,7 +28,7 @@ class NotificationSettingsController extends Controller
 
     public function update(Request $request)
     {
-        abort_unless($this->userIsAdmin($request->user()), 403);
+        abort_unless($request->user()?->can('notification-settings.manage'), 403);
 
         $moduleKeys = array_keys(ModuleNotifier::modules());
 
@@ -50,14 +50,5 @@ class NotificationSettingsController extends Controller
         }
 
         return back()->with('success', __('Notification subscribers updated.'));
-    }
-
-    private function userIsAdmin(?User $user): bool
-    {
-        if (! $user) {
-            return false;
-        }
-
-        return $user->hasRole('admin') || $user->role === 'admin';
     }
 }

@@ -106,9 +106,9 @@
             <input type="number" step="0.01" name="cost_percent" placeholder="Enter % (e.g. 12)" required
                    class="w-full sm:w-80 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
             <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700">Apply to This Truck</button>
-            @if(auth()->user()?->hasRole('admin') || auth()->user()?->role === 'admin')
+            @canAccess('appliance.cost-override')
             <button type="submit" name="apply_all" value="1" class="rounded-md bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700">Apply to ALL Trucks</button>
-            @endif
+            @endcanAccess
         </form>
     </div>
     @endcanAccess

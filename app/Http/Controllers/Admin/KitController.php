@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreKitRequest;
+use App\Http\Requests\UpdateKitRequest;
 use App\Models\Kit;
 use App\Models\KitAssignment;
 use App\Models\KitCatalogPart;
@@ -88,19 +90,9 @@ class KitController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreKitRequest $request)
     {
-        $data = $request->validate([
-            'code' => ['required', 'string', 'max:255', 'unique:kits,code'],
-            'name' => ['required', 'string', 'max:255'],
-            'sop' => ['nullable', 'string'],
-            'amazon_min_level' => ['nullable', 'integer', 'min:0'],
-            'shopify_min_level' => ['nullable', 'integer', 'min:0'],
-            'part_name' => ['array'],
-            'part_name.*' => ['nullable', 'string', 'max:255'],
-            'quantity_per_kit' => ['array'],
-            'quantity_per_kit.*' => ['nullable', 'integer', 'min:1'],
-        ]);
+        $data = $request->validated();
 
         DB::transaction(function () use ($data) {
             $kit = Kit::create([
@@ -125,13 +117,9 @@ class KitController extends Controller
         return back()->with('success', __('Kit added.'));
     }
 
-    public function update(Request $request, Kit $kit)
+    public function update(UpdateKitRequest $request, Kit $kit)
     {
-        $data = $request->validate([
-            'code' => ['required', 'string', 'max:255', Rule::unique('kits', 'code')->ignore($kit->id)],
-            'name' => ['required', 'string', 'max:255'],
-            'sop' => ['nullable', 'string'],
-        ]);
+        $data = $request->validated();
 
         $newCode = strtoupper(trim($data['code']));
         $oldCode = $kit->code;

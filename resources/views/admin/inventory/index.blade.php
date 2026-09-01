@@ -211,7 +211,7 @@
                             <a href="{{ route('admin.inventory.stickers', ['ids' => $item->id]) }}" target="_blank" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" title="Print sticker">
                                 <i class="fas fa-qrcode"></i>
                             </a>
-                            @if(auth()->user()?->hasRole('admin') || auth()->user()?->role === 'admin')
+                            @canAccess('appliance.delete')
                             <form action="{{ route('admin.inventory.destroy', $item) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this appliance from inventory? This cannot be undone.');">
                                 @csrf
                                 @method('DELETE')
@@ -219,7 +219,7 @@
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
-                            @endif
+                            @endcanAccess
                         </td>
                     </tr>
                     @empty

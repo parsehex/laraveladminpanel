@@ -7,18 +7,18 @@ use App\Models\AppliancePart;
 use App\Models\InventoryStatusHistory;
 use App\Models\Part;
 use App\Models\Truck;
-use App\Support\DataTable;
-use App\Support\PageSize;
 use App\Models\TruckAppliance;
 use App\Models\UserAction;
+use App\Support\DataTable;
+use App\Support\PageSize;
 use App\Testing\RepairResultRepository;
 use App\Testing\TestingFlowRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\DB;
 
 class InventoryController extends Controller
 {
@@ -112,7 +112,7 @@ class InventoryController extends Controller
 
         $inventoryData = collect();
         $totalInventoryValue = 0.0;
-        $showAdminValue = $request->user()?->hasRole('admin') || $request->user()?->role === 'admin';
+        $showAdminValue = (bool) $request->user()?->can('inventory.value.view');
 
         if ($showAdminValue) {
             $statusExpression = "COALESCE(NULLIF(status, ''), 'Triage')";
@@ -139,7 +139,7 @@ class InventoryController extends Controller
                     ->joinSub($rankedStatusRows, 'latest_status', function ($join) {
                         $join->on('latest_status.truck_appliance_id', '=', 'truck_appliances.id');
                     })
-                    ->selectRaw("latest_status.status as current_status")
+                    ->selectRaw('latest_status.status as current_status')
                     ->selectRaw('COALESCE(truck_appliances.price, 0) as msrp')
                     ->selectRaw("CASE WHEN latest_status.status IN ('Demanufacture', 'Scrap') THEN -COALESCE(truck_appliances.total_parts_cost, 0) ELSE COALESCE(truck_appliances.total_parts_cost, 0) END as total_parts_cost")
                     ->whereNull('truck_appliances.deleted_at');
@@ -274,7 +274,7 @@ class InventoryController extends Controller
 
     public function destroy(Request $request, TruckAppliance $appliance)
     {
-        abort_unless($request->user()?->hasRole('admin') || $request->user()?->role === 'admin', 403);
+        abort_unless($request->user()?->can('appliance.delete'), 403);
 
         $truck = $appliance->truck;
         $photoCount = count($appliance->photos ?? []);
@@ -774,6 +774,7 @@ class InventoryController extends Controller
             foreach ($items as $item) {
                 $item->update(['price' => $percentage * (float) $item->msrp]);
             }
+
             return;
         }
 
@@ -843,5 +844,4 @@ class InventoryController extends Controller
             'url' => route('admin.inventory.show', $appliance),
         ];
     }
-
 }

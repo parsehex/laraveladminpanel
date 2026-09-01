@@ -7,12 +7,13 @@ use App\Models\Role;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
+use Spatie\Permission\PermissionRegistrar;
 
 class RolePermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $guard = 'web';
 
@@ -41,6 +42,7 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'models.edit', 'module_name' => 'models', 'description' => 'Edit models'],
             ['name' => 'models.delete', 'module_name' => 'models', 'description' => 'Delete models'],
             ['name' => 'inventory.view', 'module_name' => 'inventory', 'description' => 'List inventory'],
+            ['name' => 'inventory.value.view', 'module_name' => 'inventory', 'description' => 'View inventory dollar-value totals'],
             ['name' => 'testing-flows.manage', 'module_name' => 'testing flows', 'description' => 'Manage testing flow checklists'],
             ['name' => 'deman-flows.manage', 'module_name' => 'deman flows', 'description' => 'Manage demanufacture prompt checklists'],
             ['name' => 'user-actions.view', 'module_name' => 'user actions', 'description' => 'View the user action log'],
@@ -56,10 +58,12 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'appliance.create', 'module_name' => 'appliances', 'description' => 'Create truck appliances'],
             ['name' => 'appliance.edit', 'module_name' => 'appliances', 'description' => 'Edit truck appliances'],
             ['name' => 'appliance.delete', 'module_name' => 'appliances', 'description' => 'Delete truck appliances'],
+            ['name' => 'appliance.cost-override', 'module_name' => 'appliances', 'description' => 'Apply cost % override to all trucks at once'],
             ['name' => 'trucks.view', 'module_name' => 'trucks', 'description' => 'List trucks'],
             ['name' => 'trucks.create', 'module_name' => 'trucks', 'description' => 'Create trucks'],
             ['name' => 'trucks.edit', 'module_name' => 'trucks', 'description' => 'Edit trucks'],
             ['name' => 'trucks.delete', 'module_name' => 'trucks', 'description' => 'Delete trucks'],
+            ['name' => 'notification-settings.manage', 'module_name' => 'notification settings', 'description' => 'Manage module notification subscribers'],
         ];
 
         foreach ($definitions as $def) {
@@ -141,6 +145,6 @@ class RolePermissionSeeder extends Seeder
             }
         }
 
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }
 }
