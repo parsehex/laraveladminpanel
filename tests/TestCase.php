@@ -11,20 +11,30 @@ abstract class TestCase extends BaseTestCase
 
     protected function setUp(): void
     {
+        $this->refreshApplication();
+
         $this->guardAgainstDestructiveDatabase();
 
         parent::setUp();
     }
 
     /**
-     * Block tests from running migrate:fresh against a non-test database.
+     * Block RefreshDatabase from running migrate:fresh against a non-test database.
+     *
+     * Checks the resolved Laravel config (not only PHPUnit env vars) so a stale
+     * `bootstrap/cache/config.php` cannot silently point tests at the dev database.
      */
     private function guardAgainstDestructiveDatabase(): void
     {
-        $database = $_ENV['DB_DATABASE']
-            ?? $_SERVER['DB_DATABASE']
-            ?? getenv('DB_DATABASE')
-            ?: null;
+        if ($this->app->configurationIsCached()) {
+            throw new AssertionFailedError(
+                'Refusing to run tests while configuration is cached. '.
+                'Run `php artisan config:clear` first — cached config may still reference your dev database.'
+            );
+        }
+
+        $connection = (string) config('database.default');
+        $database = config("database.connections.{$connection}.database");
 
         if ($database === ':memory:') {
             return;
