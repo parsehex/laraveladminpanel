@@ -32,3 +32,4 @@ auth.json
 
 # Local database dumps (never commit)
 /storage/app/db-dumps/
+/storage/legacy-import/reports

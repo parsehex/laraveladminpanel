@@ -1,0 +1,89 @@
+<?php
+
+namespace App\Legacy;
+
+class LegacyImportContext
+{
+    public function __construct(
+        public readonly LegacyDumpReader $dump,
+        public readonly LegacyPatchLoader $patchLoader,
+        public readonly LegacyIdMapRepository $idMap,
+        public readonly LegacyCategoryResolver $categories,
+        public readonly LegacyUserResolver $users,
+        public readonly LegacyImportReport $report,
+        /** @var array<int, string> */
+        public readonly array $legacyUsernamesById = [],
+        public readonly bool $dryRun = false,
+        public readonly bool $strict = true,
+        public readonly ?int $runId = null,
+    ) {}
+
+    /**
+     * @param  array<string, mixed>  $patches
+     */
+    public static function make(
+        LegacyDumpReader $dump,
+        LegacyPatchLoader $patchLoader,
+        LegacyIdMapRepository $idMap,
+        array $patches,
+        LegacyImportReport $report,
+        bool $dryRun = false,
+        bool $strict = true,
+        ?int $runId = null,
+    ): self {
+        $legacyUsernamesById = [];
+        if ($dump->hasTable('users')) {
+            foreach ($dump->rows('users') as $row) {
+                $legacyUsernamesById[(int) $row['id']] = (string) $row['username'];
+            }
+        }
+
+        return new self(
+            dump: $dump,
+            patchLoader: $patchLoader,
+            idMap: $idMap,
+            categories: new LegacyCategoryResolver($patches['categories'] ?? []),
+            users: new LegacyUserResolver($patches['users'] ?? []),
+            report: $report,
+            legacyUsernamesById: $legacyUsernamesById,
+            dryRun: $dryRun,
+            strict: $strict,
+            runId: $runId,
+        );
+    }
+
+    public function resolveLegacyUserId(?int $legacyUserId): ?int
+    {
+        if ($legacyUserId === null || $legacyUserId <= 0) {
+            return null;
+        }
+
+        $username = $this->legacyUsernamesById[$legacyUserId] ?? null;
+        if ($username === null) {
+            return null;
+        }
+
+        return $this->users->resolve($username, $this->strict);
+    }
+
+    public function resolveApplianceId(int $legacyItemId): ?int
+    {
+        return $this->idMap->get('truck_items', $legacyItemId);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function modelPatch(): array
+    {
+        return $this->patchLoader->load('models');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function testingPatch(): array
+    {
+        return $this->patchLoader->load('testing');
+    }
+}
