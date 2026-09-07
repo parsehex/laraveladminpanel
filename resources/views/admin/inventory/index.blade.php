@@ -116,7 +116,7 @@
                 @if(request('direction'))
                     <input type="hidden" name="direction" value="{{ request('direction') }}">
                 @endif
-                <div class="lg:col-span-3">
+                <div class="lg:col-span-2">
                     <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
                     <input type="text" id="search" name="search" value="{{ request('search') }}" placeholder="Model, serial, product, location..."
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -127,6 +127,15 @@
                         <option value="">All brands</option>
                         @foreach($brands as $brand)
                         <option value="{{ $brand }}" @selected(request('brand') === $brand)>{{ $brand }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="lg:col-span-2">
+                    <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                    <select id="location" name="location" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All locations</option>
+                        @foreach($locations as $location)
+                        <option value="{{ $location }}" @selected(request('location') === $location)>{{ $location }}</option>
                         @endforeach
                     </select>
                 </div>

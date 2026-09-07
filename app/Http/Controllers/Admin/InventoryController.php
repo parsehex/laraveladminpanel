@@ -100,6 +100,14 @@ class InventoryController extends Controller
             ->orderBy('subcategory')
             ->pluck('subcategory');
 
+        $locations = TruckAppliance::query()
+            ->whereNotNull('location')
+            ->where('location', '<>', '')
+            ->selectRaw('MIN(location) as location')
+            ->groupBy(DB::raw('LOWER(TRIM(location))'))
+            ->orderBy('location')
+            ->pluck('location');
+
         $categories = TruckAppliance::query()
             ->with('category:id,name')
             ->whereNotNull('category_id')
@@ -165,6 +173,7 @@ class InventoryController extends Controller
             'brands' => $brands,
             'categories' => $categories,
             'subcategories' => $subcategories,
+            'locations' => $locations,
             'statuses' => self::STATUSES,
             'inventoryData' => $inventoryData,
             'totalInventoryValue' => $totalInventoryValue,
@@ -656,6 +665,10 @@ class InventoryController extends Controller
 
         if ($request->filled('brand')) {
             $query->whereLike('brand', '%'.$request->string('brand')->trim().'%');
+        }
+
+        if ($request->filled('location')) {
+            $query->whereLike('location', '%'.$request->string('location')->trim().'%');
         }
 
         if ($request->filled('category_id')) {
