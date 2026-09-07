@@ -15,7 +15,10 @@ class UserController extends Controller
 {
     public function __construct()
     {
-        $this->authorizeResource(User::class, 'user');
+        $this->middleware('permission:users.view')->only(['index', 'show']);
+        $this->middleware('permission:users.create')->only(['create', 'store']);
+        $this->middleware('permission:users.edit')->only(['edit', 'update']);
+        $this->middleware('permission:users.delete')->only(['destroy']);
     }
 
     public function index(Request $request)
@@ -51,7 +54,7 @@ class UserController extends Controller
         return view('admin.users.create', compact('roles'));
     }
 
-public function store(StoreUserRequest $request)
+    public function store(StoreUserRequest $request)
     {
         $data = $request->validated();
         $roleName = $data['role'];

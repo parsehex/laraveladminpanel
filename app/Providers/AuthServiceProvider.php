@@ -2,14 +2,6 @@
 
 namespace App\Providers;
 
-use App\Models\Part;
-use App\Models\Model;
-use App\Models\Truck;
-use App\Models\User;
-use App\Policies\ModelPolicy;
-use App\Policies\PartPolicy;
-use App\Policies\TruckPolicy;
-use App\Policies\UserPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -20,12 +12,7 @@ class AuthServiceProvider extends ServiceProvider
      *
      * @var array<class-string, class-string>
      */
-    protected $policies = [
-        User::class => UserPolicy::class,
-        Model::class => ModelPolicy::class,
-        Part::class => PartPolicy::class,
-        Truck::class => TruckPolicy::class,
-    ];
+    protected $policies = [];
 
     /**
      * Register any authentication / authorization services.

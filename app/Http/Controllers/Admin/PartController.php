@@ -17,15 +17,13 @@ class PartController extends Controller
     public function __construct()
     {
         $this->middleware('permission:parts.view')->only('index');
-        $this->middleware('permission:parts.create')->only('store');
+        $this->middleware('permission:parts.create')->only(['store', 'import']);
         $this->middleware('permission:parts.edit')->only('update');
         $this->middleware('permission:parts.delete')->only('destroy');
     }
 
     public function index(Request $request)
     {
-        $this->authorize('viewAny', Part::class);
-
         $dataTable = $this->partsIndexDataTable();
         $query = Part::query()->with(['models' => fn ($query) => $query->orderBy('model_number')]);
 
@@ -130,8 +128,6 @@ class PartController extends Controller
 
     public function store(StorePartRequest $request)
     {
-        $this->authorize('create', Part::class);
-
         $data = $request->safe()->except(['model_ids', 'model_ids_present']);
         $data['created_by'] = $request->user()->id;
         $data['updated_by'] = $request->user()->id;
@@ -154,8 +150,6 @@ class PartController extends Controller
 
     public function import(Request $request)
     {
-        $this->authorize('create', Part::class);
-
         $data = $request->validate([
             'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
         ]);
@@ -228,8 +222,6 @@ class PartController extends Controller
 
     public function update(UpdatePartRequest $request, Part $part)
     {
-        $this->authorize('update', $part);
-
         $data = $request->safe()->except(['model_ids', 'model_ids_present']);
         $data['updated_by'] = $request->user()->id;
 
@@ -244,8 +236,6 @@ class PartController extends Controller
 
     public function destroy(Part $part)
     {
-        $this->authorize('delete', $part);
-
         $part->delete();
 
         return redirect()->route('admin.parts.index')->with('success', __('Part deleted successfully.'));

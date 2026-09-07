@@ -25,7 +25,6 @@ class TruckController extends Controller
         $this->middleware('permission:trucks.create')->only(['create', 'store', 'import']);
         $this->middleware('permission:trucks.edit')->only(['edit', 'update']);
         $this->middleware('permission:trucks.delete')->only(['destroy']);
-        $this->authorizeResource(Truck::class, 'truck');
     }
 
     public function index(Request $request)

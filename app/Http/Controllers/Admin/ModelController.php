@@ -19,17 +19,14 @@ class ModelController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:models.view')->only(['index', 'show', 'proxyImage']);
-        $this->middleware('permission:models.create')->only('store');
-        $this->middleware('permission:models.create')->only('importScraped');
+        $this->middleware('permission:models.view')->only(['index', 'show', 'proxyImage', 'export']);
+        $this->middleware('permission:models.create')->only(['store', 'importScraped']);
         $this->middleware('permission:models.edit')->only('update');
         $this->middleware('permission:models.delete')->only('destroy');
     }
 
     public function index(Request $request)
     {
-        $this->authorize('viewAny', Model::class);
-
         $query = Model::query()
             ->with('category')
             ->withCount('parts as related_parts_count')
@@ -65,8 +62,6 @@ class ModelController extends Controller
 
     public function show(Request $request, Model $model)
     {
-        $this->authorize('view', $model);
-
         $model->load('category');
 
         $variations = collect($model->variations ?: [])
@@ -129,8 +124,6 @@ class ModelController extends Controller
 
     public function proxyImage(Request $request)
     {
-        $this->authorize('viewAny', Model::class);
-
         $url = (string) $request->query('url', '');
 
         if (! filter_var($url, FILTER_VALIDATE_URL) || ! preg_match('#^https?://#i', $url)) {
@@ -173,8 +166,6 @@ class ModelController extends Controller
 
     public function store(StoreModelRequest $request)
     {
-        $this->authorize('create', Model::class);
-
         $data = $request->validated();
         $data['msrp'] = number_format((float) ($data['msrp'] ?? 0), 2, '.', '');
         $data['status'] = 1;
@@ -196,8 +187,6 @@ class ModelController extends Controller
 
     public function export(Request $request)
     {
-        $this->authorize('viewAny', Model::class);
-
         $query = Model::query()
             ->with('category')
             ->leftJoin('categories', 'categories.id', '=', 'models.category_id')
@@ -237,8 +226,6 @@ class ModelController extends Controller
 
     public function importScraped(Request $request)
     {
-        $this->authorize('create', Model::class);
-
         $data = $request->validate([
             'base_model' => ['required', 'string', 'max:255'],
             'csv_files' => ['required', 'array'],
@@ -273,6 +260,7 @@ class ModelController extends Controller
 
             if (! $handle) {
                 $fileErrors[] = "Failed to open {$filename}";
+
                 continue;
             }
 
@@ -287,6 +275,7 @@ class ModelController extends Controller
             if (empty($headers)) {
                 $fileErrors[] = "No headers in {$filename}";
                 fclose($handle);
+
                 continue;
             }
 
@@ -386,8 +375,6 @@ class ModelController extends Controller
 
     public function update(UpdateModelRequest $request, Model $model)
     {
-        $this->authorize('update', $model);
-
         $data = $request->validated();
         $data['msrp'] = number_format((float) ($data['msrp'] ?? 0), 2, '.', '');
         $data['updated_by'] = $request->user()->id;
@@ -401,8 +388,6 @@ class ModelController extends Controller
 
     public function destroy(Request $request, Model $model)
     {
-        $this->authorize('delete', $model);
-
         UserAction::log('delete_model', null, [
             'model_id' => $model->id,
             'model_number' => $model->model_number,
