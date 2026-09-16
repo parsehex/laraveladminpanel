@@ -10,6 +10,12 @@ class TruckAppliance extends EloquentModel
 {
     use SoftDeletes;
 
+    private const STATUS_LOCATIONS = [
+        'Show Room' => 'Showroom',
+        'Scrap' => 'Scrap',
+        'Sold' => 'Sold',
+    ];
+
     public const RECEIVING_CONDITIONS = [
         'A-Grade',
         'B-Grade',
@@ -45,6 +51,17 @@ class TruckAppliance extends EloquentModel
         'updated_by',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (TruckAppliance $appliance): void {
+            $location = self::STATUS_LOCATIONS[$appliance->status] ?? null;
+
+            if ($location !== null) {
+                $appliance->location = $location;
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [
@@ -73,7 +90,7 @@ class TruckAppliance extends EloquentModel
 
     public function model(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Model::class);
+        return $this->belongsTo(Model::class);
     }
 
     public function updater(): BelongsTo
@@ -130,7 +147,7 @@ class TruckAppliance extends EloquentModel
 
     public function salesCost(): float
     {
-        //$price = 
+        // $price =
         return (float) $this->price;
 
         return $price > 0 ? $price : (float) $this->msrp * 0.7;

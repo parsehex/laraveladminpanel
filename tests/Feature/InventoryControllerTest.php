@@ -7,6 +7,7 @@ use App\Models\TruckAppliance;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class InventoryControllerTest extends TestCase
@@ -69,5 +70,97 @@ class InventoryControllerTest extends TestCase
         $response->assertViewHas('locations', function ($locations) {
             return $locations->contains('Bay 1') && $locations->contains('Bay 2');
         });
+    }
+
+    #[DataProvider('terminalStatusLocations')]
+    public function test_terminal_status_updates_populate_the_location(string $status, string $location): void
+    {
+        $user = $this->adminUser();
+        $truck = Truck::query()->create([
+            'name' => 'Status Truck',
+            'units_on_truck' => 1,
+            'cost_of_truck' => 500,
+            'shipping_cost' => 0,
+            'arrival_date' => now()->toDateString(),
+            'status' => 'active',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $appliance = TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'serial_number' => 'STATUS-1',
+            'location' => 'Bay 1',
+            'status' => 'Ready',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->patch(route('admin.inventory.status.update', $appliance), [
+            'status' => $status,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('truck_appliances', [
+            'id' => $appliance->id,
+            'status' => $status,
+            'location' => $location,
+        ]);
+        $this->assertDatabaseHas('inventory_status_histories', [
+            'truck_appliance_id' => $appliance->id,
+            'status' => $status,
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_marking_an_item_sold_from_sales_populates_the_location(): void
+    {
+        $user = $this->adminUser();
+        $truck = Truck::query()->create([
+            'name' => 'Sales Truck',
+            'units_on_truck' => 1,
+            'cost_of_truck' => 500,
+            'shipping_cost' => 0,
+            'arrival_date' => now()->toDateString(),
+            'status' => 'active',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $appliance = TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'serial_number' => 'SOLD-1',
+            'location' => 'Bay 2',
+            'status' => 'Ready',
+            'price' => 100,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('admin.sales.mark-sold'), [
+            'sale_type' => 'normal',
+            'serial_number' => 'SOLD-1',
+            'sold_price' => 250,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('truck_appliances', [
+            'id' => $appliance->id,
+            'status' => 'Sold',
+            'location' => 'Sold',
+            'sold_price' => 250,
+        ]);
+        $this->assertDatabaseHas('inventory_status_histories', [
+            'truck_appliance_id' => $appliance->id,
+            'status' => 'Sold',
+            'user_id' => $user->id,
+        ]);
+    }
+
+    public static function terminalStatusLocations(): array
+    {
+        return [
+            'showroom' => ['Show Room', 'Showroom'],
+            'scrap' => ['Scrap', 'Scrap'],
+            'sold' => ['Sold', 'Sold'],
+        ];
     }
 }
