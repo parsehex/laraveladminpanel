@@ -13,7 +13,9 @@ class TruckAppliance extends EloquentModel
     private const STATUS_LOCATIONS = [
         'Show Room' => 'Showroom',
         'Scrap' => 'Scrap',
+        'Sent To Ebay' => 'Shopify Sales Ebay Department',
         'Sold' => 'Sold',
+        'Video' => 'Studio',
     ];
 
     public const RECEIVING_CONDITIONS = [

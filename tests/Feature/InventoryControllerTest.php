@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\User;
@@ -69,6 +70,62 @@ class InventoryControllerTest extends TestCase
         $response->assertDontSee($other->serial_number);
         $response->assertViewHas('locations', function ($locations) {
             return $locations->contains('Bay 1') && $locations->contains('Bay 2');
+        });
+    }
+
+    public function test_inventory_index_can_be_sorted_by_category(): void
+    {
+        $user = $this->adminUser();
+        $truck = Truck::query()->create([
+            'name' => 'Category Sort Truck',
+            'units_on_truck' => 2,
+            'cost_of_truck' => 1000,
+            'shipping_cost' => 0,
+            'arrival_date' => now()->toDateString(),
+            'status' => 'active',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $washerCategory = Category::query()->create([
+            'name' => 'Washers',
+            'status' => 1,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $dishwasherCategory = Category::query()->create([
+            'name' => 'Dishwashers',
+            'status' => 1,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'category_id' => $washerCategory->id,
+            'serial_number' => 'CATEGORY-WASHER',
+            'status' => 'Ready',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'category_id' => $dishwasherCategory->id,
+            'serial_number' => 'CATEGORY-DISHWASHER',
+            'status' => 'Ready',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('admin.inventory.index', [
+            'sort' => 'category',
+            'direction' => 'asc',
+        ]));
+
+        $response->assertOk();
+        $response->assertViewHas('items', function ($items) {
+            return $items->pluck('serial_number')->values()->all() === [
+                'CATEGORY-DISHWASHER',
+                'CATEGORY-WASHER',
+            ];
         });
     }
 
@@ -160,7 +217,9 @@ class InventoryControllerTest extends TestCase
         return [
             'showroom' => ['Show Room', 'Showroom'],
             'scrap' => ['Scrap', 'Scrap'],
+            'sent to ebay' => ['Sent To Ebay', 'Shopify Sales Ebay Department'],
             'sold' => ['Sold', 'Sold'],
+            'video' => ['Video', 'Studio'],
         ];
     }
 }
