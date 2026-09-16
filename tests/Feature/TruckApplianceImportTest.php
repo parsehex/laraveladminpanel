@@ -146,7 +146,7 @@ CSV;
         $this->assertSame('275.00', $appliance->sold_price);
         $this->assertSame('Ben Smith', $appliance->sold_by);
         $this->assertSame('2026-08-15 14:30', $appliance->sold_at?->format('Y-m-d H:i'));
-        $this->assertNull($appliance->location);
+        $this->assertSame('Sold', $appliance->location);
     }
 
     public function test_user_without_permission_cannot_import_appliances(): void
