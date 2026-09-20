@@ -139,7 +139,7 @@
                 <h3 class="text-base font-semibold text-gray-900">Website Suggestion Box</h3>
             </div>
             <div class="p-5 space-y-5">
-                <p class="text-sm text-gray-600">Use the feedback button on any page to include the current URL automatically.</p>
+                <p class="text-sm text-gray-600">Use Submit Feedback in the footer on any page to include the current URL automatically.</p>
                 <form method="POST" action="{{ route('admin.dashboard.suggestions.store') }}" class="space-y-3">
                     @csrf
                     <input type="hidden" name="page_url" value="{{ url()->full() }}">
