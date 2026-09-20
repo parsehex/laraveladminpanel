@@ -76,6 +76,39 @@
         overflow-x: hidden;
         overflow-y: auto;
         overscroll-behavior: contain;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+    }
+
+    .ui-sidebar > nav:hover,
+    .ui-sidebar > nav:focus-within {
+        scrollbar-color: rgba(255, 255, 255, 0.38) transparent;
+    }
+
+    .ui-sidebar > nav::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .ui-sidebar > nav::-webkit-scrollbar-track {
+        background: transparent;
+        margin: 0.5rem 0;
+    }
+
+    .ui-sidebar > nav::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.22);
+        background-clip: padding-box;
+        border: 2px solid transparent;
+        border-radius: 999px;
+    }
+
+    .ui-sidebar > nav:hover::-webkit-scrollbar-thumb,
+    .ui-sidebar > nav:focus-within::-webkit-scrollbar-thumb,
+    .ui-sidebar > nav::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, 0.42);
+    }
+
+    .ui-sidebar > nav::-webkit-scrollbar-corner {
+        background: transparent;
     }
 
     .ui-brand-mark {
@@ -449,9 +482,64 @@
         max-width: 100%;
     }
 
+    .app-shell main,
+    .wide-table-scroll,
+    .overflow-x-auto {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(15, 23, 42, 0.2) transparent;
+    }
+
+    .app-shell main:hover,
+    .app-shell main:focus-within,
+    .wide-table-scroll:hover,
+    .wide-table-scroll:focus-within,
+    .overflow-x-auto:hover,
+    .overflow-x-auto:focus-within {
+        scrollbar-color: rgba(15, 23, 42, 0.36) transparent;
+    }
+
+    .app-shell main::-webkit-scrollbar,
+    .wide-table-scroll::-webkit-scrollbar,
+    .overflow-x-auto::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    .app-shell main::-webkit-scrollbar-track,
+    .wide-table-scroll::-webkit-scrollbar-track,
+    .overflow-x-auto::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .app-shell main::-webkit-scrollbar-thumb,
+    .wide-table-scroll::-webkit-scrollbar-thumb,
+    .overflow-x-auto::-webkit-scrollbar-thumb {
+        background-color: rgba(15, 23, 42, 0.2);
+        background-clip: padding-box;
+        border: 2px solid transparent;
+        border-radius: 999px;
+    }
+
+    .app-shell main:hover::-webkit-scrollbar-thumb,
+    .app-shell main:focus-within::-webkit-scrollbar-thumb,
+    .app-shell main::-webkit-scrollbar-thumb:hover,
+    .wide-table-scroll:hover::-webkit-scrollbar-thumb,
+    .wide-table-scroll:focus-within::-webkit-scrollbar-thumb,
+    .wide-table-scroll::-webkit-scrollbar-thumb:hover,
+    .overflow-x-auto:hover::-webkit-scrollbar-thumb,
+    .overflow-x-auto:focus-within::-webkit-scrollbar-thumb,
+    .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(15, 23, 42, 0.36);
+    }
+
+    .app-shell main::-webkit-scrollbar-corner,
+    .wide-table-scroll::-webkit-scrollbar-corner,
+    .overflow-x-auto::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+
     .overflow-x-auto {
         -webkit-overflow-scrolling: touch;
-        scrollbar-width: thin;
         max-width: 100%;
         overscroll-behavior-x: contain;
     }
