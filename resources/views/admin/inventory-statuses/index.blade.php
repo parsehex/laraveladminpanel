@@ -75,7 +75,9 @@
                                     <input type="text" name="auto_location" value="{{ old('auto_location', $status->auto_location) }}" maxlength="255"
                                            placeholder="None"
                                            class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                                    <button type="submit" class="px-3 py-2 rounded-md bg-slate-700 text-white text-sm font-semibold hover:bg-slate-800">Save</button>
+                                    <button type="submit" class="inline-flex h-[42px] w-[42px] flex-shrink-0 items-center justify-center rounded-md bg-slate-700 text-white hover:bg-slate-800" aria-label="Save" title="Save">
+                                        <i class="fas fa-save"></i>
+                                    </button>
                                 </form>
                             @endif
                         </td>

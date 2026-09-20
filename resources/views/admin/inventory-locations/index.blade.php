@@ -34,7 +34,9 @@
                                 <input type="hidden" name="from" value="{{ $location->location }}">
                                 <input type="text" name="to" value="{{ old('from') === $location->location ? old('to', $location->location) : $location->location }}" required maxlength="255"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                                <button type="submit" class="px-3 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">Rename</button>
+                                <button type="submit" class="inline-flex h-[42px] w-[42px] flex-shrink-0 items-center justify-center rounded-md bg-blue-600 text-white hover:bg-blue-700" aria-label="Rename" title="Rename">
+                                    <i class="fas fa-check"></i>
+                                </button>
                             </form>
                         </td>
                     </tr>
