@@ -50,6 +50,8 @@ if (! function_exists('isManageNavFolderActive')) {
         return request()->routeIs(
             'admin.users.*',
             'admin.roles.*',
+            'admin.inventory-statuses.*',
+            'admin.inventory-locations.*',
             'admin.testing-flows.*',
             'admin.deman-flows.*',
             'admin.user-actions.*',

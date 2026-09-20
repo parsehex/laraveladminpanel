@@ -110,6 +110,8 @@
         @php
             $showManageFolder = canAccess('users.view')
                 || canAccess('roles.view')
+                || canAccess('inventory-statuses.manage')
+                || canAccess('inventory-locations.manage')
                 || canAccess('testing-flows.manage')
                 || canAccess('deman-flows.manage')
                 || canAccess('user-actions.view')
@@ -159,6 +161,22 @@
                    class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.notification-settings.*') ? 'is-active' : '' }}">
                     <i class="fas fa-bell mr-3 w-5 text-center"></i>
                     <span>Notifications</span>
+                </a>
+                @endcanAccess
+
+                @canAccess('inventory-statuses.manage')
+                <a href="{{ route('admin.inventory-statuses.index') }}" @click="sidebarOpen = false"
+                   class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.inventory-statuses.*') ? 'is-active' : '' }}">
+                    <i class="fas fa-tags mr-3 w-5 text-center"></i>
+                    <span>Statuses</span>
+                </a>
+                @endcanAccess
+
+                @canAccess('inventory-locations.manage')
+                <a href="{{ route('admin.inventory-locations.index') }}" @click="sidebarOpen = false"
+                   class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.inventory-locations.*') ? 'is-active' : '' }}">
+                    <i class="fas fa-map-marker-alt mr-3 w-5 text-center"></i>
+                    <span>Locations</span>
                 </a>
                 @endcanAccess
 

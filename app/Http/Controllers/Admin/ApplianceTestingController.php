@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\InventoryStatus;
 use App\Models\TruckAppliance;
 use App\Models\UserAction;
 use App\Testing\TestingFlowCategoryMapper;
@@ -34,7 +35,7 @@ class ApplianceTestingController extends Controller
             'appliance' => $appliance,
             'flow' => $flow,
             'flowSlug' => $slug,
-            'statuses' => InventoryController::STATUSES,
+            'statuses' => InventoryStatus::activeNames(),
         ]);
     }
 
@@ -44,7 +45,7 @@ class ApplianceTestingController extends Controller
         abort_unless($appliance->status === 'Testing', 403, 'Unit must be in Testing status.');
 
         $data = $request->validate([
-            'resulting_status' => ['required', 'string', Rule::in(InventoryController::STATUSES)],
+            'resulting_status' => ['required', 'string', Rule::in(InventoryStatus::activeNames())],
             'answers_json' => ['required', 'string'],
             'flow_slug' => ['required', 'string', 'max:64'],
             'flow_version' => ['required', 'integer', 'min:1'],

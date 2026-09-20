@@ -10,14 +10,6 @@ class TruckAppliance extends EloquentModel
 {
     use SoftDeletes;
 
-    private const STATUS_LOCATIONS = [
-        'Show Room' => 'Showroom',
-        'Scrap' => 'Scrap',
-        'Sent To Ebay' => 'Shopify Sales Ebay Department',
-        'Sold' => 'Sold',
-        'Video' => 'Studio',
-    ];
-
     public const RECEIVING_CONDITIONS = [
         'A-Grade',
         'B-Grade',
@@ -56,7 +48,11 @@ class TruckAppliance extends EloquentModel
     protected static function booted(): void
     {
         static::saving(function (TruckAppliance $appliance): void {
-            $location = self::STATUS_LOCATIONS[$appliance->status] ?? null;
+            if (! $appliance->isDirty('status')) {
+                return;
+            }
+
+            $location = InventoryStatus::autoLocationFor($appliance->status);
 
             if ($location !== null) {
                 $appliance->location = $location;

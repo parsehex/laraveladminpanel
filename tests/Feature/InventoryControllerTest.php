@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\InventoryStatus;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\User;
+use Database\Seeders\InventoryStatusSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -18,6 +20,7 @@ class InventoryControllerTest extends TestCase
     private function adminUser(): User
     {
         $this->seed(RolePermissionSeeder::class);
+        $this->seed(InventoryStatusSeeder::class);
 
         $user = User::factory()->admin()->active()->create();
         $user->syncRoles(['admin']);
@@ -209,6 +212,132 @@ class InventoryControllerTest extends TestCase
             'truck_appliance_id' => $appliance->id,
             'status' => 'Sold',
             'user_id' => $user->id,
+        ]);
+    }
+
+    public function test_location_only_update_keeps_a_custom_location_on_a_mapped_status(): void
+    {
+        $user = $this->adminUser();
+        $truck = Truck::query()->create([
+            'name' => 'Location Truck',
+            'units_on_truck' => 1,
+            'cost_of_truck' => 500,
+            'shipping_cost' => 0,
+            'arrival_date' => now()->toDateString(),
+            'status' => 'active',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $appliance = TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'serial_number' => 'LOC-KEEP-1',
+            'location' => 'Bay 1',
+            'status' => 'Ready',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)->patch(route('admin.inventory.status.update', $appliance), [
+            'status' => 'Show Room',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('truck_appliances', [
+            'id' => $appliance->id,
+            'status' => 'Show Room',
+            'location' => 'Showroom',
+        ]);
+
+        $response = $this->actingAs($user)->patch(route('admin.inventory.location.update', $appliance), [
+            'location' => 'Front Floor',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('truck_appliances', [
+            'id' => $appliance->id,
+            'status' => 'Show Room',
+            'location' => 'Front Floor',
+        ]);
+    }
+
+    public function test_archived_status_stays_on_the_item_dropdown_but_is_hidden_elsewhere(): void
+    {
+        $user = $this->adminUser();
+        $archived = InventoryStatus::factory()->archived()->create(['name' => 'Legacy Hold']);
+        $truck = Truck::query()->create([
+            'name' => 'Archive Truck',
+            'units_on_truck' => 2,
+            'cost_of_truck' => 500,
+            'shipping_cost' => 0,
+            'arrival_date' => now()->toDateString(),
+            'status' => 'active',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $current = TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'serial_number' => 'ARCHIVED-CURRENT',
+            'status' => $archived->name,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $other = TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'serial_number' => 'ARCHIVED-OTHER',
+            'status' => 'Ready',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.inventory.show', $current))
+            ->assertOk()
+            ->assertViewHas('statuses', function ($statuses) use ($archived) {
+                return in_array($archived->name, $statuses, true);
+            });
+
+        $this->actingAs($user)
+            ->get(route('admin.inventory.show', $other))
+            ->assertOk()
+            ->assertViewHas('statuses', function ($statuses) use ($archived) {
+                return ! in_array($archived->name, $statuses, true);
+            });
+    }
+
+    public function test_custom_status_auto_location_applies_when_status_changes(): void
+    {
+        $user = $this->adminUser();
+        InventoryStatus::factory()->create([
+            'name' => 'Awaiting Pickup',
+            'auto_location' => 'Loading Dock',
+        ]);
+        $truck = Truck::query()->create([
+            'name' => 'Custom Status Truck',
+            'units_on_truck' => 1,
+            'cost_of_truck' => 500,
+            'shipping_cost' => 0,
+            'arrival_date' => now()->toDateString(),
+            'status' => 'active',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $appliance = TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'serial_number' => 'CUSTOM-STATUS-1',
+            'location' => 'Bay 1',
+            'status' => 'Ready',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->patch(route('admin.inventory.status.update', $appliance), [
+            'status' => 'Awaiting Pickup',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('truck_appliances', [
+            'id' => $appliance->id,
+            'status' => 'Awaiting Pickup',
+            'location' => 'Loading Dock',
         ]);
     }
 

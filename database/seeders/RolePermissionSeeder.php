@@ -45,6 +45,8 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'inventory.value.view', 'module_name' => 'inventory', 'description' => 'View inventory dollar-value totals'],
             ['name' => 'testing-flows.manage', 'module_name' => 'testing flows', 'description' => 'Manage testing flow checklists'],
             ['name' => 'deman-flows.manage', 'module_name' => 'deman flows', 'description' => 'Manage demanufacture prompt checklists'],
+            ['name' => 'inventory-statuses.manage', 'module_name' => 'inventory statuses', 'description' => 'Manage inventory statuses and auto-set locations'],
+            ['name' => 'inventory-locations.manage', 'module_name' => 'inventory locations', 'description' => 'Rename and merge inventory location labels'],
             ['name' => 'user-actions.view', 'module_name' => 'user actions', 'description' => 'View the user action log'],
             ['name' => 'sales.view', 'module_name' => 'sales', 'description' => 'List sales'],
             ['name' => 'sales.create', 'module_name' => 'sales', 'description' => 'Create sales'],

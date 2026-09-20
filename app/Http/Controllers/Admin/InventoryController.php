@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppliancePart;
+use App\Models\InventoryStatus;
 use App\Models\InventoryStatusHistory;
 use App\Models\Part;
 use App\Models\Truck;
@@ -22,24 +23,6 @@ use Illuminate\Validation\Rule;
 
 class InventoryController extends Controller
 {
-    public const STATUSES = [
-        'Triage',
-        'Testing',
-        'Repair',
-        'Breakdown',
-        'Demanufacture',
-        'Cleaning',
-        'Ready',
-        'Scrap',
-        'Show Room',
-        'Sent To Ebay',
-        'Video',
-        'Quality Control QC',
-        'Sold',
-        'Holding for parts',
-        'Holding',
-    ];
-
     public function __construct()
     {
         $this->middleware('permission:inventory.view');
@@ -176,7 +159,7 @@ class InventoryController extends Controller
             'categories' => $categories,
             'subcategories' => $subcategories,
             'locations' => $locations,
-            'statuses' => self::STATUSES,
+            'statuses' => InventoryStatus::activeNames(),
             'inventoryData' => $inventoryData,
             'totalInventoryValue' => $totalInventoryValue,
             'showAdminValue' => $showAdminValue,
@@ -326,7 +309,7 @@ class InventoryController extends Controller
 
         return view('admin.inventory.show', [
             'appliance' => $appliance,
-            'statuses' => self::STATUSES,
+            'statuses' => InventoryStatus::assignableNames($appliance->status),
             'testingResultLinks' => $testingResultLinks,
             'repairResultLinks' => $repairResultLinks,
             'testingResultCount' => count($flows->listResultsForAppliance($appliance->id)),
@@ -437,7 +420,7 @@ class InventoryController extends Controller
         abort_unless($request->user()?->can('appliance.edit'), 403);
 
         $data = $request->validate([
-            'status' => ['required', Rule::in(self::STATUSES)],
+            'status' => ['required', Rule::in(InventoryStatus::assignableNames($appliance->status))],
             'notes' => ['nullable', 'string'],
             'sold_price' => ['nullable', 'numeric', 'min:0'],
             'parts_ordered' => ['nullable', 'boolean'],

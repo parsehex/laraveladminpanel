@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\InventoryStatus;
 use App\Models\TruckAppliance;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -31,7 +32,7 @@ class StoreTruckApplianceRequest extends FormRequest
             'msrp' => ['nullable', 'numeric', 'min:0'],
             'fuel_type' => ['nullable', 'string', 'max:255'],
             'receiving_condition' => ['required', Rule::in(TruckAppliance::RECEIVING_CONDITIONS)],
-            'status' => ['nullable', Rule::in(\App\Http\Controllers\Admin\InventoryController::STATUSES)],
+            'status' => ['nullable', Rule::in(InventoryStatus::activeNames())],
             'total_parts_cost' => ['nullable', 'numeric', 'min:0'],
             'original_order_number' => ['nullable', 'string', 'max:255'],
             'return_reason' => ['nullable', 'string', 'max:255'],

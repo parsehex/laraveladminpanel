@@ -8,6 +8,8 @@ use App\Http\Controllers\Admin\DeliveryController;
 use App\Http\Controllers\Admin\DemanFlowController;
 use App\Http\Controllers\Admin\DropdownController;
 use App\Http\Controllers\Admin\InventoryController;
+use App\Http\Controllers\Admin\InventoryLocationController;
+use App\Http\Controllers\Admin\InventoryStatusController;
 use App\Http\Controllers\Admin\KitCatalogPartController;
 use App\Http\Controllers\Admin\KitController;
 use App\Http\Controllers\Admin\ModelController;
@@ -202,6 +204,26 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('kits/{kit}/sop', [KitController::class, 'sop'])
         ->middleware('permission:kits.view')
         ->name('kits.sop');
+
+    Route::get('inventory-statuses', [InventoryStatusController::class, 'index'])
+        ->middleware('permission:inventory-statuses.manage')
+        ->name('inventory-statuses.index');
+    Route::post('inventory-statuses', [InventoryStatusController::class, 'store'])
+        ->middleware('permission:inventory-statuses.manage')
+        ->name('inventory-statuses.store');
+    Route::patch('inventory-statuses/{inventoryStatus}', [InventoryStatusController::class, 'update'])
+        ->middleware('permission:inventory-statuses.manage')
+        ->name('inventory-statuses.update');
+    Route::post('inventory-statuses/{inventoryStatus}/archive', [InventoryStatusController::class, 'archive'])
+        ->middleware('permission:inventory-statuses.manage')
+        ->name('inventory-statuses.archive');
+
+    Route::get('inventory-locations', [InventoryLocationController::class, 'index'])
+        ->middleware('permission:inventory-locations.manage')
+        ->name('inventory-locations.index');
+    Route::post('inventory-locations', [InventoryLocationController::class, 'rename'])
+        ->middleware('permission:inventory-locations.manage')
+        ->name('inventory-locations.rename');
 
     Route::get('testing-flows', [TestingFlowController::class, 'index'])
         ->middleware('permission:testing-flows.manage')

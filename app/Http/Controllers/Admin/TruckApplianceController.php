@@ -7,6 +7,7 @@ use App\Http\Requests\StoreTruckApplianceRequest;
 use App\Http\Requests\UpdateTruckApplianceRequest;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\InventoryStatus;
 use App\Models\Model as ApplianceModel;
 use App\Models\Subcategory;
 use App\Models\Truck;
@@ -243,7 +244,7 @@ class TruckApplianceController extends Controller
                 ], [
                     'msrp' => ['required', 'numeric', 'min:0'],
                     'receiving_condition' => ['nullable', Rule::in(TruckAppliance::RECEIVING_CONDITIONS)],
-                    'status' => ['nullable', Rule::in(InventoryController::STATUSES)],
+                    'status' => ['nullable', Rule::in(InventoryStatus::activeNames())],
                     'total_parts_cost' => ['nullable', 'numeric', 'min:0'],
                     'sold_price' => ['nullable', 'numeric', 'min:0'],
                     'sold_by' => ['nullable', 'string', 'max:255'],

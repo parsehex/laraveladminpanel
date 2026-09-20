@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\InventoryStatus;
 use App\Testing\TestingFlowRepository;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
@@ -72,7 +73,7 @@ class TestingFlowController extends Controller
      */
     private function terminalStatuses(): array
     {
-        return collect(InventoryController::STATUSES)
+        return collect(InventoryStatus::activeNames())
             ->reject(fn (string $status) => in_array($status, ['Sold', 'Triage', 'Testing'], true))
             ->values()
             ->all();

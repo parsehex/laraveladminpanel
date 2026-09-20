@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\User;
+use Database\Seeders\InventoryStatusSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -17,6 +18,7 @@ class TruckApplianceImportTest extends TestCase
     public function test_authorized_user_can_import_appliances_from_csv(): void
     {
         $this->seed(RolePermissionSeeder::class);
+        $this->seed(InventoryStatusSeeder::class);
 
         $user = User::factory()->admin()->active()->create();
         $user->syncRoles(['admin']);
@@ -64,6 +66,7 @@ CSV;
     public function test_import_updates_existing_appliance_when_serial_number_matches(): void
     {
         $this->seed(RolePermissionSeeder::class);
+        $this->seed(InventoryStatusSeeder::class);
 
         $user = User::factory()->admin()->active()->create();
         $user->syncRoles(['admin']);
@@ -113,6 +116,7 @@ CSV;
     public function test_import_can_set_sold_info_on_appliances(): void
     {
         $this->seed(RolePermissionSeeder::class);
+        $this->seed(InventoryStatusSeeder::class);
 
         $user = User::factory()->admin()->active()->create(['name' => 'Importer User']);
         $user->syncRoles(['admin']);

@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             UserSeeder::class,
             CategorySeeder::class,
+            InventoryStatusSeeder::class,
             FlowSeeder::class,
             // TruckSeeder::class,
         ]);
