@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CustomSale;
+use App\Models\InventoryStatus;
 use App\Models\TruckAppliance;
 use App\Models\UserAction;
 use App\Support\DataTable;
@@ -265,19 +266,32 @@ class SalesController extends Controller
         $data = $request->validate([
             'sold_price' => ['required', 'numeric', 'min:0'],
             'sold_by' => ['required', 'string', 'max:255'],
+            'sold_at' => ['nullable', 'date'],
         ]);
 
-        $appliance->update([
+        $update = [
+            'status' => 'Sold',
             'sold_price' => $data['sold_price'],
             'sold_by' => $data['sold_by'],
             'updated_by' => $request->user()->id,
-        ]);
+        ];
+
+        if (! empty($data['sold_at'])) {
+            $update['sold_at'] = $data['sold_at'];
+        }
+
+        if (blank($appliance->location)) {
+            $update['location'] = InventoryStatus::autoLocationFor('Sold');
+        }
+
+        $appliance->update($update);
 
         UserAction::log('update_sold_price', $appliance->id, [
             'new_price' => $data['sold_price'],
             'new_sold_by' => $data['sold_by'],
+            'new_sold_at' => $data['sold_at'] ?? null,
         ]);
 
-        return back()->with('success', __('Sold price and sold by updated successfully.'));
+        return back()->with('success', __('Sold details updated successfully.'));
     }
 }

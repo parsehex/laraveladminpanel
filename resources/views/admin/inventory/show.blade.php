@@ -130,11 +130,11 @@
                     <dt>MSRP</dt>
                     <dd>${{ number_format($appliance->msrp, 2) }}</dd>
                 </div>
-                @if($soldPrice !== null && $appliance->sold_by !== null)
+                @if($status === 'Sold' || $soldPrice !== null)
                 <div>
                     <dt>Sold Price</dt>
-                    <dd>${{ number_format($appliance->sold_price, 2) }}</dd>
-                    <p>{{ $appliance->sold_by ?: 'Unknown' }}, {{ $appliance->sold_at?->format('Y-m-d H:i') }}</p>
+                    <dd>${{ number_format($appliance->sold_price ?? 0, 2) }}</dd>
+                    <p>{{ $appliance->sold_by ?: 'Unknown' }}@if($appliance->sold_at), {{ $appliance->sold_at->format('Y-m-d H:i') }}@endif</p>
                 </div>
                 <div>
                     <dt>Profit</dt>
@@ -253,6 +253,32 @@
             </form>
         </div>
     </section>
+
+    @if($status === 'Sold')
+    <section class="legacy-panel">
+        <div class="legacy-panel-heading bg-green-600">Edit Sold Details</div>
+        <div class="legacy-panel-body">
+            <form method="POST" action="{{ route('admin.inventory.sold-details.update', $appliance) }}" class="space-y-2">
+                @csrf
+                @method('PATCH')
+                <div>
+                    <label class="block mb-1">Sold Price (excl. taxes)</label>
+                    <input type="number" step="0.01" min="0" name="sold_price" value="{{ old('sold_price', $appliance->sold_price) }}" class="legacy-input max-w-xs" required>
+                </div>
+                <div>
+                    <label class="block mb-1">Sold By</label>
+                    <input type="text" name="sold_by" value="{{ old('sold_by', $appliance->sold_by ?: auth()->user()?->name) }}" class="legacy-input max-w-xs" required>
+                </div>
+                <div>
+                    <label class="block mb-1">Sold Date & Time</label>
+                    <input type="datetime-local" name="sold_at" value="{{ old('sold_at', $appliance->sold_at?->format('Y-m-d\TH:i')) }}" class="legacy-input max-w-xs">
+                    <p class="mt-1 text-[10px] text-gray-500">Leave blank to keep the current sold date.</p>
+                </div>
+                <button type="submit" class="legacy-btn bg-green-600">Update Sold Details</button>
+            </form>
+        </div>
+    </section>
+    @endif
     @endcanAccess
 
     <section class="legacy-panel">

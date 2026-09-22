@@ -309,6 +309,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::patch('inventory/{appliance}/status', [InventoryController::class, 'updateStatus'])
         ->middleware('permission:appliance.edit')
         ->name('inventory.status.update');
+    Route::patch('inventory/{appliance}/sold-details', [InventoryController::class, 'updateSoldDetails'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.sold-details.update');
     Route::post('inventory/{appliance}/parts', [InventoryController::class, 'storePart'])
         ->middleware('permission:appliance.edit')
         ->name('inventory.parts.store');

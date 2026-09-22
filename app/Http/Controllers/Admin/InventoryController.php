@@ -461,6 +461,43 @@ class InventoryController extends Controller
         return back()->with('success', __('Status updated successfully.'));
     }
 
+    public function updateSoldDetails(Request $request, TruckAppliance $appliance)
+    {
+        abort_unless($request->user()?->can('appliance.edit'), 403);
+        abort_unless($appliance->status === 'Sold', 404);
+
+        $data = $request->validate([
+            'sold_price' => ['required', 'numeric', 'min:0'],
+            'sold_by' => ['required', 'string', 'max:255'],
+            'sold_at' => ['nullable', 'date'],
+        ]);
+
+        $update = [
+            'status' => 'Sold',
+            'sold_price' => $data['sold_price'],
+            'sold_by' => $data['sold_by'],
+            'updated_by' => $request->user()->id,
+        ];
+
+        if (! empty($data['sold_at'])) {
+            $update['sold_at'] = $data['sold_at'];
+        }
+
+        if (blank($appliance->location)) {
+            $update['location'] = InventoryStatus::autoLocationFor('Sold');
+        }
+
+        $appliance->update($update);
+
+        UserAction::log('update_sold_price', $appliance->id, [
+            'new_price' => $data['sold_price'],
+            'new_sold_by' => $data['sold_by'],
+            'new_sold_at' => $data['sold_at'] ?? null,
+        ]);
+
+        return back()->with('success', __('Sold details updated.'));
+    }
+
     public function storePart(Request $request, TruckAppliance $appliance)
     {
         abort_unless($request->user()?->can('appliance.edit'), 403);
