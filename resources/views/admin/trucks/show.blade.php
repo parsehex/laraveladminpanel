@@ -186,13 +186,16 @@
                         <x-admin.data-table.cell column="brand" truncate title="{{ $appliance->brand ?: '-' }}">{{ $appliance->brand ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="product_name" truncate title="{{ $appliance->product_name ?: '-' }}">{{ $appliance->product_name ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="quantity" align="right">{{ $appliance->quantity ?? 1 }}</x-admin.data-table.cell>
+                        @php($partsCost = $appliance->partsCost())
                         <x-admin.data-table.cell column="total_cost" align="right">
                             ${{ number_format($appliance->totalCost(), 2) }}
+                            @if($partsCost > 0)
                             <button type="button" class="ml-1 text-blue-600" data-cost-toggle>?</button>
                             <div class="hidden mt-1 border-t border-dashed border-gray-300 pt-1 text-xs text-gray-600" data-cost-details>
                                 <strong>Our Cost:</strong> ${{ number_format((float) $appliance->price, 2) }}<br>
-                                <strong>Parts:</strong> ${{ number_format($appliance->partsCost(), 2) }}
+                                <strong>Parts:</strong> ${{ number_format($partsCost, 2) }}
                             </div>
+                            @endif
                         </x-admin.data-table.cell>
                         <x-admin.data-table.cell column="msrp" align="right">${{ number_format($appliance->msrp, 2) }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="fuel_type" truncate title="{{ $appliance->fuel_type ?: '-' }}">{{ $appliance->fuel_type ?: '-' }}</x-admin.data-table.cell>

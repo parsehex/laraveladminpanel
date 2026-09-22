@@ -132,6 +132,28 @@ class ApplianceTotalCostTest extends TestCase
         $response->assertOk();
         $response->assertSee('$225.00');
         $response->assertSee('PARTS-LIVE-1');
+        $response->assertSee('data-cost-toggle>?</button>', false);
+    }
+
+    public function test_cost_breakdown_is_hidden_when_there_are_no_parts(): void
+    {
+        $user = $this->adminUser();
+        $truck = $this->createTruck($user);
+        $appliance = $this->createAppliance($truck, $user, [
+            'price' => 180,
+            'serial_number' => 'NO-PARTS-1',
+        ]);
+
+        $show = $this->actingAs($user)->get(route('admin.inventory.show', $appliance));
+        $show->assertOk();
+        $show->assertSee('Total Cost');
+        $show->assertSee('$180.00');
+        $show->assertSee('Our Cost: $180.00 + Parts Cost: $0.00');
+
+        $index = $this->actingAs($user)->get(route('admin.inventory.index'));
+        $index->assertOk();
+        $index->assertSee('NO-PARTS-1');
+        $index->assertDontSee('data-cost-toggle>?</button>', false);
     }
 
     public function test_csv_import_ignores_manual_total_parts_cost_column(): void

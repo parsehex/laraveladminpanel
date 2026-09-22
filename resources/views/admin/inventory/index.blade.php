@@ -214,11 +214,13 @@
                         <x-admin.data-table.cell column="status_date">{{ $item->statusHistories?->sortByDesc('created_at')->first()?->created_at?->format('Y-m-d H:i:s') ?? 'N/A' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="total_cost" align="right">
                             ${{ number_format($totalCost, 2) }}
+                            @if($partsCost > 0)
                             <button type="button" class="ml-1 text-blue-600" data-cost-toggle>?</button>
                             <div class="hidden mt-1 border-t border-dashed border-gray-300 pt-1 text-xs text-gray-600" data-cost-details>
                                 <strong>Our Cost:</strong> ${{ number_format((float) $item->price, 2) }}<br>
                                 <strong>Parts:</strong> ${{ number_format($partsCost, 2) }}
                             </div>
+                            @endif
                         </x-admin.data-table.cell>
                         <x-admin.data-table.cell column="sold_price" align="right">${{ number_format((float) ($item->sold_price ?? 0), 2) }}</x-admin.data-table.cell>
                         <td class="sticky-action px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
