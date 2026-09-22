@@ -120,8 +120,8 @@ class TruckApplianceController extends Controller
     {
         abort_unless($request->user()?->can('trucks.view'), 403);
 
-        $truck->load(['appliances.category', 'appliances.model']);
-        $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $truck->name ?: 'unknown_truck');
+        $truck->load(['appliances.category', 'appliances.model', 'appliances.parts']);
+        $safeName = preg_replace('/[^a-zA-Z0-9_-]+/', '_', $truck->name ?: 'unknown_truck');
 
         $headers = [
             'Content-Type' => 'text/csv',
@@ -159,7 +159,7 @@ class TruckApplianceController extends Controller
                     $appliance->msrp,
                     $appliance->fuel_type,
                     $appliance->status,
-                    $appliance->total_parts_cost,
+                    $appliance->partsCost(),
                     $appliance->sold_price,
                     $appliance->sold_by,
                     $appliance->sold_at?->format('Y-m-d H:i'),
@@ -209,7 +209,6 @@ class TruckApplianceController extends Controller
                 $msrp = $this->csvMoney($this->csvValue($row, $columns, ['msrp'], 9));
                 $fuelType = trim((string) $this->csvValue($row, $columns, ['fuel_type'], 10));
                 $status = trim((string) $this->csvValue($row, $columns, ['status'], null));
-                $totalPartsCost = $this->csvMoney($this->csvValue($row, $columns, ['total_parts_cost', 'parts_cost'], null));
                 $soldPrice = $this->csvNullableMoney($this->csvValue($row, $columns, ['sold_price'], null));
                 $soldBy = trim((string) $this->csvValue($row, $columns, ['sold_by'], null));
                 $soldAtRaw = trim((string) $this->csvValue($row, $columns, ['sold_at', 'sold_date'], null));
@@ -237,7 +236,6 @@ class TruckApplianceController extends Controller
                     'msrp' => $msrp,
                     'receiving_condition' => $receivingCondition ?: null,
                     'status' => $hasSoldInfo ? 'Sold' : ($status ?: null),
-                    'total_parts_cost' => $totalPartsCost,
                     'sold_price' => $soldPrice,
                     'sold_by' => $soldBy !== '' ? $soldBy : null,
                     'sold_at' => $soldAtRaw !== '' ? $soldAtRaw : null,
@@ -245,7 +243,6 @@ class TruckApplianceController extends Controller
                     'msrp' => ['required', 'numeric', 'min:0'],
                     'receiving_condition' => ['nullable', Rule::in(TruckAppliance::RECEIVING_CONDITIONS)],
                     'status' => ['nullable', Rule::in(InventoryStatus::activeNames())],
-                    'total_parts_cost' => ['nullable', 'numeric', 'min:0'],
                     'sold_price' => ['nullable', 'numeric', 'min:0'],
                     'sold_by' => ['nullable', 'string', 'max:255'],
                     'sold_at' => ['nullable', 'date'],
@@ -271,7 +268,6 @@ class TruckApplianceController extends Controller
                     'fuel_type' => $fuelType ?: null,
                     'receiving_condition' => $receivingCondition ?: null,
                     'status' => $status ?: null,
-                    'total_parts_cost' => $totalPartsCost,
                     'updated_by' => $request->user()->id,
                 ];
 
@@ -295,7 +291,10 @@ class TruckApplianceController extends Controller
                     $existing->update($payload);
                     $updated++;
                 } else {
-                    $truck->appliances()->create([...$payload, 'created_by' => $request->user()->id]);
+                    $truck->appliances()->create([
+                        ...$payload,
+                        'created_by' => $request->user()->id,
+                    ]);
                     $imported++;
                 }
             }
@@ -365,7 +364,6 @@ class TruckApplianceController extends Controller
             'msrp' => $msrp,
             'receiving_condition' => $data['receiving_condition'],
             'fuel_type' => $fuelType ?: 'N/A',
-            'total_parts_cost' => (float) ($data['total_parts_cost'] ?? 0),
             'original_order_number' => trim((string) ($data['original_order_number'] ?? '')) ?: null,
             'return_reason' => trim((string) ($data['return_reason'] ?? '')) ?: null,
             'return_problems' => trim((string) ($data['return_problems'] ?? '')) ?: null,

@@ -2,11 +2,11 @@
 
 @php
     $status = $appliance->status ?: 'Triage';
-    $baseCost = (float) $appliance->msrp;
-    $partsCost = $appliance->signedPartsCost();
-    $finalCost = $baseCost + $partsCost;
+    $partsCost = $appliance->partsCost();
+    $totalCost = $appliance->totalCost();
     $soldPrice = $appliance->sold_price !== null ? (float) $appliance->sold_price : null;
-    $cost = $appliance->salesCost(); $profit = (float) ($appliance->sold_price ?? 0) - $cost;
+    $cost = $appliance->salesCost();
+    $profit = (float) ($appliance->sold_price ?? 0) - $cost;
     $modelNumber = $appliance->model?->model_number ?? ('#'.$appliance->id);
     $heading = trim(implode(' ', array_filter([$appliance->brand, $modelNumber])));
     $productName = trim($appliance->product_name ?: ($appliance->model?->product_name ?? ''));
@@ -123,12 +123,8 @@
             <dl class="appliance-costs">
                 <div>
                     <dt>Total Cost</dt>
-                    <dd>${{ number_format(0, 2) }}</dd>
-                </div>
-                <div>
-                    <dt>Final Cost Valuation</dt>
-                    <dd>${{ number_format($appliance->price, 2) }}</dd>
-                    <p>Our Cost: ${{ number_format($appliance->price, 2) }} {{ $partsCost < 0 ? '-' : '+' }} Parts Cost: ${{ number_format(abs($partsCost), 2) }}</p>
+                    <dd>${{ number_format($totalCost, 2) }}</dd>
+                    <p>Our Cost: ${{ number_format($appliance->price, 2) }} + Parts Cost: ${{ number_format($partsCost, 2) }}</p>
                 </div>
                 <div>
                     <dt>MSRP</dt>
@@ -143,7 +139,7 @@
                 <div>
                     <dt>Profit</dt>
                     <dd>${{ number_format($profit, 2) }}</dd>
-                    <p>Sold Price - Final Cost Valuation</p>
+                    <p>Sold Price - Our Cost</p>
                 </div>
                 @endif
             </dl>

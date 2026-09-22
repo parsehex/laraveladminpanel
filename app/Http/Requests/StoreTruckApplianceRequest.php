@@ -33,7 +33,6 @@ class StoreTruckApplianceRequest extends FormRequest
             'fuel_type' => ['nullable', 'string', 'max:255'],
             'receiving_condition' => ['required', Rule::in(TruckAppliance::RECEIVING_CONDITIONS)],
             'status' => ['nullable', Rule::in(InventoryStatus::activeNames())],
-            'total_parts_cost' => ['nullable', 'numeric', 'min:0'],
             'original_order_number' => ['nullable', 'string', 'max:255'],
             'return_reason' => ['nullable', 'string', 'max:255'],
             'return_problems' => ['nullable', 'string', 'max:5000'],

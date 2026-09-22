@@ -194,7 +194,8 @@
                     @forelse($items as $item)
                     @php
                         $status = $item->status ?: 'Triage';
-                        $totalCost = $item->totalCostUsing((float) $item->msrp);
+                        $partsCost = $item->partsCost();
+                        $totalCost = $item->totalCost();
                         $statusClass = $statusClasses[$status] ?? 'appliance-status-white';
                     @endphp
                     <tr class="appliance-status-row {{ $statusClass }}">
@@ -211,7 +212,14 @@
                         <x-admin.data-table.cell column="subcategory" truncate title="{{ $item->subcategory ?: '-' }}">{{ $item->subcategory ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="location" truncate title="{{ $item->location ?: '-' }}">{{ $item->location ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="status_date">{{ $item->statusHistories?->sortByDesc('created_at')->first()?->created_at?->format('Y-m-d H:i:s') ?? 'N/A' }}</x-admin.data-table.cell>
-                        <x-admin.data-table.cell column="total_cost" align="right">${{ number_format($totalCost, 2) }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="total_cost" align="right">
+                            ${{ number_format($totalCost, 2) }}
+                            <button type="button" class="ml-1 text-blue-600" data-cost-toggle>?</button>
+                            <div class="hidden mt-1 border-t border-dashed border-gray-300 pt-1 text-xs text-gray-600" data-cost-details>
+                                <strong>Our Cost:</strong> ${{ number_format((float) $item->price, 2) }}<br>
+                                <strong>Parts:</strong> ${{ number_format($partsCost, 2) }}
+                            </div>
+                        </x-admin.data-table.cell>
                         <x-admin.data-table.cell column="sold_price" align="right">${{ number_format((float) ($item->sold_price ?? 0), 2) }}</x-admin.data-table.cell>
                         <td class="sticky-action px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                             <a href="{{ route('admin.inventory.show', $item) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100" title="View details">
@@ -416,6 +424,11 @@
 
     $('[data-print-page-stickers]').on('click', function () {
         openStickerPrint(currentPageInventoryIds());
+    });
+
+    $('[data-cost-toggle]').on('click', function (event) {
+        event.stopPropagation();
+        $(this).siblings('[data-cost-details]').toggleClass('hidden');
     });
 </script>
 @endpush

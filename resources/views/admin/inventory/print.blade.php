@@ -226,12 +226,13 @@
 <body>
     @forelse($items as $item)
         @php
-            $baseCost = (float) ($item->msrp ?? 0);
-            $partsCost = $item->signedPartsCost();
-            $inventoryValue = $baseCost + $partsCost;
-            $ourPrice = $baseCost * 0.7;
+            $ourCost = (float) ($item->price ?? 0);
+            $partsCost = $item->partsCost();
+            $inventoryValue = $item->totalCost();
+            $msrp = (float) ($item->msrp ?? 0);
+            $ourPrice = $msrp * 0.7;
             $soldPrice = $item->sold_price !== null ? (float) $item->sold_price : null;
-            $profit = $soldPrice !== null ? $soldPrice - $inventoryValue : null;
+            $profit = $soldPrice !== null ? $soldPrice - $item->salesCost() : null;
             $latestHistory = $item->statusHistories->sortByDesc('created_at')->first();
             $grade = $item->receiving_condition ? str_replace('-Grade', '', $item->receiving_condition) : 'N/A';
         @endphp
@@ -297,10 +298,10 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>Base appliance MSRP / cost basis</td>
+                                    <td>Our Cost (allocated truck cost)</td>
                                     <td>{{ $item->model?->model_number ?? '-' }}</td>
                                     <td>Receiving</td>
-                                    <td class="money">${{ number_format($baseCost, 2) }}</td>
+                                    <td class="money">${{ number_format($ourCost, 2) }}</td>
                                 </tr>
                                 @forelse($item->parts as $part)
                                     <tr>
@@ -318,8 +319,12 @@
                                     </tr>
                                 @endforelse
                                 <tr class="total-row">
-                                    <td colspan="3"><strong>Total Inventory Value</strong></td>
+                                    <td colspan="3"><strong>Total Cost</strong></td>
                                     <td class="money">${{ number_format($inventoryValue, 2) }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3"><strong>MSRP</strong></td>
+                                    <td class="money">${{ number_format($msrp, 2) }}</td>
                                 </tr>
                                 <tr>
                                     <td colspan="3"><strong>Suggested Our Price (70% MSRP)</strong></td>

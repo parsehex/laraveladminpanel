@@ -33,7 +33,6 @@ class TruckAppliance extends EloquentModel
         'receiving_condition',
         'status',
         'location',
-        'total_parts_cost',
         'sold_price',
         'sold_by',
         'sold_at',
@@ -69,7 +68,6 @@ class TruckAppliance extends EloquentModel
             'quantity' => 'integer',
             'price' => 'decimal:2',
             'msrp' => 'decimal:2',
-            'total_parts_cost' => 'decimal:2',
             'sold_price' => 'decimal:2',
             'sold_at' => 'datetime',
             'photos' => 'array',
@@ -126,28 +124,36 @@ class TruckAppliance extends EloquentModel
         return $this->hasMany(RepairDiagnosis::class, 'truck_appliance_id');
     }
 
-    public function usesNegativePartsCost(): bool
+    public function partsCost(): float
     {
-        return in_array($this->status, ['Demanufacture', 'Scrap'], true);
+        if (array_key_exists('parts_sum_cost', $this->attributes)) {
+            return (float) ($this->attributes['parts_sum_cost'] ?? 0);
+        }
+
+        if ($this->relationLoaded('parts')) {
+            return (float) $this->parts->sum('cost');
+        }
+
+        return (float) $this->parts()->sum('cost');
     }
 
-    public function signedPartsCost(): float
+    public function totalCost(): float
     {
-        $partsCost = (float) $this->total_parts_cost;
-
-        return $this->usesNegativePartsCost() ? -$partsCost : $partsCost;
-    }
-
-    public function totalCostUsing(float $baseCost): float
-    {
-        return $baseCost + $this->signedPartsCost();
+        return (float) $this->price + $this->partsCost();
     }
 
     public function salesCost(): float
     {
-        // $price =
         return (float) $this->price;
+    }
 
-        return $price > 0 ? $price : (float) $this->msrp * 0.7;
+    public static function partsCostSql(string $applianceTable = 'truck_appliances'): string
+    {
+        return "COALESCE((SELECT SUM(cost) FROM appliance_parts WHERE appliance_parts.truck_appliance_id = {$applianceTable}.id), 0)";
+    }
+
+    public static function totalCostSql(string $applianceTable = 'truck_appliances'): string
+    {
+        return '(COALESCE('.$applianceTable.'.price, 0) + '.self::partsCostSql($applianceTable).')';
     }
 }

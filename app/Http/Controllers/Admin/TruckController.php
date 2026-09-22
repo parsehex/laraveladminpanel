@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateTruckRequest;
 use App\Models\Category;
 use App\Models\Model as ApplianceModel;
 use App\Models\Truck;
+use App\Models\TruckAppliance;
 use App\Models\UserAction;
 use App\Support\DataTable;
 use App\Support\PageSize;
@@ -188,7 +189,9 @@ class TruckController extends Controller
 
         $dataTable = $this->truckAppliancesDataTable();
 
-        $appliancesQuery = $truck->appliances()->with(['category', 'model']);
+        $appliancesQuery = $truck->appliances()
+            ->with(['category', 'model'])
+            ->withSum('parts as parts_sum_cost', 'cost');
         $dataTable->applySorting($appliancesQuery, $request);
 
         $appliances = PageSize::paginate(
@@ -200,6 +203,7 @@ class TruckController extends Controller
 
         $allAppliances = $truck->appliances()
             ->with(['category', 'model'])
+            ->withSum('parts as parts_sum_cost', 'cost')
             ->orderBy('status')
             ->orderBy('id')
             ->get();
@@ -393,7 +397,7 @@ class TruckController extends Controller
                     'label' => 'Total Cost',
                     'align' => 'right',
                     'sort' => fn (Builder|Relation $query, string $direction) => $query->orderByRaw(
-                        '(COALESCE(truck_appliances.price, 0) + CASE WHEN COALESCE(truck_appliances.status, \'\') IN (\'Demanufacture\', \'Scrap\') THEN -COALESCE(truck_appliances.total_parts_cost, 0) ELSE COALESCE(truck_appliances.total_parts_cost, 0) END) '.$direction
+                        TruckAppliance::totalCostSql().' '.$direction
                     ),
                 ],
                 [
@@ -418,7 +422,9 @@ class TruckController extends Controller
                     'key' => 'total_parts_cost',
                     'label' => 'Total Parts Cost',
                     'align' => 'right',
-                    'sort' => 'truck_appliances.total_parts_cost',
+                    'sort' => fn (Builder|Relation $query, string $direction) => $query->orderByRaw(
+                        TruckAppliance::partsCostSql().' '.$direction
+                    ),
                 ],
             ],
         );

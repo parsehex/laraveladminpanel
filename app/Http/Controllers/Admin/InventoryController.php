@@ -33,7 +33,8 @@ class InventoryController extends Controller
         $dataTable = $this->inventoryDataTable();
 
         $query = TruckAppliance::query()
-            ->with(['truck', 'category', 'model', 'statusHistories']);
+            ->with(['truck', 'category', 'model', 'statusHistories'])
+            ->withSum('parts as parts_sum_cost', 'cost');
 
         $this->applyFilters($query, $request);
         $dataTable->applySorting($query, $request);
@@ -43,6 +44,7 @@ class InventoryController extends Controller
         if ($request->boolean('print')) {
             $printQuery = TruckAppliance::query()
                 ->with(['truck', 'category', 'model', 'updater', 'parts.part', 'parts.user', 'statusHistories.user'])
+                ->withSum('parts as parts_sum_cost', 'cost')
                 ->latest('id');
 
             if ($request->filled('ids')) {
@@ -111,10 +113,12 @@ class InventoryController extends Controller
             $statusExpression = "COALESCE(NULLIF(status, ''), 'Triage')";
             $costDate = $request->date('cost_date');
 
+            $partsCostSql = TruckAppliance::partsCostSql('truck_appliances');
+
             $baseInventoryRows = DB::table('truck_appliances')
                 ->selectRaw("$statusExpression as current_status")
-                ->selectRaw('COALESCE(price, 0) as msrp')
-                ->selectRaw("CASE WHEN $statusExpression IN ('Demanufacture', 'Scrap') THEN -COALESCE(total_parts_cost, 0) ELSE COALESCE(total_parts_cost, 0) END as total_parts_cost")
+                ->selectRaw('COALESCE(price, 0) as base_cost')
+                ->selectRaw("{$partsCostSql} as total_parts_cost")
                 ->whereNull('deleted_at');
 
             if ($costDate) {
@@ -133,8 +137,8 @@ class InventoryController extends Controller
                         $join->on('latest_status.truck_appliance_id', '=', 'truck_appliances.id');
                     })
                     ->selectRaw('latest_status.status as current_status')
-                    ->selectRaw('COALESCE(truck_appliances.price, 0) as msrp')
-                    ->selectRaw("CASE WHEN latest_status.status IN ('Demanufacture', 'Scrap') THEN -COALESCE(truck_appliances.total_parts_cost, 0) ELSE COALESCE(truck_appliances.total_parts_cost, 0) END as total_parts_cost")
+                    ->selectRaw('COALESCE(truck_appliances.price, 0) as base_cost')
+                    ->selectRaw("{$partsCostSql} as total_parts_cost")
                     ->whereNull('truck_appliances.deleted_at');
             }
 
@@ -142,9 +146,9 @@ class InventoryController extends Controller
                 ->fromSub($baseInventoryRows, 'inventory_rows')
                 ->select('current_status')
                 ->selectRaw('COUNT(*) as unit_count')
-                ->selectRaw('SUM(msrp) as total_base_cost')
+                ->selectRaw('SUM(base_cost) as total_base_cost')
                 ->selectRaw('SUM(total_parts_cost) as total_parts_cost')
-                ->selectRaw('SUM(msrp + total_parts_cost) as total_inventory_value')
+                ->selectRaw('SUM(base_cost + total_parts_cost) as total_inventory_value')
                 ->whereNotIn('current_status', ['Sold', 'Show Room'])
                 ->groupBy('current_status')
                 ->orderBy('current_status')
@@ -496,7 +500,6 @@ class InventoryController extends Controller
             ]);
 
             $appliance->update([
-                'total_parts_cost' => $appliance->parts()->sum('cost'),
                 'updated_by' => $request->user()->id,
             ]);
         });
@@ -592,7 +595,6 @@ class InventoryController extends Controller
 
         $part->delete();
         $appliance->update([
-            'total_parts_cost' => $appliance->parts()->sum('cost'),
             'updated_by' => $request->user()->id,
         ]);
 
@@ -749,7 +751,7 @@ class InventoryController extends Controller
                     'label' => 'Total Cost',
                     'align' => 'right',
                     'sort' => fn (Builder $query, string $direction) => $query->orderByRaw(
-                        '(COALESCE(truck_appliances.msrp, 0) + CASE WHEN COALESCE(truck_appliances.status, \'\') IN (\'Demanufacture\', \'Scrap\') THEN -COALESCE(truck_appliances.total_parts_cost, 0) ELSE COALESCE(truck_appliances.total_parts_cost, 0) END) '.$direction
+                        TruckAppliance::totalCostSql().' '.$direction
                     ),
                 ],
                 [

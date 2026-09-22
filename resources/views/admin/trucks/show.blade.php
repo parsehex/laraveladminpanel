@@ -187,20 +187,17 @@
                         <x-admin.data-table.cell column="product_name" truncate title="{{ $appliance->product_name ?: '-' }}">{{ $appliance->product_name ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="quantity" align="right">{{ $appliance->quantity ?? 1 }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="total_cost" align="right">
-                            ${{ number_format($appliance->totalCostUsing((float) $appliance->price), 2) }}
+                            ${{ number_format($appliance->totalCost(), 2) }}
                             <button type="button" class="ml-1 text-blue-600" data-cost-toggle>?</button>
                             <div class="hidden mt-1 border-t border-dashed border-gray-300 pt-1 text-xs text-gray-600" data-cost-details>
                                 <strong>Our Cost:</strong> ${{ number_format((float) $appliance->price, 2) }}<br>
-                                <strong>Parts:</strong> ${{ number_format($appliance->signedPartsCost(), 2) }}
-                                @if($appliance->usesNegativePartsCost())
-                                    <br><span class="font-semibold text-red-700">Demanufacture/Scrap parts cost is subtracted.</span>
-                                @endif
+                                <strong>Parts:</strong> ${{ number_format($appliance->partsCost(), 2) }}
                             </div>
                         </x-admin.data-table.cell>
                         <x-admin.data-table.cell column="msrp" align="right">${{ number_format($appliance->msrp, 2) }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="fuel_type" truncate title="{{ $appliance->fuel_type ?: '-' }}">{{ $appliance->fuel_type ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="receiving_condition" truncate title="{{ $appliance->receiving_condition ?: '-' }}">{{ $appliance->receiving_condition ?: '-' }}</x-admin.data-table.cell>
-                        <x-admin.data-table.cell column="total_parts_cost" align="right">${{ number_format($appliance->total_parts_cost, 2) }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="total_parts_cost" align="right">${{ number_format($appliance->partsCost(), 2) }}</x-admin.data-table.cell>
                         <td class="sticky-action px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex items-center justify-end gap-1.5">
                             @canAccess('appliance.edit')

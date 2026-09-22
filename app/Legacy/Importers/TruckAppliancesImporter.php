@@ -56,7 +56,6 @@ class TruckAppliancesImporter implements LegacyTableImporter
                 'receiving_condition' => $row['receiving_condition'],
                 'status' => $row['current_status'],
                 'location' => $this->nullableString($row['location'] ?? null),
-                'total_parts_cost' => LegacyCopyValue::decimal($row['total_parts_cost'] ?? null) ?? 0,
                 'sold_price' => LegacyCopyValue::decimal($row['sold_price'] ?? null),
                 'sold_by' => $this->nullableString($row['sold_by'] ?? null),
                 'sold_at' => $row['sold_date'],

@@ -28,7 +28,7 @@ class DashboardController extends Controller
                         ->orWhere('status', '')
                         ->orWhereNotIn('status', ['Sold', 'Show Room']);
                 })
-                ->selectRaw("SUM(COALESCE(msrp, 0) + CASE WHEN status IN ('Demanufacture', 'Scrap') THEN -COALESCE(total_parts_cost, 0) ELSE COALESCE(total_parts_cost, 0) END) as value")
+                ->selectRaw('SUM('.TruckAppliance::totalCostSql().') as value')
                 ->value('value') ?: 0,
             'sold_units' => TruckAppliance::where('status', 'Sold')->count(),
             'sales_total' => (float) TruckAppliance::where('status', 'Sold')->sum('sold_price')
