@@ -1,8 +1,9 @@
 <header class="ui-topbar relative z-[1000] bg-white shadow-sm border-b border-gray-200">
     <div class="flex min-w-0 flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8 lg:py-4">
         <div class="flex min-w-0 items-center gap-3">
-            <button type="button" @click="sidebarOpen = true" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white/80 text-slate-700 shadow-sm hover:bg-slate-50 lg:hidden" aria-label="Open menu">
-                <i class="fas fa-bars"></i>
+            <button type="button" @click="sidebarOpen = !sidebarOpen" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white/80 text-slate-700 shadow-sm hover:bg-slate-50 lg:hidden" :aria-label="sidebarOpen ? 'Close menu' : 'Open menu'" :aria-expanded="sidebarOpen">
+                <i class="fas fa-bars" x-show="!sidebarOpen"></i>
+                <i class="fas fa-times" x-cloak x-show="sidebarOpen"></i>
             </button>
             <div class="min-w-0">
                 @hasSection('page-subtitle')

@@ -194,6 +194,7 @@
             flex-direction: column;
             overflow: hidden;
             min-height: 0;
+            box-shadow: none;
         }
     }
 
