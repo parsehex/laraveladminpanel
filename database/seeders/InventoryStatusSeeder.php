@@ -28,7 +28,7 @@ class InventoryStatusSeeder extends Seeder
         ];
 
         foreach ($statuses as $index => $status) {
-            InventoryStatus::query()->updateOrCreate(
+            InventoryStatus::query()->firstOrCreate(
                 ['name' => $status['name']],
                 [
                     'auto_location' => $status['auto_location'],

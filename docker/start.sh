@@ -21,6 +21,7 @@ php artisan view:cache
 
 php artisan migrate --force
 
+php artisan db:seed --class=InventoryStatusSeeder --force
 php artisan db:seed --class=FlowSeeder --force
 
 php artisan permission:cache-reset

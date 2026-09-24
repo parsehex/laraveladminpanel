@@ -67,6 +67,26 @@ class InventoryStatusControllerTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_seeding_inserts_missing_built_in_statuses_and_keeps_a_customized_auto_location(): void
+    {
+        InventoryStatus::factory()->system()->create([
+            'name' => 'Show Room',
+            'auto_location' => 'Front Floor',
+        ]);
+
+        $this->seed(InventoryStatusSeeder::class);
+
+        $this->assertDatabaseHas('inventory_statuses', [
+            'name' => 'Show Room',
+            'auto_location' => 'Front Floor',
+        ]);
+        $this->assertDatabaseHas('inventory_statuses', [
+            'name' => 'Triage',
+            'is_system' => true,
+            'auto_location' => null,
+        ]);
+    }
+
     public function test_authorized_user_sees_seeded_statuses(): void
     {
         $user = $this->adminUser();

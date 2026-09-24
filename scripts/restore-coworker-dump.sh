@@ -43,6 +43,7 @@ pg_restore -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" --no-owner --no-acl -d "$TARGE
 
 php artisan config:clear
 php artisan migrate --no-interaction
+php artisan db:seed --class=InventoryStatusSeeder --no-interaction
 php artisan db:seed --class=FlowSeeder --no-interaction
 
 echo "Restore complete on [$TARGET_DB]. Restart php artisan serve if it is running."
