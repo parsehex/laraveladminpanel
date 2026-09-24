@@ -69,8 +69,7 @@ class PartsImporter implements LegacyTableImporter
                 DB::table('parts')->where('id', $existingId)->update($attributes);
                 $updated++;
             } else {
-                $newId = DB::table('parts')->insertGetId($attributes);
-                $context->idMap->remember('parts', $legacyId, $newId, $context->runId);
+                $context->queueInsert('parts', 'parts', $legacyId, $attributes);
                 $inserted++;
             }
         }

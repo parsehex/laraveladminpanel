@@ -52,8 +52,7 @@ class UserActionsImporter implements LegacyTableImporter
                 DB::table('user_actions')->where('id', $existingId)->update($attributes);
                 $updated++;
             } else {
-                $newId = DB::table('user_actions')->insertGetId($attributes);
-                $context->idMap->remember('user_actions', $legacyId, $newId, $context->runId);
+                $context->queueInsert('user_actions', 'user_actions', $legacyId, $attributes);
                 $inserted++;
             }
         }

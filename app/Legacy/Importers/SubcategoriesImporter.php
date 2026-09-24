@@ -49,8 +49,7 @@ class SubcategoriesImporter implements LegacyTableImporter
                 Subcategory::query()->whereKey($existingId)->update($attributes);
                 $updated++;
             } else {
-                $newId = Subcategory::query()->insertGetId($attributes);
-                $context->idMap->remember('subcategories', $legacyId, $newId, $context->runId);
+                $context->queueInsert('subcategories', 'subcategories', $legacyId, $attributes);
                 $inserted++;
             }
         }

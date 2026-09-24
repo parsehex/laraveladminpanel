@@ -143,8 +143,7 @@ class InventoryStatusHistoriesImporter implements LegacyTableImporter
             return;
         }
 
-        $newId = DB::table('inventory_status_histories')->insertGetId($attributes);
-        $context->idMap->remember($legacyTable, $legacyId, $newId, $context->runId);
+        $context->queueInsert('inventory_status_histories', $legacyTable, $legacyId, $attributes);
         $inserted++;
     }
 

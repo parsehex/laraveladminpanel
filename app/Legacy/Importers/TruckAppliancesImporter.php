@@ -72,19 +72,20 @@ class TruckAppliancesImporter implements LegacyTableImporter
                 continue;
             }
 
-            // Preserve legacy truck_items.id so existing QR codes keep working.
-            if (DB::table('truck_appliances')->where('id', $legacyId)->exists()) {
-                DB::table('truck_appliances')->where('id', $legacyId)->update($attributes);
+            $existingId = $context->idMap->get('truck_items', $legacyId);
+            if ($existingId) {
+                DB::table('truck_appliances')->where('id', $existingId)->update($attributes);
                 $updated++;
             } else {
-                DB::table('truck_appliances')->insert(array_merge($attributes, ['id' => $legacyId]));
+                $context->queueInsert('truck_appliances', 'truck_items', $legacyId, array_merge($attributes, [
+                    'id' => $legacyId,
+                ]));
                 $inserted++;
             }
-
-            $context->idMap->remember('truck_items', $legacyId, $legacyId, $context->runId);
         }
 
         if (! $context->dryRun) {
+            $context->flushInserts();
             $this->syncIdSequence();
         }
 

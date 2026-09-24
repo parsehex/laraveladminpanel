@@ -47,8 +47,7 @@ class TrucksImporter implements LegacyTableImporter
                 DB::table('trucks')->where('id', $existingId)->update($attributes);
                 $updated++;
             } else {
-                $newId = DB::table('trucks')->insertGetId($attributes);
-                $context->idMap->remember('trucks', $legacyId, $newId, $context->runId);
+                $context->queueInsert('trucks', 'trucks', $legacyId, $attributes);
                 $inserted++;
             }
         }

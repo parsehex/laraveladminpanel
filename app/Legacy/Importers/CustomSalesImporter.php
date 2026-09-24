@@ -48,8 +48,7 @@ class CustomSalesImporter implements LegacyTableImporter
                 DB::table('custom_sales')->where('id', $existingId)->update($attributes);
                 $updated++;
             } else {
-                $newId = DB::table('custom_sales')->insertGetId($attributes);
-                $context->idMap->remember('custom_sales', $legacyId, $newId, $context->runId);
+                $context->queueInsert('custom_sales', 'custom_sales', $legacyId, $attributes);
                 $inserted++;
             }
         }

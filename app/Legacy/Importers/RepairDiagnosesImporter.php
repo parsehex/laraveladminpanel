@@ -51,8 +51,7 @@ class RepairDiagnosesImporter implements LegacyTableImporter
                 DB::table('repair_diagnoses')->where('id', $existingId)->update($attributes);
                 $updated++;
             } else {
-                $newId = DB::table('repair_diagnoses')->insertGetId($attributes);
-                $context->idMap->remember('repair_diagnoses', $legacyId, $newId, $context->runId);
+                $context->queueInsert('repair_diagnoses', 'repair_diagnoses', $legacyId, $attributes);
                 $inserted++;
             }
         }

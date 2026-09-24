@@ -85,8 +85,7 @@ class TestingResultsImporter implements LegacyTableImporter
                     DB::table('repair_results')->where('id', $existingId)->update($attributes);
                     $updated++;
                 } else {
-                    $newId = DB::table('repair_results')->insertGetId($attributes);
-                    $context->idMap->remember('testing_results', $legacyId, $newId, $context->runId);
+                    $context->queueInsert('repair_results', 'testing_results', $legacyId, $attributes);
                     $inserted++;
                 }
 
@@ -117,8 +116,7 @@ class TestingResultsImporter implements LegacyTableImporter
                 DB::table('testing_results')->where('id', $existingId)->update($attributes);
                 $updated++;
             } else {
-                $newId = DB::table('testing_results')->insertGetId($attributes);
-                $context->idMap->remember('testing_results', $legacyId, $newId, $context->runId);
+                $context->queueInsert('testing_results', 'testing_results', $legacyId, $attributes);
                 $inserted++;
             }
         }

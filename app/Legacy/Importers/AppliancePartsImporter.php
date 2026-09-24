@@ -50,8 +50,7 @@ class AppliancePartsImporter implements LegacyTableImporter
                 DB::table('appliance_parts')->where('id', $existingId)->update($attributes);
                 $updated++;
             } else {
-                $newId = DB::table('appliance_parts')->insertGetId($attributes);
-                $context->idMap->remember('appliance_parts', $legacyId, $newId, $context->runId);
+                $context->queueInsert('appliance_parts', 'appliance_parts', $legacyId, $attributes);
                 $inserted++;
             }
         }

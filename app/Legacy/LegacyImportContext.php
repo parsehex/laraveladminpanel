@@ -16,6 +16,7 @@ class LegacyImportContext
         public readonly bool $dryRun = false,
         public readonly bool $strict = true,
         public readonly ?int $runId = null,
+        public readonly ?LegacyBatchInserter $inserts = null,
     ) {}
 
     /**
@@ -49,7 +50,21 @@ class LegacyImportContext
             dryRun: $dryRun,
             strict: $strict,
             runId: $runId,
+            inserts: new LegacyBatchInserter($idMap),
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public function queueInsert(string $table, string $legacyTable, int $legacyId, array $attributes): void
+    {
+        $this->inserts?->queue($table, $legacyTable, $legacyId, $attributes, $this->runId);
+    }
+
+    public function flushInserts(): void
+    {
+        $this->inserts?->flush();
     }
 
     public function resolveLegacyUserId(?int $legacyUserId): ?int

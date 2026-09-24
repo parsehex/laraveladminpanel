@@ -50,8 +50,7 @@ class SuggestionsImporter implements LegacyTableImporter
                 DB::table('suggestions')->where('id', $existingId)->update($attributes);
                 $updated++;
             } else {
-                $newId = DB::table('suggestions')->insertGetId($attributes);
-                $context->idMap->remember('suggestions', $legacyId, $newId, $context->runId);
+                $context->queueInsert('suggestions', 'suggestions', $legacyId, $attributes);
                 $inserted++;
             }
         }

@@ -80,6 +80,7 @@ class LegacyImportOrchestrator
         foreach ($importers as $importer) {
             DB::transaction(function () use ($importer, $context): void {
                 $importer->import($context);
+                $context->flushInserts();
             });
         }
 
