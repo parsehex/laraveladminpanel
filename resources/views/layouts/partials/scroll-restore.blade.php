@@ -7,24 +7,32 @@
 
         const storageKey = 'scroll:' + location.pathname + location.search;
         const tables = Array.from(document.querySelectorAll('.wide-table-scroll'));
-        let saved = null;
+        const navigation = performance.getEntriesByType('navigation')[0];
+        const navigationType = navigation ? navigation.type : 'navigate';
+        const shouldRestore = navigationType === 'reload' || navigationType === 'back_forward';
 
-        try {
-            saved = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
-        } catch (error) {
-            saved = null;
-        }
+        if (!shouldRestore) {
+            sessionStorage.removeItem(storageKey);
+        } else {
+            let saved = null;
 
-        if (saved && typeof saved.main === 'number') {
-            main.scrollTop = saved.main;
-        }
+            try {
+                saved = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
+            } catch (error) {
+                saved = null;
+            }
 
-        if (saved && Array.isArray(saved.tables)) {
-            tables.forEach(function (table, index) {
-                if (typeof saved.tables[index] === 'number') {
-                    table.scrollTop = saved.tables[index];
-                }
-            });
+            if (saved && typeof saved.main === 'number') {
+                main.scrollTop = saved.main;
+            }
+
+            if (saved && Array.isArray(saved.tables)) {
+                tables.forEach(function (table, index) {
+                    if (typeof saved.tables[index] === 'number') {
+                        table.scrollTop = saved.tables[index];
+                    }
+                });
+            }
         }
 
         let frame = 0;
