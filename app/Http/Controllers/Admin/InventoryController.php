@@ -208,22 +208,19 @@ class InventoryController extends Controller
         $applianceId = $this->parseApplianceIdFromQr($validated['qr_payload'] ?? null);
         $modelNumber = $this->normalizeModelNumber($validated['model_number'] ?? null);
 
-        if ($applianceId && $modelNumber !== null) {
-            $exact = TruckAppliance::query()
+        if ($applianceId) {
+            $byId = TruckAppliance::query()
                 ->with(['truck', 'model', 'category'])
                 ->whereKey($applianceId)
-                ->whereHas('model', function (Builder $query) use ($modelNumber) {
-                    $query->whereRaw('LOWER(TRIM(model_number)) = ?', [strtolower($modelNumber)]);
-                })
                 ->first();
 
-            if ($exact) {
+            if ($byId) {
                 return response()->json([
                     'mode' => 'exact',
                     'scanned_id' => $applianceId,
                     'model_number' => $modelNumber,
-                    'appliance' => $this->scanMatchPayload($exact),
-                    'url' => route('admin.inventory.floor', $exact),
+                    'appliance' => $this->scanMatchPayload($byId),
+                    'url' => route('admin.inventory.floor', $byId),
                 ]);
             }
         }
@@ -249,18 +246,11 @@ class InventoryController extends Controller
         }
 
         if ($applianceId) {
-            $byId = TruckAppliance::query()
-                ->with(['truck', 'model', 'category'])
-                ->whereKey($applianceId)
-                ->first();
-
             return response()->json([
                 'mode' => 'need_model',
                 'scanned_id' => $applianceId,
-                'message' => $byId
-                    ? 'Possible match from QR ID. Still scanning for the model barcode…'
-                    : 'QR read. Point at the model barcode too.',
-                'matches' => $byId ? [$this->scanMatchPayload($byId)] : [],
+                'message' => 'That appliance ID is not in inventory. Scan the model barcode to see matching units.',
+                'matches' => [],
             ]);
         }
 

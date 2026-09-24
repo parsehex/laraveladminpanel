@@ -418,6 +418,61 @@ class InventoryControllerTest extends TestCase
         $response->assertJsonPath('url', route('admin.inventory.floor', $appliance));
     }
 
+    public function test_scan_resolve_returns_the_appliance_when_only_the_qr_id_exists(): void
+    {
+        $user = $this->adminUser();
+        $appliance = $this->floorAppliance($user, [
+            'status' => 'Ready',
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('admin.inventory.scan.resolve'), [
+            'qr_payload' => (string) $appliance->id,
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('mode', 'exact');
+        $response->assertJsonPath('appliance.id', $appliance->id);
+        $response->assertJsonPath('url', route('admin.inventory.floor', $appliance));
+    }
+
+    public function test_scan_resolve_asks_for_a_model_barcode_when_the_qr_id_is_missing(): void
+    {
+        $user = $this->adminUser();
+
+        $response = $this->actingAs($user)->postJson(route('admin.inventory.scan.resolve'), [
+            'qr_payload' => '999999',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('mode', 'need_model');
+        $response->assertJsonPath('matches', []);
+    }
+
+    public function test_scan_resolve_lists_model_matches_when_the_qr_id_is_missing(): void
+    {
+        $user = $this->adminUser();
+        $model = CatalogModel::query()->create([
+            'model_number' => 'WED5620HW',
+            'product_name' => 'Dryer',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $appliance = $this->floorAppliance($user, [
+            'model_id' => $model->id,
+            'status' => 'Ready',
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('admin.inventory.scan.resolve'), [
+            'qr_payload' => '999999',
+            'model_number' => 'WED5620HW',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('mode', 'suggestions');
+        $response->assertJsonPath('matches.0.id', $appliance->id);
+        $response->assertJsonPath('matches.0.url', route('admin.inventory.floor', $appliance));
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */

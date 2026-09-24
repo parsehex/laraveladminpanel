@@ -148,13 +148,17 @@ function looksLikeQrPayload(text) {
 function scheduleResolve() {
     if (resolving) return;
 
-    if (qrPayload && modelNumber) {
+    if (qrPayload) {
+        if (collectTimer) {
+            clearTimeout(collectTimer);
+            collectTimer = null;
+        }
         resolveScan();
         return;
     }
 
-    // Model without QR: wait briefly in case the QR lands next.
-    if (modelNumber && !qrPayload) {
+    // Model without a QR: wait briefly in case the sticker QR lands next.
+    if (modelNumber) {
         if (collectTimer) return;
 
         collectTimer = setTimeout(function () {
@@ -165,18 +169,15 @@ function scheduleResolve() {
 }
 
 function onDecoded(decodedText) {
-    if (resolving) return;
-
     const text = String(decodedText || '').trim();
     if (!text) return;
 
     if (looksLikeQrPayload(text)) {
-        if (qrPayload === text) return;
+        if (resolving || qrPayload === text) return;
         qrPayload = text;
         guideEl.style.height = '28%';
         markReady(qrStatusEl, text.length > 48 ? text.slice(0, 48) + '…' : text);
-        setStatus('QR captured. Looking for model barcode…');
-        previewQrMatch();
+        setStatus('QR captured. Looking up appliance…');
         scheduleResolve();
         return;
     }
@@ -185,58 +186,14 @@ function onDecoded(decodedText) {
     modelNumber = text;
     guideEl.style.height = '58%';
     markReady(modelStatusEl, text);
+    if (resolving) return;
     setStatus(qrPayload ? 'Model captured. Resolving…' : 'Model captured. Looking for QR…');
     scheduleResolve();
-}
-
-async function previewQrMatch() {
-    if (!qrPayload || modelNumber || resolving) return;
-
-    try {
-        const response = await fetch(resolveUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: JSON.stringify({
-                qr_payload: qrPayload,
-                model_number: null,
-            }),
-        });
-
-        const data = await response.json().catch(function () {
-            return {};
-        });
-
-        if (!response.ok || data.mode !== 'need_model') {
-            return;
-        }
-
-        if (data.scanned_id) {
-            markReady(qrStatusEl, 'ID ' + data.scanned_id);
-        }
-
-        if (Array.isArray(data.matches) && data.matches.length) {
-            renderSuggestions(data, { keepCamera: true, waitingForModel: true });
-        }
-
-        setStatus(data.message || 'QR captured. Looking for model barcode…');
-    } catch (error) {
-        console.warn('QR preview lookup failed', error);
-    }
 }
 
 async function resolveScan() {
     if (resolving) return;
     if (!qrPayload && !modelNumber) return;
-
-    // Still waiting on the model barcode — keep camera running.
-    if (qrPayload && !modelNumber) {
-        return;
-    }
 
     resolving = true;
     if (collectTimer) {
@@ -273,22 +230,25 @@ async function resolveScan() {
             return;
         }
 
-        if (data.mode === 'exact' && data.url) {
-            setStatus('Exact match — opening appliance…');
-            window.location.href = data.url;
+        if (data.mode === 'exact' && data.appliance) {
+            renderSuggestions({
+                matches: [data.appliance],
+                scanned_id: data.scanned_id,
+            }, { foundById: true });
             return;
         }
 
         if (data.mode === 'need_model') {
-            setStatus(data.message || 'Scan the model barcode too.');
+            setStatus(data.message || 'Scan the model barcode to see matching units.');
             if (data.scanned_id) {
                 markReady(qrStatusEl, 'ID ' + data.scanned_id);
             }
-            if (Array.isArray(data.matches) && data.matches.length) {
-                renderSuggestions(data, { keepCamera: true, waitingForModel: true });
-            }
             guideEl.style.height = '28%';
             resolving = false;
+            if (modelNumber) {
+                scheduleResolve();
+                return;
+            }
             await startScanner();
             return;
         }
@@ -321,7 +281,7 @@ function escapeHtml(value) {
 function renderSuggestions(data, options = {}) {
     const matches = Array.isArray(data.matches) ? data.matches : [];
     const keepCamera = Boolean(options.keepCamera);
-    const waitingForModel = Boolean(options.waitingForModel);
+    const foundById = Boolean(options.foundById);
 
     if (!keepCamera) {
         hideCamera();
@@ -330,24 +290,20 @@ function renderSuggestions(data, options = {}) {
     resultsEl.classList.remove('hidden');
     resultsListEl.innerHTML = '';
 
-    if (waitingForModel) {
-        resultsTitleEl.textContent = matches.length ? 'Possible match from QR' : 'Matches';
-        resultsMetaEl.textContent = data.scanned_id
-            ? ('Appliance ID ' + data.scanned_id + ' · still scanning model barcode')
-            : 'Still scanning model barcode';
+    if (foundById) {
+        resultsTitleEl.textContent = 'Appliance found';
+        resultsMetaEl.textContent = data.scanned_id ? ('ID ' + data.scanned_id) : '';
     } else {
         const modelLabel = data.model_number || modelNumber || 'unknown model';
         resultsTitleEl.textContent = matches.length === 1 ? 'Possible match' : 'Possible matches';
         resultsMetaEl.textContent = data.scanned_id
-            ? ('Model ' + modelLabel + ' · scanned ID ' + data.scanned_id + ' (no exact match)')
+            ? ('Model ' + modelLabel + ' · scanned ID ' + data.scanned_id + ' is not in inventory')
             : ('Model ' + modelLabel);
     }
 
     if (!matches.length) {
-        if (!waitingForModel) {
-            resultsEmptyEl.classList.remove('hidden');
-            setStatus('Scan again when ready.');
-        }
+        resultsEmptyEl.classList.remove('hidden');
+        setStatus('Scan again when ready.');
         return;
     }
 
@@ -377,9 +333,7 @@ function renderSuggestions(data, options = {}) {
         resultsListEl.appendChild(row);
     });
 
-    if (!waitingForModel) {
-        setStatus('Pick a unit above, or scan again.');
-    }
+    setStatus(foundById ? 'Open the unit, or scan again.' : 'Pick a unit above, or scan again.');
 }
 
 async function createZxingDecoder() {
