@@ -4,6 +4,7 @@ namespace App\Legacy\Importers;
 
 use App\Legacy\LegacyCopyValue;
 use App\Legacy\LegacyImportContext;
+use App\Legacy\LegacyText;
 use Illuminate\Support\Facades\DB;
 
 class TrucksImporter implements LegacyTableImporter
@@ -28,7 +29,7 @@ class TrucksImporter implements LegacyTableImporter
             $legacyId = (int) $row['id'];
             $attributes = [
                 'name' => $row['truck_name'],
-                'notes' => $row['notes'],
+                'notes' => LegacyText::plain($row['notes'] ?? null),
                 'cost_of_truck' => LegacyCopyValue::decimal($row['truck_cost'] ?? null) ?? 0,
                 'units_on_truck' => LegacyCopyValue::int($row['units'] ?? null) ?? 0,
                 'arrival_date' => $row['arrival_date'],

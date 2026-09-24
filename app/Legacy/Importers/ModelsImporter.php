@@ -3,6 +3,7 @@
 namespace App\Legacy\Importers;
 
 use App\Legacy\LegacyImportContext;
+use App\Legacy\LegacyText;
 use Illuminate\Support\Facades\DB;
 
 class ModelsImporter implements LegacyTableImporter
@@ -31,9 +32,9 @@ class ModelsImporter implements LegacyTableImporter
 
             $attributes = [
                 'model_number' => $row['model_number'],
-                'product_name' => $row['product_name'],
+                'product_name' => $this->productName($row['product_name'] ?? null),
                 'category_id' => $categoryId,
-                'brand' => $row['brand'],
+                'brand' => LegacyText::plain($row['brand'] ?? null),
                 'msrp' => $row['msrp'] !== null ? (string) $row['msrp'] : null,
                 'variations' => $variations !== null ? json_encode($variations) : null,
                 'status' => 1,
@@ -98,9 +99,9 @@ class ModelsImporter implements LegacyTableImporter
             $categoryId = $context->categories->resolve((string) $row['category']);
             $newId = DB::table('models')->insertGetId([
                 'model_number' => $modelNumber,
-                'product_name' => $row['product_name'],
+                'product_name' => $this->productName($row['product_name'] ?? null),
                 'category_id' => $categoryId,
-                'brand' => $row['brand'],
+                'brand' => LegacyText::plain($row['brand'] ?? null),
                 'msrp' => $row['msrp'] !== null ? (string) $row['msrp'] : null,
                 'status' => 1,
                 'created_at' => now(),
@@ -111,6 +112,16 @@ class ModelsImporter implements LegacyTableImporter
             $inserted++;
             $context->report->warn("Created stub model for orphan model_number [{$modelNumber}] as id {$newId}");
         }
+    }
+
+    private function productName(mixed $value): ?string
+    {
+        $name = LegacyText::plain($value);
+        if ($name === null) {
+            return null;
+        }
+
+        return str_replace('""', '"', $name);
     }
 
     private function decodeJson(mixed $value): ?array

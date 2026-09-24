@@ -17,3 +17,12 @@ COPY public.truck_items (id, truck_id, category, model_number, product_name, bra
 COPY public.users (id, username, password, email, role, platform, supabase_auth_id, must_change_password) FROM stdin;
 7	WillFlory	hash	will@example.com	admin	\N	\N	f
 \.
+
+COPY public.parts (id, part_number, product_name, model_compatibility, total_stock, retail_price, your_price, cross_reference, diagram_name, image_url, make, item, updated_at) FROM stdin;
+96	241601001	WRENCH, ALLEN",	\N	0	0.00	0.00	\N	\N	\N	WCI	\N	2026-01-01 00:00:00
+112	240383406\\nUSE WCI 5304515677	SCREW, TRUSS HD QUAD, #10-16 X .500, ZINC",\\nSCREW	\N	0	0.00	0.00	\N	\N	\N	WCI	\N	2026-01-01 00:00:00
+\.
+
+COPY public.suggestions (id, username, suggestion, urgency, status, created_at, updated_at, timestamp, completed_by, responses) FROM stdin;
+8	Lauren	When viewing the &quot;receiving condition&quot; column	medium	pending	2026-01-01 00:00:00	2026-01-01 00:00:00	2026-01-01 00:00:00	\N	[]
+\.

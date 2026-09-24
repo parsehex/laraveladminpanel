@@ -4,6 +4,7 @@ namespace App\Legacy\Importers;
 
 use App\Legacy\LegacyCopyValue;
 use App\Legacy\LegacyImportContext;
+use App\Legacy\LegacyText;
 use Illuminate\Support\Facades\DB;
 
 class AppliancePartsImporter implements LegacyTableImporter
@@ -33,7 +34,7 @@ class AppliancePartsImporter implements LegacyTableImporter
 
             $attributes = [
                 'truck_appliance_id' => $applianceId,
-                'description' => $row['part_description'],
+                'description' => LegacyText::plain($row['part_description'] ?? null),
                 'cost' => LegacyCopyValue::decimal($row['cost'] ?? null) ?? 0,
                 'source' => $row['source'],
                 'created_at' => $row['added_at'] ?? now(),

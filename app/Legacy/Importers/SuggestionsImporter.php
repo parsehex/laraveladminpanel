@@ -3,6 +3,7 @@
 namespace App\Legacy\Importers;
 
 use App\Legacy\LegacyImportContext;
+use App\Legacy\LegacyText;
 use Illuminate\Support\Facades\DB;
 
 class SuggestionsImporter implements LegacyTableImporter
@@ -30,7 +31,7 @@ class SuggestionsImporter implements LegacyTableImporter
             $attributes = [
                 'username' => $row['username'],
                 'user_id' => $context->users->resolve($row['username'] ?? null, false),
-                'suggestion' => $row['suggestion'],
+                'suggestion' => LegacyText::plain($row['suggestion']) ?? '',
                 'urgency' => $row['urgency'],
                 'status' => $row['status'] === 'complete' ? 'completed' : $row['status'],
                 'responses' => $this->normalizeJson($row['responses'] ?? '[]'),

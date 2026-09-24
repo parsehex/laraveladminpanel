@@ -4,6 +4,7 @@ namespace App\Legacy\Importers;
 
 use App\Legacy\LegacyCopyValue;
 use App\Legacy\LegacyImportContext;
+use App\Legacy\LegacyText;
 use Illuminate\Support\Facades\DB;
 
 class TruckAppliancesImporter implements LegacyTableImporter
@@ -47,8 +48,8 @@ class TruckAppliancesImporter implements LegacyTableImporter
                 'subcategory' => $this->nullableString($row['subcategory'] ?? null),
                 'model_id' => $modelId,
                 'serial_number' => $row['serial_number'],
-                'brand' => $row['brand'],
-                'product_name' => $row['product_name'],
+                'brand' => LegacyText::plain($row['brand'] ?? null),
+                'product_name' => LegacyText::plain($row['product_name'] ?? null),
                 'quantity' => LegacyCopyValue::int($row['quantity'] ?? null) ?? 1,
                 'price' => LegacyCopyValue::decimal($row['price'] ?? null) ?? 0,
                 'msrp' => LegacyCopyValue::decimal($row['msrp'] ?? null),

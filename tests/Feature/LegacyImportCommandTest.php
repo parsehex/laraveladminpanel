@@ -58,4 +58,26 @@ class LegacyImportCommandTest extends TestCase
             'status' => 'Triage',
         ]);
     }
+
+    public function test_import_cleans_part_csv_artifacts_and_html_entities(): void
+    {
+        $this->artisan('legacy:import', [
+            '--data' => base_path('tests/fixtures/legacy-minimal.sql'),
+            '--reset' => true,
+            '--allow-unresolved' => true,
+        ])->assertSuccessful();
+
+        $this->assertDatabaseHas('parts', [
+            'part_number' => '241601001',
+            'product_name' => 'WRENCH, ALLEN',
+        ]);
+        $this->assertDatabaseHas('parts', [
+            'part_number' => '240383406',
+            'product_name' => 'SCREW, TRUSS HD QUAD, #10-16 X .500, ZINC',
+            'cross_reference' => 'USE WCI 5304515677',
+        ]);
+        $this->assertDatabaseHas('suggestions', [
+            'suggestion' => 'When viewing the "receiving condition" column',
+        ]);
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Legacy\Importers;
 
 use App\Legacy\LegacyCopyValue;
 use App\Legacy\LegacyImportContext;
+use App\Legacy\LegacyText;
 use Illuminate\Support\Facades\DB;
 
 class InventoryStatusHistoriesImporter implements LegacyTableImporter
@@ -34,7 +35,7 @@ class InventoryStatusHistoriesImporter implements LegacyTableImporter
                 $attributes = [
                     'truck_appliance_id' => $applianceId,
                     'status' => $row['status'],
-                    'notes' => $this->nullableString($row['notes'] ?? null),
+                    'notes' => LegacyText::plain($row['notes'] ?? null),
                     'parts_ordered' => LegacyCopyValue::bool($row['parts_ordered'] ?? false),
                     'user_id' => $userId,
                     'created_at' => $row['timestamp'] ?? now(),
