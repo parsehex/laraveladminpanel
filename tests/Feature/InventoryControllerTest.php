@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\InventoryStatus;
+use App\Models\Model as CatalogModel;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\User;
@@ -339,6 +340,108 @@ class InventoryControllerTest extends TestCase
             'status' => 'Awaiting Pickup',
             'location' => 'Loading Dock',
         ]);
+    }
+
+    public function test_floor_page_shows_the_unit_and_testing_workflow(): void
+    {
+        $user = $this->adminUser();
+        $appliance = $this->floorAppliance($user, [
+            'status' => 'Testing',
+            'product_name' => 'Front Load Washer',
+            'brand' => 'Whirlpool',
+            'serial_number' => 'SN-FLOOR-1',
+            'unit_label' => 'U-12',
+            'location' => 'Aisle 4',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('admin.inventory.floor', $appliance));
+
+        $response->assertOk();
+        $response->assertSee('Front Load Washer');
+        $response->assertSee('Whirlpool');
+        $response->assertSee('SN-FLOOR-1');
+        $response->assertSee('U-12');
+        $response->assertSee('Aisle 4');
+        $response->assertSee('Floor Truck');
+        $response->assertSee('Start Testing');
+        $response->assertSee(route('admin.inventory.testing.show', $appliance), false);
+        $response->assertSee(route('admin.inventory.status.update', $appliance), false);
+        $response->assertSee(route('admin.inventory.scan'), false);
+        $response->assertSee(route('admin.inventory.show', $appliance), false);
+        $response->assertDontSee('Open Repair');
+        $response->assertDontSee('Open Demanufacture');
+    }
+
+    public function test_floor_page_hides_status_form_without_appliance_edit(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+        $this->seed(InventoryStatusSeeder::class);
+
+        $user = User::factory()->active()->create(['role' => 'user']);
+        $user->givePermissionTo('inventory.view');
+
+        $appliance = $this->floorAppliance($user, [
+            'status' => 'Ready',
+            'product_name' => 'View Only Dryer',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('admin.inventory.floor', $appliance));
+
+        $response->assertOk();
+        $response->assertSee('View Only Dryer');
+        $response->assertSee('Scan again');
+        $response->assertSee('Full record');
+        $response->assertDontSee(route('admin.inventory.status.update', $appliance), false);
+    }
+
+    public function test_exact_scan_resolve_returns_the_floor_url(): void
+    {
+        $user = $this->adminUser();
+        $model = CatalogModel::query()->create([
+            'model_number' => 'WFW5620HW',
+            'product_name' => 'Front Load Washer',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $appliance = $this->floorAppliance($user, [
+            'model_id' => $model->id,
+            'status' => 'Ready',
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('admin.inventory.scan.resolve'), [
+            'qr_payload' => (string) $appliance->id,
+            'model_number' => 'WFW5620HW',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('mode', 'exact');
+        $response->assertJsonPath('url', route('admin.inventory.floor', $appliance));
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function floorAppliance(User $user, array $overrides = []): TruckAppliance
+    {
+        $truck = Truck::query()->create([
+            'name' => 'Floor Truck',
+            'units_on_truck' => 1,
+            'cost_of_truck' => 500,
+            'shipping_cost' => 0,
+            'arrival_date' => now()->toDateString(),
+            'status' => 'active',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        return TruckAppliance::query()->create(array_merge([
+            'truck_id' => $truck->id,
+            'serial_number' => 'SN-FLOOR-1',
+            'product_name' => 'Front Load Washer',
+            'status' => 'Testing',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ], $overrides));
     }
 
     public static function terminalStatusLocations(): array

@@ -223,7 +223,7 @@ class InventoryController extends Controller
                     'scanned_id' => $applianceId,
                     'model_number' => $modelNumber,
                     'appliance' => $this->scanMatchPayload($exact),
-                    'url' => route('admin.inventory.show', $exact),
+                    'url' => route('admin.inventory.floor', $exact),
                 ]);
             }
         }
@@ -332,6 +332,16 @@ class InventoryController extends Controller
                     'count' => (int) $row->usage_count,
                 ])
                 ->values(),
+        ]);
+    }
+
+    public function floor(TruckAppliance $appliance)
+    {
+        $appliance->load(['truck', 'category', 'model']);
+
+        return view('admin.inventory.floor', [
+            'appliance' => $appliance,
+            'statuses' => InventoryStatus::assignableNames($appliance->status),
         ]);
     }
 
@@ -878,7 +888,7 @@ class InventoryController extends Controller
             'model_number' => $appliance->model?->model_number,
             'truck_name' => $appliance->truck?->name,
             'category_name' => $appliance->category?->name,
-            'url' => route('admin.inventory.show', $appliance),
+            'url' => route('admin.inventory.floor', $appliance),
         ];
     }
 }

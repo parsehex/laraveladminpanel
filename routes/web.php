@@ -297,6 +297,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('inventory/{appliance}/testing-results/{result}', [ApplianceTestingController::class, 'showResult'])
         ->middleware('permission:inventory.view')
         ->name('inventory.testing-results.show');
+    Route::get('inventory/{appliance}/floor', [InventoryController::class, 'floor'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.floor');
     Route::get('inventory/{appliance}', [InventoryController::class, 'show'])
         ->middleware('permission:inventory.view')
         ->name('inventory.show');
