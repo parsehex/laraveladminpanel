@@ -109,6 +109,7 @@ class ModelsImporter implements LegacyTableImporter
 
             $knownNumbers[$key] = true;
             $inserted++;
+            $context->rememberModelNumber($modelNumber, $newId);
             $context->report->warn("Created stub model for orphan model_number [{$modelNumber}] as id {$newId}");
         }
     }

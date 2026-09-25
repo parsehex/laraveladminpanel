@@ -19,6 +19,24 @@ class LegacyImportContext
         public readonly ?LegacyBatchInserter $inserts = null,
     ) {}
 
+    /** @var array<string, int> */
+    private array $modelIdsByNumber = [];
+
+    public function rememberModelNumber(string $modelNumber, int $id): void
+    {
+        $key = strtolower(trim($modelNumber));
+        if ($key === '') {
+            return;
+        }
+
+        $this->modelIdsByNumber[$key] = $id;
+    }
+
+    public function modelIdForNumber(string $modelNumber): ?int
+    {
+        return $this->modelIdsByNumber[strtolower(trim($modelNumber))] ?? null;
+    }
+
     /**
      * @param  array<string, mixed>  $patches
      */

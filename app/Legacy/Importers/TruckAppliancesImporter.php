@@ -133,7 +133,8 @@ class TruckAppliancesImporter implements LegacyTableImporter
             return null;
         }
 
-        return $modelNumbersByLegacyId[strtolower($modelNumber)] ?? null;
+        return $modelNumbersByLegacyId[strtolower($modelNumber)]
+            ?? $context->modelIdForNumber($modelNumber);
     }
 
     /**

@@ -26,7 +26,7 @@ class LegacyImportCommandTest extends TestCase
         $dump = new LegacyDumpReader(base_path('tests/fixtures/legacy-minimal.sql'));
 
         $this->assertSame(1, $dump->count('trucks'));
-        $this->assertSame(2, $dump->count('truck_items'));
+        $this->assertSame(3, $dump->count('truck_items'));
 
         $rows = iterator_to_array($dump->rows('truck_items'));
 
@@ -52,11 +52,29 @@ class LegacyImportCommandTest extends TestCase
         ])->assertSuccessful();
 
         $this->assertDatabaseCount('trucks', 1);
-        $this->assertDatabaseCount('truck_appliances', 2);
+        $this->assertDatabaseCount('truck_appliances', 3);
         $this->assertDatabaseHas('truck_appliances', [
             'id' => 1,
             'unit_label' => 'FT-001-001',
             'status' => 'Triage',
+        ]);
+    }
+
+    public function test_import_links_appliance_to_patched_missing_model(): void
+    {
+        $this->artisan('legacy:import', [
+            '--data' => base_path('tests/fixtures/legacy-minimal.sql'),
+            '--reset' => true,
+            '--allow-unresolved' => true,
+        ])->assertSuccessful();
+
+        $modelId = DB::table('models')->where('model_number', 'WED4720RW0')->value('id');
+
+        $this->assertNotNull($modelId);
+        $this->assertDatabaseHas('truck_appliances', [
+            'id' => 3,
+            'unit_label' => 'FT-001-003',
+            'model_id' => $modelId,
         ]);
     }
 
