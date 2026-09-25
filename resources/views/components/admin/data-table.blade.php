@@ -4,6 +4,7 @@
     'columnStorageKey' => null,
     'columns' => [],
     'bare' => false,
+    'density' => 'comfortable',
 ])
 
 @php
@@ -98,7 +99,7 @@
             </div>
         @endif
 
-        <div class="wide-table-shell" data-wide-table>
+        <div @class(['wide-table-shell', 'sheet-table' => $density === 'sheet']) data-wide-table>
             <div class="wide-table-top-scroll" data-wide-table-top-scroll><div></div></div>
             <div class="wide-table-scroll" data-wide-table-scroll>
                 {{ $slot }}

@@ -93,7 +93,7 @@
         </form>
     </div>
 
-    <x-admin.data-table id="truck-results" :table="$dataTable">
+    <x-admin.data-table id="truck-results" density="sheet" :table="$dataTable">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50 sticky-table-head">
                     <tr>
@@ -104,18 +104,18 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($trucks as $truck)
                     <tr class="hover:bg-gray-50">
-                        <x-admin.data-table.cell column="name" class="font-medium text-gray-900">{{ $truck->name }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="name" class="font-medium text-gray-900" title="{{ $truck->name }}">{{ $truck->name }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="units">{{ $truck->units_on_truck }} (item:{{ $truck->appliances->count() }})</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="cost" align="right">${{ number_format($truck->cost_of_truck, 2) }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="shipping" align="right">${{ number_format((float) $truck->shipping_cost, 2) }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="total_msrp" align="right">${{ number_format($truck->total_appliance_msrp ?? 0, 2) }}</x-admin.data-table.cell>
-                        <x-admin.data-table.cell column="arrival">{{ $truck->arrival_date ? $truck->arrival_date : '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="arrival">{{ $truck->arrival_date ? $truck->arrival_date->format('m/d/y') : '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="truck_status">
                             <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{ $truck->status === 'active' ? 'bg-green-100 text-green-800' : ($truck->status === 'breakdown' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800') }}">
                                 {{ ucfirst($truck->status) }}
                             </span>
                         </x-admin.data-table.cell>
-                        <x-admin.data-table.cell column="status_breakdown" class="truck-status-breakdown-cell">
+                        <x-admin.data-table.cell column="status_breakdown" class="truck-status-breakdown-cell" title="{{ collect($truck->appliance_statuses)->map(fn ($item) => ucfirst($item['status'] ?: 'Triage').' ('.$item['count'].')')->implode(', ') ?: 'N/A' }}">
                             <div class="truck-status-breakdown">
                                 @forelse($truck->appliance_statuses as $item)
                                     @php

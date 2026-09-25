@@ -86,7 +86,7 @@
     </div>
     @endif
 
-    <x-admin.data-table :table="$dataTable">
+    <x-admin.data-table density="sheet" :table="$dataTable">
         <x-slot:header>
             <button type="button" data-select-all-button class="inline-flex items-center justify-center rounded-md bg-slate-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-700">
                 <i class="fas fa-check-square mr-2"></i>Select all
@@ -197,21 +197,22 @@
                         $partsCost = $item->partsCost();
                         $totalCost = $item->totalCost();
                         $statusClass = $statusClasses[$status] ?? 'appliance-status-white';
+                        $statusAt = $item->statusHistories?->sortByDesc('created_at')->first()?->created_at;
                     @endphp
                     <tr class="appliance-status-row {{ $statusClass }}">
                         <td class="px-4 py-3"><input type="checkbox" name="print_ids[]" value="{{ $item->id }}"></td>
-                        <x-admin.data-table.cell column="truck">{{ $item->truck?->name ?? '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="truck" title="{{ $item->truck?->name ?? '-' }}">{{ $item->truck?->name ?? '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="status">
                             <span class="appliance-status-chip {{ $statusClass }}">{{ $status }}</span>
                         </x-admin.data-table.cell>
                         <x-admin.data-table.cell column="unit_label" truncate title="{{ $item->unit_label ?: 'N/A' }}">{{ $item->unit_label ?: 'N/A' }}</x-admin.data-table.cell>
-                        <x-admin.data-table.cell column="model">{{ $item->model?->model_number ?? '-' }}</x-admin.data-table.cell>
-                        <x-admin.data-table.cell column="serial_number">{{ $item->serial_number ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="model" title="{{ $item->model?->model_number ?? '-' }}">{{ $item->model?->model_number ?? '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="serial_number" title="{{ $item->serial_number ?: '-' }}">{{ $item->serial_number ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="brand" truncate title="{{ $item->brand ?: '-' }}">{{ $item->brand ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="category" truncate title="{{ $item->category?->name ?? '-' }}">{{ $item->category?->name ?? '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="subcategory" truncate title="{{ $item->subcategory ?: '-' }}">{{ $item->subcategory ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="location" truncate title="{{ $item->location ?: '-' }}">{{ $item->location ?: '-' }}</x-admin.data-table.cell>
-                        <x-admin.data-table.cell column="status_date">{{ $item->statusHistories?->sortByDesc('created_at')->first()?->created_at?->format('Y-m-d H:i:s') ?? 'N/A' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="status_date" title="{{ $statusAt?->format('Y-m-d H:i:s') ?? 'N/A' }}">{{ $statusAt?->format('m/d/y g:i A') ?? 'N/A' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="total_cost" align="right">
                             ${{ number_format($totalCost, 2) }}
                             @if($partsCost > 0)

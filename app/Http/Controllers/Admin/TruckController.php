@@ -418,14 +418,6 @@ class TruckController extends Controller
                     'truncate' => true,
                     'sort' => 'truck_appliances.receiving_condition',
                 ],
-                [
-                    'key' => 'total_parts_cost',
-                    'label' => 'Total Parts Cost',
-                    'align' => 'right',
-                    'sort' => fn (Builder|Relation $query, string $direction) => $query->orderByRaw(
-                        TruckAppliance::partsCostSql().' '.$direction
-                    ),
-                ],
             ],
         );
     }
