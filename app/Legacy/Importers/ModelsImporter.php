@@ -31,7 +31,7 @@ class ModelsImporter implements LegacyTableImporter
             $variations = $this->decodeJson($row['variations'] ?? null);
 
             $attributes = [
-                'model_number' => $row['model_number'],
+                'model_number' => trim((string) $row['model_number']),
                 'product_name' => $this->productName($row['product_name'] ?? null),
                 'category_id' => $categoryId,
                 'brand' => LegacyText::plain($row['brand'] ?? null),
@@ -72,7 +72,7 @@ class ModelsImporter implements LegacyTableImporter
 
         $knownNumbers = [];
         foreach ($context->dump->rows('models') as $row) {
-            $knownNumbers[strtolower((string) $row['model_number'])] = true;
+            $knownNumbers[strtolower(trim((string) $row['model_number']))] = true;
         }
 
         foreach ($context->dump->rows('truck_items') as $row) {

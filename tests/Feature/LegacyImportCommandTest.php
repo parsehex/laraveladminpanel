@@ -6,6 +6,7 @@ use App\Legacy\LegacyDumpReader;
 use Database\Seeders\FlowSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class LegacyImportCommandTest extends TestCase
@@ -25,7 +26,7 @@ class LegacyImportCommandTest extends TestCase
         $dump = new LegacyDumpReader(base_path('tests/fixtures/legacy-minimal.sql'));
 
         $this->assertSame(1, $dump->count('trucks'));
-        $this->assertSame(1, $dump->count('truck_items'));
+        $this->assertSame(2, $dump->count('truck_items'));
 
         $rows = iterator_to_array($dump->rows('truck_items'));
 
@@ -51,11 +52,35 @@ class LegacyImportCommandTest extends TestCase
         ])->assertSuccessful();
 
         $this->assertDatabaseCount('trucks', 1);
-        $this->assertDatabaseCount('truck_appliances', 1);
+        $this->assertDatabaseCount('truck_appliances', 2);
         $this->assertDatabaseHas('truck_appliances', [
             'id' => 1,
             'unit_label' => 'FT-001-001',
             'status' => 'Triage',
+        ]);
+    }
+
+    public function test_import_links_appliance_when_catalog_model_number_has_surrounding_spaces(): void
+    {
+        $this->artisan('legacy:import', [
+            '--data' => base_path('tests/fixtures/legacy-minimal.sql'),
+            '--reset' => true,
+            '--allow-unresolved' => true,
+        ])->assertSuccessful();
+
+        $this->assertDatabaseHas('models', [
+            'model_number' => 'MVW4505MW0',
+        ]);
+        $this->assertDatabaseMissing('models', [
+            'model_number' => 'MVW4505MW0 ',
+        ]);
+
+        $modelId = DB::table('models')->where('model_number', 'MVW4505MW0')->value('id');
+
+        $this->assertDatabaseHas('truck_appliances', [
+            'id' => 2,
+            'unit_label' => 'FT-001-002',
+            'model_id' => $modelId,
         ]);
     }
 

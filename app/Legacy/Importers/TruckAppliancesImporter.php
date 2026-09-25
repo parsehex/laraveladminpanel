@@ -114,8 +114,9 @@ class TruckAppliancesImporter implements LegacyTableImporter
         foreach ($context->dump->rows('models') as $row) {
             $legacyModelId = (int) $row['id'];
             $newId = $context->idMap->get('models', $legacyModelId);
-            if ($newId !== null) {
-                $index[strtolower((string) $row['model_number'])] = $newId;
+            $modelNumber = strtolower(trim((string) $row['model_number']));
+            if ($newId !== null && $modelNumber !== '') {
+                $index[$modelNumber] = $newId;
             }
         }
 
