@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ItemType;
+use App\Models\Category;
 use App\Models\InventoryStatus;
 use App\Models\TruckAppliance;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateTruckApplianceRequest extends FormRequest
 {
@@ -21,10 +24,10 @@ class UpdateTruckApplianceRequest extends FormRequest
             'unit_label' => ['nullable', 'string', 'max:255'],
             'category' => ['required', 'string', 'max:255'],
             'subcategory' => ['nullable', 'string', 'max:255'],
-            'model_number' => ['required', 'string', 'max:255'],
+            'model_number' => [Rule::requiredIf(fn (): bool => ! $this->selectedCategoryIsFurniture()), 'nullable', 'string', 'max:255'],
             'category_id' => ['nullable', 'exists:categories,id'],
             'model_id' => ['nullable', 'exists:models,id'],
-            'serial_number' => ['required', 'string', 'max:255'],
+            'serial_number' => [Rule::requiredIf(fn (): bool => ! $this->selectedCategoryIsFurniture()), 'nullable', 'string', 'max:255'],
             'brand' => ['required', 'string', 'max:255'],
             'product_name' => ['nullable', 'string', 'max:255'],
             'quantity' => ['nullable', 'integer', 'min:0'],
@@ -37,5 +40,36 @@ class UpdateTruckApplianceRequest extends FormRequest
             'return_reason' => ['nullable', 'string', 'max:255'],
             'return_problems' => ['nullable', 'string', 'max:5000'],
         ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $appliance = $this->route('appliance');
+
+                if (! $appliance instanceof TruckAppliance || $validator->errors()->has('category')) {
+                    return;
+                }
+
+                $incoming = Category::query()->where('name', trim((string) $this->input('category')))->first();
+                $incomingType = $incoming?->type ?? ItemType::Appliance;
+
+                if ($incomingType !== $appliance->itemType()) {
+                    $validator->errors()->add('category', __('An item cannot move between appliances and furniture.'));
+                }
+            },
+        ];
+    }
+
+    protected function selectedCategoryIsFurniture(): bool
+    {
+        $name = trim((string) $this->input('category'));
+
+        if ($name === '') {
+            return false;
+        }
+
+        return Category::query()->where('name', $name)->first()?->isFurniture() ?? false;
     }
 }

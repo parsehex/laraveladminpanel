@@ -5,6 +5,10 @@
     $selectedCategory = old('category', $appliance?->category?->name);
     $selectedSubcategory = old('subcategory', $appliance?->subcategory);
     $selectedModel = old('model_number', $appliance?->model?->model_number);
+    $selectedCategoryType = $selectedCategory
+        ? (\App\Models\Category::query()->where('name', $selectedCategory)->value('type') ?: 'appliance')
+        : 'appliance';
+    $isFurniture = $selectedCategoryType === 'furniture';
     $isReturnsTruck = stripos($truck->name, 'Returns') !== false;
 @endphp
 
@@ -21,7 +25,7 @@
                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Search category...</option>
                         @if($selectedCategory)
-                            <option value="{{ $selectedCategory }}" selected>{{ $selectedCategory }}</option>
+                            <option value="{{ $selectedCategory }}" data-type="{{ $selectedCategoryType }}" selected>{{ $selectedCategory }}</option>
                         @endif
                     </select>
                     @if(auth()->user()?->can('category.create'))
@@ -56,10 +60,10 @@
                 @enderror
             </div>
 
-            <div>
+            <div class="{{ $isFurniture ? 'hidden' : '' }}" data-appliance-only>
                 <label for="{{ $prefix }}-model-number" class="block text-sm font-semibold text-gray-700 mb-2">Model #: <span class="text-red-500">*</span></label>
                 <div class="flex gap-2" data-quick-create-wrapper>
-                    <select id="{{ $prefix }}-model-number" name="model_number" required data-ajax-dropdown="model" data-legacy-model-select data-category-source="#{{ $prefix }}-category"
+                    <select id="{{ $prefix }}-model-number" name="model_number" @unless($isFurniture) required @endunless data-ajax-dropdown="model" data-legacy-model-select data-category-source="#{{ $prefix }}-category"
                             class="w-full caps px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Search model...</option>
                         @if($selectedModel)
@@ -77,9 +81,9 @@
                 @enderror
             </div>
 
-            <div>
+            <div class="{{ $isFurniture ? 'hidden' : '' }}" data-appliance-only>
                 <label for="{{ $prefix }}-serial-number" class="block text-sm font-semibold text-gray-700 mb-2">Serial #: <span class="text-red-500">*</span></label>
-                <input type="text" id="{{ $prefix }}-serial-number" name="serial_number" value="{{ old('serial_number', $appliance?->serial_number) }}" placeholder="Serial #" required pattern="[A-Z0-9-]+"
+                <input type="text" id="{{ $prefix }}-serial-number" name="serial_number" value="{{ old('serial_number', $appliance?->serial_number) }}" placeholder="Serial #" @unless($isFurniture) required @endunless pattern="[A-Z0-9-]+"
                        class="caps w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 @error('serial_number')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>

@@ -88,9 +88,14 @@
 
         @canAccess('inventory.view')
         <a href="{{ route('admin.inventory.index') }}" @click="sidebarOpen = false"
-           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.*') && ! request()->routeIs('admin.inventory.scan*') && ! request()->routeIs('admin.inventory.testing*') ? 'is-active' : '' }}">
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ (request()->routeIs('admin.inventory.index') || (request()->routeIs('admin.inventory.*') && ! request()->routeIs('admin.inventory.scan*') && ! request()->routeIs('admin.inventory.testing*') && ! request()->routeIs('admin.inventory.furniture'))) ? 'is-active' : '' }}">
             <i class="fas fa-boxes-stacked mr-3 w-5 text-center"></i>
-            <span>Inventory</span>
+            <span>Appliances</span>
+        </a>
+        <a href="{{ route('admin.inventory.furniture') }}" @click="sidebarOpen = false"
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.furniture') ? 'is-active' : '' }}">
+            <i class="fas fa-couch mr-3 w-5 text-center"></i>
+            <span>Furniture</span>
         </a>
         <a href="{{ route('admin.inventory.scan') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.scan*') ? 'is-active' : '' }}">

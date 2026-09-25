@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Category;
 use App\Models\InventoryStatus;
 use App\Models\TruckAppliance;
 use Illuminate\Foundation\Http\FormRequest;
@@ -21,10 +22,10 @@ class StoreTruckApplianceRequest extends FormRequest
             'unit_label' => ['nullable', 'string', 'max:255'],
             'category' => ['required', 'string', 'max:255'],
             'subcategory' => ['nullable', 'string', 'max:255'],
-            'model_number' => ['required', 'string', 'max:255'],
+            'model_number' => [Rule::requiredIf(fn (): bool => ! $this->selectedCategoryIsFurniture()), 'nullable', 'string', 'max:255'],
             'category_id' => ['nullable', 'exists:categories,id'],
             'model_id' => ['nullable', 'exists:models,id'],
-            'serial_number' => ['required', 'string', 'max:255'],
+            'serial_number' => [Rule::requiredIf(fn (): bool => ! $this->selectedCategoryIsFurniture()), 'nullable', 'string', 'max:255'],
             'brand' => ['required', 'string', 'max:255'],
             'product_name' => ['nullable', 'string', 'max:255'],
             'quantity' => ['nullable', 'integer', 'min:0'],
@@ -37,5 +38,16 @@ class StoreTruckApplianceRequest extends FormRequest
             'return_reason' => ['nullable', 'string', 'max:255'],
             'return_problems' => ['nullable', 'string', 'max:5000'],
         ];
+    }
+
+    protected function selectedCategoryIsFurniture(): bool
+    {
+        $name = trim((string) $this->input('category'));
+
+        if ($name === '') {
+            return false;
+        }
+
+        return Category::query()->where('name', $name)->first()?->isFurniture() ?? false;
     }
 }

@@ -27,7 +27,7 @@
                 @csrf
                 <input type="hidden" name="sale_type" value="normal">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Scan Serial Number</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Scan serial, item ID, or sticker</label>
                     <input type="text" name="serial_number" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                 </div>
                 <div>
@@ -95,7 +95,13 @@
                 @endif
                 <input type="text" name="search" value="{{ request('search') }}" class="md:col-span-4 px-3 py-2 border border-gray-300 rounded-md" placeholder="{{ $view === 'normal' ? 'Search model, serial, location...' : 'Search model or serial' }}">
                 @if($view === 'normal')
-                <div class="md:col-span-6 flex flex-wrap items-center gap-2">
+                <select name="item_type" class="md:col-span-2 px-3 py-2 border border-gray-300 rounded-md">
+                    <option value="">All types</option>
+                    @foreach($itemTypes as $itemType)
+                        <option value="{{ $itemType->value }}" @selected($selectedItemType === $itemType->value)>{{ $itemType->label() }}</option>
+                    @endforeach
+                </select>
+                <div class="md:col-span-4 flex flex-wrap items-center gap-2">
                     @foreach($trackingStatuses as $status)
                         @php
                             $count = (int) ($statusCounts[$status] ?? 0);
@@ -138,6 +144,7 @@
                             <x-admin.data-table.cell column="status">
                                 <span class="appliance-status-chip {{ $statusClass }}">{{ $status }}</span>
                             </x-admin.data-table.cell>
+                            <x-admin.data-table.cell column="type">{{ $item->itemType()->label() }}</x-admin.data-table.cell>
                             <x-admin.data-table.cell column="location" truncate title="{{ $item->location ?: '—' }}">{{ $item->location ?: '—' }}</x-admin.data-table.cell>
                             <x-admin.data-table.cell column="model">{{ $item->model?->model_number ?? '-' }}</x-admin.data-table.cell>
                             <x-admin.data-table.cell column="serial_number">{{ $item->serial_number }}</x-admin.data-table.cell>
@@ -156,7 +163,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="11" class="px-4 py-6 text-center text-gray-500">No matching units.</td></tr>
+                        <tr><td colspan="12" class="px-4 py-6 text-center text-gray-500">No matching units.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

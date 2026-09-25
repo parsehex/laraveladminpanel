@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ItemType;
 use App\Http\Controllers\Controller;
 use App\Models\AppliancePart;
 use App\Models\InventoryStatus;
@@ -30,9 +31,20 @@ class InventoryController extends Controller
 
     public function index(Request $request)
     {
+        return $this->renderInventory($request, ItemType::Appliance);
+    }
+
+    public function furniture(Request $request)
+    {
+        return $this->renderInventory($request, ItemType::Furniture);
+    }
+
+    private function renderInventory(Request $request, ItemType $type)
+    {
         $dataTable = $this->inventoryDataTable();
 
         $query = TruckAppliance::query()
+            ->ofType($type)
             ->with(['truck', 'category', 'model', 'statusHistories'])
             ->withSum('parts as parts_sum_cost', 'cost');
 
@@ -43,6 +55,7 @@ class InventoryController extends Controller
 
         if ($request->boolean('print')) {
             $printQuery = TruckAppliance::query()
+                ->ofType($type)
                 ->with(['truck', 'category', 'model', 'updater', 'parts.part', 'parts.user', 'statusHistories.user'])
                 ->withSum('parts as parts_sum_cost', 'cost')
                 ->latest('id');
@@ -72,6 +85,7 @@ class InventoryController extends Controller
         $items = PageSize::paginate($query, $request);
 
         $brands = TruckAppliance::query()
+            ->ofType($type)
             ->whereNotNull('brand')
             ->where('brand', '<>', '')
             ->selectRaw('MIN(brand) as brand')
@@ -80,6 +94,7 @@ class InventoryController extends Controller
             ->pluck('brand');
 
         $subcategories = TruckAppliance::query()
+            ->ofType($type)
             ->whereNotNull('subcategory')
             ->where('subcategory', '<>', '')
             ->selectRaw('MIN(subcategory) as subcategory')
@@ -88,6 +103,7 @@ class InventoryController extends Controller
             ->pluck('subcategory');
 
         $locations = TruckAppliance::query()
+            ->ofType($type)
             ->whereNotNull('location')
             ->where('location', '<>', '')
             ->selectRaw('MIN(location) as location')
@@ -96,6 +112,7 @@ class InventoryController extends Controller
             ->pluck('location');
 
         $categories = TruckAppliance::query()
+            ->ofType($type)
             ->with('category:id,name')
             ->whereNotNull('category_id')
             ->get()
@@ -119,7 +136,8 @@ class InventoryController extends Controller
                 ->selectRaw("$statusExpression as current_status")
                 ->selectRaw('COALESCE(price, 0) as base_cost')
                 ->selectRaw("{$partsCostSql} as total_parts_cost")
-                ->whereNull('deleted_at');
+                ->whereNull('deleted_at')
+                ->whereIn('id', TruckAppliance::query()->ofType($type)->select('id'));
 
             if ($costDate) {
                 $endOfDate = $costDate->copy()->endOfDay();
@@ -139,7 +157,8 @@ class InventoryController extends Controller
                     ->selectRaw('latest_status.status as current_status')
                     ->selectRaw('COALESCE(truck_appliances.price, 0) as base_cost')
                     ->selectRaw("{$partsCostSql} as total_parts_cost")
-                    ->whereNull('truck_appliances.deleted_at');
+                    ->whereNull('truck_appliances.deleted_at')
+                    ->whereIn('truck_appliances.id', TruckAppliance::query()->ofType($type)->select('id'));
             }
 
             $inventoryData = DB::query()
@@ -158,6 +177,8 @@ class InventoryController extends Controller
         }
 
         return view('admin.inventory.index', [
+            'pageTitle' => $type === ItemType::Furniture ? 'Furniture' : 'Appliances',
+            'listRoute' => $type === ItemType::Furniture ? 'admin.inventory.furniture' : 'admin.inventory.index',
             'items' => $items,
             'brands' => $brands,
             'categories' => $categories,
@@ -301,9 +322,18 @@ class InventoryController extends Controller
             $appliance->statusHistories,
         );
 
+        $statuses = InventoryStatus::assignableNames($appliance->status);
+
+        if ($appliance->isFurniture()) {
+            $statuses = array_values(array_filter(
+                $statuses,
+                fn (string $name): bool => ! in_array($name, TruckAppliance::APPLIANCE_ONLY_STATUSES, true),
+            ));
+        }
+
         return view('admin.inventory.show', [
             'appliance' => $appliance,
-            'statuses' => InventoryStatus::assignableNames($appliance->status),
+            'statuses' => $statuses,
             'testingResultLinks' => $testingResultLinks,
             'repairResultLinks' => $repairResultLinks,
             'testingResultCount' => count($flows->listResultsForAppliance($appliance->id)),
@@ -430,6 +460,12 @@ class InventoryController extends Controller
             'parts_ordered' => ['nullable', 'boolean'],
         ]);
 
+        if ($appliance->isFurniture() && in_array($data['status'], TruckAppliance::APPLIANCE_ONLY_STATUSES, true)) {
+            return back()->withErrors([
+                'status' => __('That status is only used for appliances.'),
+            ]);
+        }
+
         $update = [
             'status' => $data['status'],
             'updated_by' => $request->user()->id,
@@ -500,6 +536,7 @@ class InventoryController extends Controller
 
     public function storePart(Request $request, TruckAppliance $appliance)
     {
+        $appliance->abortIfFurniture();
         abort_unless($request->user()?->can('appliance.edit'), 403);
 
         $data = $request->validate([
@@ -627,6 +664,7 @@ class InventoryController extends Controller
 
     public function destroyPart(Request $request, TruckAppliance $appliance, AppliancePart $part)
     {
+        $appliance->abortIfFurniture();
         abort_unless($request->user()?->can('appliance.edit'), 403);
         abort_unless($part->truck_appliance_id === $appliance->id, 404);
 
@@ -825,29 +863,7 @@ class InventoryController extends Controller
 
     private function parseApplianceIdFromQr(?string $payload): ?int
     {
-        if ($payload === null) {
-            return null;
-        }
-
-        $payload = trim($payload);
-
-        if ($payload === '') {
-            return null;
-        }
-
-        if (ctype_digit($payload)) {
-            return (int) $payload;
-        }
-
-        if (preg_match('/[?&]id=(\d+)/i', $payload, $matches)) {
-            return (int) $matches[1];
-        }
-
-        if (preg_match('#/(?:admin/)?inventory/(\d+)#i', $payload, $matches)) {
-            return (int) $matches[1];
-        }
-
-        return null;
+        return TruckAppliance::idFromScan($payload);
     }
 
     private function normalizeModelNumber(?string $value): ?string

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ItemType;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
@@ -19,9 +20,11 @@ class DropdownController extends Controller
     public function categories(Request $request): JsonResponse
     {
         $search = $request->string('q')->trim();
+        $type = ItemType::tryFrom((string) $request->input('type'));
 
         $categories = Category::query()
             ->where('status', 1)
+            ->when($type, fn ($query) => $query->where('type', $type))
             ->when($search->isNotEmpty(), fn ($query) => $query->whereLike('name', '%'.$search.'%'))
             ->orderBy('name')
             ->paginate(20);
@@ -31,6 +34,7 @@ class DropdownController extends Controller
                 'id' => $request->input('value_field') === 'name' ? $category->name : $category->id,
                 'value' => $category->name,
                 'category_id' => $category->id,
+                'type' => $category->type?->value ?? ItemType::Appliance->value,
                 'text' => $category->name,
             ])->values(),
             'next_page' => $categories->hasMorePages() ? $categories->currentPage() + 1 : null,
@@ -79,7 +83,7 @@ class DropdownController extends Controller
         return response()->json([
             'data' => $models->getCollection()->map(fn (Model $model) => [
                 'id' => $valueField === 'id' ? $model->id : $model->model_number,
-                'text' => $model->model_number,//.($model->product_name ? ' - '.$model->product_name : '').' ($'.number_format((float) $model->msrp, 2).')',
+                'text' => $model->model_number, // .($model->product_name ? ' - '.$model->product_name : '').' ($'.number_format((float) $model->msrp, 2).')',
             ])->values(),
             'next_page' => $models->hasMorePages() ? $models->currentPage() + 1 : null,
         ]);
@@ -168,10 +172,12 @@ class DropdownController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255', Rule::unique('categories', 'name')],
+            'type' => ['nullable', Rule::enum(ItemType::class)],
         ]);
 
         $category = Category::create([
             'name' => $data['name'],
+            'type' => $data['type'] ?? ItemType::Appliance->value,
             'status' => 1,
             'created_by' => $request->user()->id,
             'updated_by' => $request->user()->id,
@@ -181,6 +187,8 @@ class DropdownController extends Controller
             'message' => __('Category created successfully.'),
             'item' => [
                 'id' => $category->id,
+                'value' => $category->name,
+                'type' => $category->type?->value ?? ItemType::Appliance->value,
                 'text' => $category->name,
             ],
         ], 201);
@@ -199,7 +207,7 @@ class DropdownController extends Controller
                     ->where(fn ($query) => $query->where('msrp', number_format((float) $request->input('msrp', 0), 2, '.', ''))->whereNull('deleted_at')),
             ],
             'msrp' => ['nullable', 'numeric', 'min:0'],
-            'category' => ['nullable', 'exists:categories,name'],
+            'category' => ['nullable', Rule::exists('categories', 'name')->where('type', ItemType::Appliance->value)],
         ]);
         $categoryId = ! empty($data['category'])
             ? Category::query()->where('name', $data['category'])->value('id')

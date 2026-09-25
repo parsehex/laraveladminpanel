@@ -107,6 +107,13 @@
                 <label for="quick-create-stock" class="mb-2 block text-sm font-medium text-gray-700">Total Stock</label>
                 <input type="number" min="0" id="quick-create-stock" class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500">
             </div>
+            <div id="quick-create-type-wrapper" class="hidden">
+                <label for="quick-create-type" class="mb-2 block text-sm font-medium text-gray-700">Type</label>
+                <select id="quick-create-type" class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500">
+                    <option value="appliance">Appliance</option>
+                    <option value="furniture">Furniture</option>
+                </select>
+            </div>
             <div id="quick-create-msrp-wrapper" class="hidden">
                 <label for="quick-create-msrp" class="mb-2 block text-sm font-medium text-gray-700">MSRP</label>
                 <input type="number" min="0" step="0.01" id="quick-create-msrp" class="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500">
@@ -188,6 +195,9 @@
                 if (item.stock !== undefined) {
                     $(option).attr('data-stock', item.stock);
                 }
+                if (item.type) {
+                    $(option).attr('data-type', item.type);
+                }
                 $select.append(option);
             }
 
@@ -237,6 +247,10 @@
                             if (type === 'subcategory') {
                                 const categorySelector = $select.data('categorySource');
                                 payload.category = categorySelector ? $(categorySelector).val() : '';
+                            }
+
+                            if ($select.data('itemType')) {
+                                payload.type = $select.data('itemType');
                             }
 
                             return payload;
@@ -298,6 +312,9 @@
             $('#quick-create-name').val('').attr('name', endpoints[quickCreateType].field).trigger('focus');
             $('#quick-create-stock').val('0');
             $('#quick-create-msrp').val('0.00');
+            const lockedType = quickCreateTarget && quickCreateTarget.data('itemType');
+            $('#quick-create-type').val(lockedType || 'appliance');
+            $('#quick-create-type-wrapper').toggleClass('hidden', quickCreateType !== 'category' || !!lockedType);
             $('#quick-create-stock-wrapper').toggleClass('hidden', quickCreateType !== 'kit_part');
             $('#quick-create-msrp-wrapper').toggleClass('hidden', quickCreateType !== 'model');
             $('#quick-create-error').addClass('hidden').text('');
@@ -321,6 +338,10 @@
 
             if (quickCreateType === 'model') {
                 payload.msrp = $('#quick-create-msrp').val();
+            }
+
+            if (quickCreateType === 'category') {
+                payload.type = quickCreateTarget.data('itemType') || $('#quick-create-type').val() || 'appliance';
             }
 
             if (quickCreateType === 'subcategory') {

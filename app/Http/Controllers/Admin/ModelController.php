@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ItemType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreModelRequest;
 use App\Http\Requests\UpdateModelRequest;
@@ -54,6 +55,7 @@ class ModelController extends Controller
             ->values();
         $categories = Category::query()
             ->whereIn('id', $categoryIds)
+            ->where('type', ItemType::Appliance)
             ->orderBy('name')
             ->get();
 

@@ -25,6 +25,7 @@ class ApplianceTestingController extends Controller
 
     public function show(TruckAppliance $appliance)
     {
+        $appliance->abortIfFurniture();
         abort_unless($appliance->status === 'Testing', 403, 'Unit must be in Testing status.');
 
         $appliance->loadMissing('category', 'model', 'truck');
@@ -41,6 +42,7 @@ class ApplianceTestingController extends Controller
 
     public function store(Request $request, TruckAppliance $appliance)
     {
+        $appliance->abortIfFurniture();
         abort_unless($request->user()?->can('appliance.edit'), 403);
         abort_unless($appliance->status === 'Testing', 403, 'Unit must be in Testing status.');
 
@@ -117,6 +119,7 @@ class ApplianceTestingController extends Controller
 
     public function indexResults(TruckAppliance $appliance)
     {
+        $appliance->abortIfFurniture();
         $appliance->loadMissing('category', 'model', 'truck');
 
         return view('admin.inventory.testing-results-index', [
@@ -127,6 +130,7 @@ class ApplianceTestingController extends Controller
 
     public function showResult(TruckAppliance $appliance, string $result)
     {
+        $appliance->abortIfFurniture();
         abort_unless($this->flows->resultBelongsToAppliance($result, $appliance->id), 404);
 
         $data = $this->flows->getResult($result);

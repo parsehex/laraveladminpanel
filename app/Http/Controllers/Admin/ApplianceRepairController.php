@@ -29,6 +29,7 @@ class ApplianceRepairController extends Controller
 
     public function show(TruckAppliance $appliance)
     {
+        $appliance->abortIfFurniture();
         abort_unless($appliance->status === 'Repair', 403, 'Unit must be in Repair status.');
 
         $appliance->loadMissing('category', 'model', 'truck', 'parts.part', 'parts.user');
@@ -48,6 +49,7 @@ class ApplianceRepairController extends Controller
 
     public function storeDiagnosis(Request $request, TruckAppliance $appliance)
     {
+        $appliance->abortIfFurniture();
         abort_unless($request->user()?->can('appliance.edit'), 403);
         abort_unless($appliance->status === 'Repair', 403, 'Unit must be in Repair status.');
 
@@ -69,6 +71,7 @@ class ApplianceRepairController extends Controller
 
     public function storeReevaluation(Request $request, TruckAppliance $appliance)
     {
+        $appliance->abortIfFurniture();
         abort_unless($request->user()?->can('appliance.edit'), 403);
         abort_unless($appliance->status === 'Repair', 403, 'Unit must be in Repair status.');
 
@@ -165,6 +168,7 @@ class ApplianceRepairController extends Controller
 
     public function indexResults(TruckAppliance $appliance)
     {
+        $appliance->abortIfFurniture();
         $appliance->loadMissing('category', 'model', 'truck');
 
         return view('admin.inventory.repair-results-index', [
@@ -175,6 +179,7 @@ class ApplianceRepairController extends Controller
 
     public function showResult(TruckAppliance $appliance, string $result)
     {
+        $appliance->abortIfFurniture();
         abort_unless($this->repairResults->belongsToAppliance($result, $appliance->id), 404);
 
         $data = $this->repairResults->get($result);

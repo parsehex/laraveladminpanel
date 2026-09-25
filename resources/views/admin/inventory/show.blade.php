@@ -183,7 +183,7 @@
         </div>
     </section>
 
-    @if($status === 'Testing')
+    @if(! $appliance->isFurniture() && $status === 'Testing')
     <section class="legacy-panel">
         <div class="legacy-panel-heading bg-sky-600">Testing checklist</div>
         <div class="legacy-panel-body">
@@ -195,7 +195,7 @@
     </section>
     @endif
 
-    @if($status === 'Repair')
+    @if(! $appliance->isFurniture() && $status === 'Repair')
     <section class="legacy-panel">
         <div class="legacy-panel-heading bg-orange-600">Repair / triage</div>
         <div class="legacy-panel-body">
@@ -207,7 +207,7 @@
     </section>
     @endif
 
-    @if($status === 'Demanufacture')
+    @if(! $appliance->isFurniture() && $status === 'Demanufacture')
     <section class="legacy-panel">
         <div class="legacy-panel-heading bg-red-700">Demanufacture</div>
         <div class="legacy-panel-body">
@@ -223,6 +223,7 @@
         <div class="legacy-panel-heading bg-blue-600">Actions</div>
         <div class="legacy-panel-body flex flex-wrap gap-1">
             @foreach(['Testing', 'Cleaning', 'Ready', 'Repair', 'Holding', 'Holding for parts', 'Demanufacture', 'Show Room', 'Quality Control QC'] as $action)
+            @continue($appliance->isFurniture() && in_array($action, \App\Models\TruckAppliance::APPLIANCE_ONLY_STATUSES, true))
             <button type="button" class="legacy-btn status-action {{ $statusStyles[$action]['class'] ?? 'status-white' }}" data-status-shortcut="{{ $action }}">{{ $action }}</button>
             @endforeach
         </div>
@@ -344,7 +345,9 @@
         </div>
     </section>
 
+    @unless($appliance->isFurniture())
     @include('admin.inventory.partials.parts-panel')
+    @endunless
 
     <section class="legacy-panel">
         <div class="legacy-panel-heading bg-blue-600">Photos</div>

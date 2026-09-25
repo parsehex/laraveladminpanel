@@ -2,13 +2,24 @@
 
 namespace App\Models;
 
+use App\Enums\ItemType;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TruckAppliance extends EloquentModel
 {
     use SoftDeletes;
+
+    public const APPLIANCE_ONLY_STATUSES = [
+        'Testing',
+        'Repair',
+        'Demanufacture',
+        'Holding for parts',
+    ];
 
     public const RECEIVING_CONDITIONS = [
         'A-Grade',
@@ -82,6 +93,118 @@ class TruckAppliance extends EloquentModel
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function furnitureDetails(): HasOne
+    {
+        return $this->hasOne(FurnitureDetail::class);
+    }
+
+    #[Scope]
+    protected function ofType(Builder $query, ItemType $type): void
+    {
+        if ($type === ItemType::Furniture) {
+            $query->whereHas('category', fn (Builder $category) => $category->where('type', $type));
+
+            return;
+        }
+
+        $query->where(function (Builder $query) use ($type) {
+            $query->whereDoesntHave('category')
+                ->orWhereHas('category', fn (Builder $category) => $category->where('type', $type));
+        });
+    }
+
+    #[Scope]
+    protected function appliances(Builder $query): void
+    {
+        $query->ofType(ItemType::Appliance);
+    }
+
+    #[Scope]
+    protected function furniture(Builder $query): void
+    {
+        $query->ofType(ItemType::Furniture);
+    }
+
+    public function itemType(): ItemType
+    {
+        return $this->category?->type ?? ItemType::Appliance;
+    }
+
+    public function isFurniture(): bool
+    {
+        return $this->itemType() === ItemType::Furniture;
+    }
+
+    public function abortIfFurniture(): void
+    {
+        abort_if($this->isFurniture(), 404);
+    }
+
+    public function syncFurnitureDetails(): void
+    {
+        if ($this->isFurniture()) {
+            $this->furnitureDetails()->firstOrCreate([]);
+
+            return;
+        }
+
+        $this->furnitureDetails()->delete();
+    }
+
+    public static function idFromScan(?string $payload): ?int
+    {
+        if ($payload === null) {
+            return null;
+        }
+
+        $payload = trim($payload);
+
+        if ($payload === '') {
+            return null;
+        }
+
+        if (ctype_digit($payload)) {
+            return (int) $payload;
+        }
+
+        if (preg_match('/[?&]id=(\d+)/i', $payload, $matches)) {
+            return (int) $matches[1];
+        }
+
+        if (preg_match('#/(?:admin/)?inventory/(\d+)#i', $payload, $matches)) {
+            return (int) $matches[1];
+        }
+
+        return null;
+    }
+
+    public static function findForSale(string $input): ?self
+    {
+        $input = trim($input);
+
+        if ($input === '') {
+            return null;
+        }
+
+        $id = self::idFromScan($input);
+
+        if ($id !== null) {
+            $match = self::query()->find($id);
+
+            if ($match) {
+                return $match;
+            }
+        }
+
+        $serial = strtoupper((string) preg_replace('/[^A-Z0-9-]/', '', $input));
+
+        if ($serial === '') {
+            return null;
+        }
+
+        return self::query()->where('serial_number', $serial)->first();
     }
 
     public function model(): BelongsTo

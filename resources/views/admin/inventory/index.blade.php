@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('title', 'Inventory')
-@section('page-title', 'Inventory')
+@section('title', $pageTitle)
+@section('page-title', $pageTitle)
 
 @section('content')
 @php
@@ -32,7 +32,7 @@
         </button>
         <div id="inventory-value-panel" class="{{ request('cost_date') ? '' : 'hidden' }} overflow-x-auto">
             <div class="border-b border-blue-100 bg-blue-50 p-3">
-                <form method="GET" action="{{ route('admin.inventory.index') }}" class="flex flex-wrap items-center gap-2" onclick="event.stopPropagation();">
+                <form method="GET" action="{{ route($listRoute) }}" class="flex flex-wrap items-center gap-2" onclick="event.stopPropagation();">
                     @foreach(request()->except(['cost_date', 'page']) as $key => $value)
                         @if(is_array($value))
                             @foreach($value as $nestedValue)
@@ -109,7 +109,7 @@
         </x-slot:header>
         <x-slot:filters>
         <div class="inventory-filter-card bg-white p-4">
-            <form method="GET" action="{{ route('admin.inventory.index') }}" class="relative grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <form method="GET" action="{{ route($listRoute) }}" class="relative grid grid-cols-1 lg:grid-cols-12 gap-4">
                 @if(request('sort'))
                     <input type="hidden" name="sort" value="{{ request('sort') }}">
                 @endif
@@ -176,7 +176,7 @@
                 </div>
                 <div class="lg:col-span-12 flex flex-wrap justify-end gap-2">
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">Apply</button>
-                    <a href="{{ route('admin.inventory.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">Clear</a>
+                    <a href="{{ route($listRoute) }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">Clear</a>
                 </div>
             </form>
         </div>

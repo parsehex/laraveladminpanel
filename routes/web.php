@@ -252,6 +252,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('inventory', [InventoryController::class, 'index'])
         ->middleware('permission:inventory.view')
         ->name('inventory.index');
+    Route::get('inventory/furniture', [InventoryController::class, 'furniture'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.furniture');
     Route::get('inventory/scan', [InventoryController::class, 'scan'])
         ->middleware('permission:inventory.view')
         ->name('inventory.scan');

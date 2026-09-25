@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ItemType;
 use App\Http\Controllers\Controller;
 use App\Models\CustomSale;
 use App\Models\InventoryStatus;
@@ -36,9 +37,12 @@ class SalesController extends Controller
         $selectedStatuses = $this->selectedTrackingStatuses($request);
         $normalDataTable = $this->normalSalesDataTable();
 
+        $itemType = ItemType::tryFrom((string) $request->input('item_type'));
+
         $normalQuery = TruckAppliance::query()
-            ->with(['model'])
-            ->whereIn('status', self::TRACKING_STATUSES);
+            ->with(['model', 'category'])
+            ->whereIn('status', self::TRACKING_STATUSES)
+            ->when($itemType, fn (Builder $query) => $query->ofType($itemType));
 
         if ($search->isNotEmpty()) {
             $normalQuery->where(function (Builder $query) use ($search) {
@@ -93,6 +97,8 @@ class SalesController extends Controller
             'dataTable' => $normalDataTable,
             'trackingStatuses' => self::TRACKING_STATUSES,
             'selectedStatuses' => $selectedStatuses,
+            'itemTypes' => ItemType::cases(),
+            'selectedItemType' => $itemType?->value,
             'statusCounts' => $statusCounts,
             ...$normalDataTable->sortState($request),
             'totalSales' => $view === 'normal' ? $normalSales : $customSalesTotal,
@@ -140,6 +146,14 @@ class SalesController extends Controller
                     'label' => 'Status',
                     'sort' => fn (Builder $query, string $direction) => $query
                         ->orderByRaw($this->trackingStatusOrderSql().' '.$direction),
+                ],
+                [
+                    'key' => 'type',
+                    'label' => 'Type',
+                    'sort' => fn (Builder $query, string $direction) => $query
+                        ->leftJoin('categories as sale_item_categories', 'sale_item_categories.id', '=', 'truck_appliances.category_id')
+                        ->orderBy('sale_item_categories.type', $direction)
+                        ->select('truck_appliances.*'),
                 ],
                 [
                     'key' => 'location',
@@ -218,8 +232,7 @@ class SalesController extends Controller
             return back()->with('success', __('Custom sale saved successfully.'));
         }
 
-        $serial = strtoupper(preg_replace('/[^A-Z0-9-]/', '', $data['serial_number']));
-        $appliance = TruckAppliance::query()->where('serial_number', $serial)->first();
+        $appliance = TruckAppliance::findForSale($data['serial_number']);
 
         if (! $appliance) {
             return back()->with('error', __('Item not found.'));

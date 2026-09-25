@@ -424,13 +424,23 @@
         $(this).siblings('[data-cost-details]').toggleClass('hidden');
     });
 
+    function categoryType($select) {
+        const selected = $select.data('select2') ? ($select.select2('data')[0] || {}) : {};
+
+        return selected.type || $select.find('option:selected').attr('data-type') || 'appliance';
+    }
+
     function updateLegacyFormState($form) {
-        const category = $form.find('[data-legacy-category]').val();
+        const $category = $form.find('[data-legacy-category]');
+        const category = $category.val();
+        const isFurniture = categoryType($category) === 'furniture';
         const showSubcategory = category !== '';
-        const showFuel = ['Ranges', 'Dryers'].includes(category);
+        const showFuel = !isFurniture && ['Ranges', 'Dryers'].includes(category);
 
         $form.find('[data-subcategory-container]').toggleClass('hidden', !showSubcategory);
         $form.find('[data-fuel-type-container]').toggleClass('hidden', !showFuel);
+        $form.find('[data-appliance-only]').toggleClass('hidden', isFurniture);
+        $form.find('[data-appliance-only]').find('[name="model_number"], [name="serial_number"]').prop('required', !isFurniture);
 
         if (!showSubcategory) {
             $form.find('select[name="subcategory"]').val(null).trigger('change');
@@ -449,6 +459,16 @@
         const $form = $(this).closest('[data-appliance-form]');
         updateLegacyFormState($form);
         $form.find('select[name="subcategory"]').val(null).trigger('change');
+    });
+
+    $(document).on('select2:select', '[data-legacy-category]', function (event) {
+        const type = event.params && event.params.data ? event.params.data.type : null;
+
+        if (type) {
+            $(this).find('option:selected').attr('data-type', type);
+        }
+
+        updateLegacyFormState($(this).closest('[data-appliance-form]'));
     });
 
     function applyModelInfo($form, modelNumber) {

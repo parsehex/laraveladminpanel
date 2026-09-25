@@ -30,6 +30,7 @@ class ApplianceDemanufactureController extends Controller
 
     public function show(TruckAppliance $appliance)
     {
+        $appliance->abortIfFurniture();
         abort_unless($appliance->status === 'Demanufacture', 403, 'Unit must be in Demanufacture status.');
 
         $appliance->loadMissing('category', 'model', 'truck');
@@ -52,6 +53,7 @@ class ApplianceDemanufactureController extends Controller
 
     public function store(Request $request, TruckAppliance $appliance)
     {
+        $appliance->abortIfFurniture();
         abort_unless($request->user()?->can('appliance.edit'), 403);
         abort_unless($appliance->status === 'Demanufacture', 403, 'Unit must be in Demanufacture status.');
 

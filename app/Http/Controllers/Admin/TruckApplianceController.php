@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ItemType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTruckApplianceRequest;
 use App\Http\Requests\UpdateTruckApplianceRequest;
@@ -46,6 +47,7 @@ class TruckApplianceController extends Controller
             'updated_by' => $request->user()->id,
         ]);
 
+        $appliance->syncFurnitureDetails();
         $this->recalculatePrices($truck);
 
         UserAction::log('create_appliance', $appliance->id, $data);
@@ -64,6 +66,7 @@ class TruckApplianceController extends Controller
         $this->syncBrand($data['brand'] ?? null, $request->user()->id);
 
         $appliance->update($data);
+        $appliance->syncFurnitureDetails();
         $this->recalculatePrices($truck);
 
         UserAction::log('update_appliance', $appliance->id, $data);
@@ -330,7 +333,7 @@ class TruckApplianceController extends Controller
         abort_unless((int) $data['truck_id'] === $truck->id, 403);
 
         $categoryName = trim((string) $data['category']);
-        $modelNumber = $this->normalizeIdentifier((string) $data['model_number']);
+        $modelNumber = $this->normalizeIdentifier((string) ($data['model_number'] ?? ''));
         $brand = trim((string) $data['brand']);
         $productName = trim((string) ($data['product_name'] ?? ''));
         $msrp = (float) ($data['msrp'] ?? 0);
@@ -342,24 +345,30 @@ class TruckApplianceController extends Controller
 
             $category = Category::create([
                 'name' => $categoryName,
+                'type' => ItemType::Appliance,
                 'status' => 1,
                 'created_by' => $request->user()->id,
                 'updated_by' => $request->user()->id,
             ]);
         }
 
-        $model = $this->resolveModel($modelNumber, $msrp, $productName, $brand, $category->id, $request->user()->id);
+        $isFurniture = $category->isFurniture();
+        $model = $isFurniture
+            ? null
+            : $this->resolveModel($modelNumber, $msrp, $productName, $brand, $category->id, $request->user()->id);
 
-        $fuelType = in_array($categoryName, ['Ranges', 'Dryers'], true)
+        $fuelType = ! $isFurniture && in_array($categoryName, ['Ranges', 'Dryers'], true)
             ? trim((string) ($data['fuel_type'] ?? 'N/A'))
             : 'N/A';
+
+        $serialNumber = trim((string) ($data['serial_number'] ?? ''));
 
         return [
             'truck_id' => $truck->id,
             'category_id' => $category->id,
             'subcategory' => trim((string) ($data['subcategory'] ?? '')) ?: null,
-            'model_id' => $model->id,
-            'serial_number' => $this->normalizeIdentifier((string) $data['serial_number']),
+            'model_id' => $model?->id,
+            'serial_number' => $serialNumber === '' ? null : $this->normalizeIdentifier($serialNumber),
             'brand' => $brand,
             'product_name' => $productName ?: null,
             'msrp' => $msrp,
