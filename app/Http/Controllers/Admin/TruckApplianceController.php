@@ -14,6 +14,7 @@ use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\UserAction;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -186,6 +187,7 @@ class TruckApplianceController extends Controller
 
         DB::transaction(function () use ($handle, $columns, $truck, $request, &$imported, &$updated) {
             $nextUnitNumber = $this->maxUnitNumber($truck) + 1;
+            $existingAppliances = $truck->appliances()->orderBy('id')->get();
 
             while (($row = fgetcsv($handle)) !== false) {
                 if (count($row) < 11 || collect($row)->filter(fn ($value) => trim((string) $value) !== '')->isEmpty()) {
@@ -213,7 +215,7 @@ class TruckApplianceController extends Controller
                 $soldBy = trim((string) $this->csvValue($row, $columns, ['sold_by'], null));
                 $soldAtRaw = trim((string) $this->csvValue($row, $columns, ['sold_at', 'sold_date'], null));
                 $hasSoldInfo = $status === 'Sold'
-                    || $soldPrice !== null
+                    || ($soldPrice !== null && $soldPrice > 0)
                     || $soldBy !== ''
                     || $soldAtRaw !== '';
 
@@ -254,12 +256,15 @@ class TruckApplianceController extends Controller
 
                 $this->syncBrand($brand, $request->user()->id);
 
+                $existing = $this->findExistingAppliance($existingAppliances, $unitLabel, $serialNumber);
+                $serialToStore = $this->serialToStore($existing?->serial_number, $serialNumber);
+
                 $payload = [
                     'unit_label' => $unitLabel ?: null,
                     'category_id' => $category?->id,
                     'subcategory' => $subcategory ?: null,
                     'model_id' => $model?->id,
-                    'serial_number' => $serialNumber ?: null,
+                    'serial_number' => $serialToStore,
                     'brand' => $brand ?: null,
                     'product_name' => $productName ?: null,
                     'quantity' => $quantity,
@@ -283,18 +288,14 @@ class TruckApplianceController extends Controller
                     $payload['sold_at'] = null;
                 }
 
-                $existing = $serialNumber !== ''
-                    ? $truck->appliances()->where('serial_number', $serialNumber)->first()
-                    : null;
-
                 if ($existing) {
                     $existing->update($payload);
                     $updated++;
                 } else {
-                    $truck->appliances()->create([
+                    $existingAppliances->push($truck->appliances()->create([
                         ...$payload,
                         'created_by' => $request->user()->id,
-                    ]);
+                    ]));
                     $imported++;
                 }
             }
@@ -442,6 +443,102 @@ class TruckApplianceController extends Controller
         ]);
 
         return $model;
+    }
+
+    /**
+     * @param  Collection<int, TruckAppliance>  $appliances
+     */
+    private function findExistingAppliance(Collection $appliances, string $unitLabel, string $serialNumber): ?TruckAppliance
+    {
+        if ($unitLabel !== '') {
+            $byLabel = $appliances->first(
+                fn (TruckAppliance $appliance) => trim((string) $appliance->unit_label) === $unitLabel
+            );
+
+            if ($byLabel) {
+                return $byLabel;
+            }
+        }
+
+        if ($serialNumber === '') {
+            return null;
+        }
+
+        return $appliances->first(
+            fn (TruckAppliance $appliance) => $this->serialsReferToSameUnit($appliance->serial_number, $serialNumber)
+        );
+    }
+
+    private function serialToStore(?string $stored, string $incoming): ?string
+    {
+        if ($incoming === '') {
+            $trimmed = trim((string) $stored);
+
+            return $trimmed === '' ? null : $trimmed;
+        }
+
+        if ($stored === null || trim($stored) === '') {
+            return $incoming;
+        }
+
+        $storedTrimmed = trim($stored);
+
+        if ($storedTrimmed === $incoming
+            || $this->incomingSerialDropsLeadingZeros($storedTrimmed, $incoming)
+            || $this->incomingSerialIsExcelNotation($storedTrimmed, $incoming)) {
+            return $storedTrimmed;
+        }
+
+        return $incoming;
+    }
+
+    private function serialsReferToSameUnit(?string $stored, string $incoming): bool
+    {
+        if ($incoming === '' || $stored === null || trim($stored) === '') {
+            return false;
+        }
+
+        $storedTrimmed = trim($stored);
+
+        return $storedTrimmed === $incoming
+            || $this->incomingSerialDropsLeadingZeros($storedTrimmed, $incoming)
+            || $this->incomingSerialIsExcelNotation($storedTrimmed, $incoming);
+    }
+
+    private function incomingSerialDropsLeadingZeros(string $stored, string $incoming): bool
+    {
+        if ($stored === $incoming || ! ctype_digit($stored) || ! ctype_digit($incoming)) {
+            return false;
+        }
+
+        return ltrim($stored, '0') === ltrim($incoming, '0');
+    }
+
+    /**
+     * Excel rewrites a long numeric serial as scientific notation. Stripping
+     * punctuation turns 4325033486600 into 433E12 and 7620409580228002630101 into 762E21.
+     */
+    private function incomingSerialIsExcelNotation(string $stored, string $incoming): bool
+    {
+        if (! ctype_digit($stored) || ! preg_match('/^(\d+)E(\d+)$/i', $incoming, $matches)) {
+            return false;
+        }
+
+        $coefficient = $matches[1];
+        $exponent = (int) $matches[2];
+
+        if (strlen($stored) !== $exponent + 1) {
+            return false;
+        }
+
+        $prefix = substr($stored, 0, strlen($coefficient));
+
+        if ($prefix === $coefficient) {
+            return true;
+        }
+
+        return strlen($prefix) === strlen($coefficient)
+            && abs((int) $prefix - (int) $coefficient) <= 1;
     }
 
     private function normalizeIdentifier(string $value): string
