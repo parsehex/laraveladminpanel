@@ -131,6 +131,93 @@
             box-shadow: inset 0 -1px 0 rgba(226, 232, 240, 0.95);
         }
 
+        /* Spreadsheet density for wide lists. Comfortable tables stay on the default cell padding. */
+        .sheet-table table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .sheet-table .divide-y > :not([hidden]) ~ :not([hidden]) {
+            border-top-width: 0;
+            border-bottom-width: 0;
+        }
+
+        .sheet-table th,
+        .sheet-table td {
+            padding: 4px 8px;
+            font-size: 14px;
+            line-height: 1.35;
+            vertical-align: middle;
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .sheet-table tr > :first-child {
+            border-left: 1px solid #e2e8f0;
+        }
+
+        .sheet-table thead th {
+            border-top: 1px solid #e2e8f0;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0;
+            text-transform: none;
+            color: #475569;
+            white-space: nowrap;
+        }
+
+        .sheet-table td[data-col]:not([data-col="status"]):not([data-col="truck_status"]):not([data-col="status_breakdown"]):not(.text-right) {
+            max-width: 11rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sheet-table td.text-right,
+        .sheet-table th.text-right {
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .sheet-table .appliance-status-chip,
+        .sheet-table .status-chip {
+            padding: 2px 8px;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.3;
+            min-height: 0;
+            white-space: nowrap;
+        }
+
+        .sheet-table .truck-status-breakdown-cell {
+            min-width: 0;
+            width: auto;
+            max-width: none;
+        }
+
+        .sheet-table .truck-status-breakdown {
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 0.2rem 0.3rem;
+            width: 20rem;
+            max-width: 20rem;
+            overflow: visible;
+        }
+
+        .sheet-table td.sticky-action a,
+        .sheet-table td.sticky-action button {
+            height: 1.75rem;
+            width: 1.75rem;
+            min-height: 0;
+        }
+
+        .sheet-table td.p-0 {
+            padding: 0;
+            font-size: 0.875rem;
+            max-width: none;
+            overflow: visible;
+            white-space: normal;
+        }
+
         /* Keep expandable row editors/views within the visible table viewport */
         [data-table-inline-panel] {
             position: sticky;

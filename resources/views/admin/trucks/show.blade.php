@@ -139,7 +139,7 @@
     </div>
     @endcanAccess
 
-    <x-admin.data-table id="truck-appliances" class="order-2" :title="'Truck Appliances ('.$appliances->total().' total)'" :table="$dataTable">
+    <x-admin.data-table id="truck-appliances" class="order-2" density="sheet" :title="'Truck Appliances ('.$appliances->total().' total)'" :table="$dataTable">
         <x-slot:header>
                 @canAccess('trucks.view')
                 <a href="{{ route('admin.trucks.appliances.export', $truck) }}" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100">
@@ -181,8 +181,8 @@
                         </x-admin.data-table.cell>
                         <x-admin.data-table.cell column="subcategory" truncate title="{{ $appliance->subcategory ?: '-' }}">{{ $appliance->subcategory ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="unit_label" truncate title="{{ $appliance->unit_label ?: '-' }}">{{ $appliance->unit_label ?: '-' }}</x-admin.data-table.cell>
-                        <x-admin.data-table.cell column="model">{{ $appliance->model?->model_number ?? '-' }}</x-admin.data-table.cell>
-                        <x-admin.data-table.cell column="serial_number">{{ $appliance->serial_number ?: '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="model" title="{{ $appliance->model?->model_number ?? '-' }}">{{ $appliance->model?->model_number ?? '-' }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="serial_number" title="{{ $appliance->serial_number ?: '-' }}">{{ $appliance->serial_number ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="brand" truncate title="{{ $appliance->brand ?: '-' }}">{{ $appliance->brand ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="product_name" truncate title="{{ $appliance->product_name ?: '-' }}">{{ $appliance->product_name ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="quantity" align="right">{{ $appliance->quantity ?? 1 }}</x-admin.data-table.cell>
@@ -200,7 +200,6 @@
                         <x-admin.data-table.cell column="msrp" align="right">${{ number_format($appliance->msrp, 2) }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="fuel_type" truncate title="{{ $appliance->fuel_type ?: '-' }}">{{ $appliance->fuel_type ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="receiving_condition" truncate title="{{ $appliance->receiving_condition ?: '-' }}">{{ $appliance->receiving_condition ?: '-' }}</x-admin.data-table.cell>
-                        <x-admin.data-table.cell column="total_parts_cost" align="right">${{ number_format($appliance->partsCost(), 2) }}</x-admin.data-table.cell>
                         <td class="sticky-action px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex items-center justify-end gap-1.5">
                             @canAccess('appliance.edit')
@@ -231,7 +230,7 @@
                     </tr>
                     @canAccess('appliance.edit')
                     <tr id="appliance-edit-{{ $appliance->id }}" class="{{ $errors->any() && old('_form') === 'edit-appliance-'.$appliance->id ? '' : 'hidden' }} bg-gray-50">
-                        <td colspan="16" class="p-0 align-top">
+                        <td colspan="15" class="p-0 align-top">
                             <div data-table-inline-panel class="bg-gray-50 px-4 py-4">
                                 <form method="POST" action="{{ route('admin.trucks.appliances.update', [$truck, $appliance]) }}" class="space-y-6">
                                     @csrf
@@ -258,7 +257,7 @@
                     @endcanAccess
                     @empty
                     <tr>
-                        <td colspan="16" class="px-6 py-8 text-center text-gray-500">No appliances assigned to this truck.</td>
+                        <td colspan="15" class="px-6 py-8 text-center text-gray-500">No appliances assigned to this truck.</td>
                     </tr>
                     @endforelse
                 </tbody>
