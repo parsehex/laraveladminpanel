@@ -35,9 +35,8 @@ class SalesController extends Controller
         $view = $request->get('view', 'normal') === 'custom' ? 'custom' : 'normal';
         $search = $request->string('search')->trim();
         $selectedStatuses = $this->selectedTrackingStatuses($request);
-        $normalDataTable = $this->normalSalesDataTable();
-
-        $itemType = ItemType::tryFrom((string) $request->input('item_type'));
+        $itemType = $this->selectedItemType($request);
+        $normalDataTable = $this->normalSalesDataTable($itemType === null);
 
         $normalQuery = TruckAppliance::query()
             ->with(['model', 'category'])
@@ -99,6 +98,7 @@ class SalesController extends Controller
             'selectedStatuses' => $selectedStatuses,
             'itemTypes' => ItemType::cases(),
             'selectedItemType' => $itemType?->value,
+            'showTypeColumn' => $itemType === null,
             'statusCounts' => $statusCounts,
             ...$normalDataTable->sortState($request),
             'totalSales' => $view === 'normal' ? $normalSales : $customSalesTotal,
@@ -122,13 +122,53 @@ class SalesController extends Controller
         return $statuses ?: self::TRACKING_STATUSES;
     }
 
+    private function selectedItemType(Request $request): ?ItemType
+    {
+        if (! $request->has('item_type')) {
+            return ItemType::Appliance;
+        }
+
+        $value = (string) $request->input('item_type');
+
+        if ($value === '' || $value === 'all') {
+            return null;
+        }
+
+        return ItemType::tryFrom($value) ?? ItemType::Appliance;
+    }
+
     private function trackingStatusOrderSql(): string
     {
         return "CASE COALESCE(truck_appliances.status, '') WHEN 'Show Room' THEN 0 WHEN 'Ready' THEN 1 WHEN 'Sold' THEN 2 ELSE 3 END";
     }
 
-    private function normalSalesDataTable(): DataTable
+    private function normalSalesDataTable(bool $includeType): DataTable
     {
+        $columns = [
+            [
+                'key' => 'id',
+                'label' => 'ID',
+                'sort' => 'truck_appliances.id',
+            ],
+            [
+                'key' => 'status',
+                'label' => 'Status',
+                'sort' => fn (Builder $query, string $direction) => $query
+                    ->orderByRaw($this->trackingStatusOrderSql().' '.$direction),
+            ],
+        ];
+
+        if ($includeType) {
+            $columns[] = [
+                'key' => 'type',
+                'label' => 'Type',
+                'sort' => fn (Builder $query, string $direction) => $query
+                    ->leftJoin('categories as sale_item_categories', 'sale_item_categories.id', '=', 'truck_appliances.category_id')
+                    ->orderBy('sale_item_categories.type', $direction)
+                    ->select('truck_appliances.*'),
+            ];
+        }
+
         return new DataTable(
             storageKey: 'normalSalesTableColumns',
             defaultSort: [
@@ -136,25 +176,7 @@ class SalesController extends Controller
                 ['truck_appliances.id', 'desc'],
             ],
             columns: [
-                [
-                    'key' => 'id',
-                    'label' => 'ID',
-                    'sort' => 'truck_appliances.id',
-                ],
-                [
-                    'key' => 'status',
-                    'label' => 'Status',
-                    'sort' => fn (Builder $query, string $direction) => $query
-                        ->orderByRaw($this->trackingStatusOrderSql().' '.$direction),
-                ],
-                [
-                    'key' => 'type',
-                    'label' => 'Type',
-                    'sort' => fn (Builder $query, string $direction) => $query
-                        ->leftJoin('categories as sale_item_categories', 'sale_item_categories.id', '=', 'truck_appliances.category_id')
-                        ->orderBy('sale_item_categories.type', $direction)
-                        ->select('truck_appliances.*'),
-                ],
+                ...$columns,
                 [
                     'key' => 'location',
                     'label' => 'Location',

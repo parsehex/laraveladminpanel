@@ -96,7 +96,7 @@
                 <input type="text" name="search" value="{{ request('search') }}" class="md:col-span-4 px-3 py-2 border border-gray-300 rounded-md" placeholder="{{ $view === 'normal' ? 'Search model, serial, location...' : 'Search model or serial' }}">
                 @if($view === 'normal')
                 <select name="item_type" class="md:col-span-2 px-3 py-2 border border-gray-300 rounded-md">
-                    <option value="">All types</option>
+                    <option value="all" @selected($selectedItemType === null)>All types</option>
                     @foreach($itemTypes as $itemType)
                         <option value="{{ $itemType->value }}" @selected($selectedItemType === $itemType->value)>{{ $itemType->label() }}</option>
                     @endforeach
@@ -144,7 +144,9 @@
                             <x-admin.data-table.cell column="status">
                                 <span class="appliance-status-chip {{ $statusClass }}">{{ $status }}</span>
                             </x-admin.data-table.cell>
+                            @if($showTypeColumn)
                             <x-admin.data-table.cell column="type">{{ $item->itemType()->label() }}</x-admin.data-table.cell>
+                            @endif
                             <x-admin.data-table.cell column="location" truncate title="{{ $item->location ?: '—' }}">{{ $item->location ?: '—' }}</x-admin.data-table.cell>
                             <x-admin.data-table.cell column="model">{{ $item->model?->model_number ?? '-' }}</x-admin.data-table.cell>
                             <x-admin.data-table.cell column="serial_number">{{ $item->serial_number }}</x-admin.data-table.cell>
@@ -163,7 +165,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="12" class="px-4 py-6 text-center text-gray-500">No matching units.</td></tr>
+                        <tr><td colspan="{{ $showTypeColumn ? 12 : 11 }}" class="px-4 py-6 text-center text-gray-500">No matching units.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

@@ -257,9 +257,73 @@ class FurnitureInventoryTest extends TestCase
             'item_type' => ItemType::Furniture->value,
         ]));
 
-        $response->assertOk();
         $response->assertSee('FUR-SALE-1');
         $response->assertDontSee('APP-SALE-1');
+        $response->assertDontSee('data-col="type"', false);
+    }
+
+    public function test_sales_page_shows_the_type_column_when_all_types_are_listed(): void
+    {
+        $user = $this->adminUser();
+        $truck = $this->truck($user);
+        $washers = $this->category($user, 'Washers', ItemType::Appliance);
+        $sofas = $this->category($user, 'Sofas', ItemType::Furniture);
+
+        TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'category_id' => $washers->id,
+            'serial_number' => 'APP-SALE-1',
+            'status' => 'Ready',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'category_id' => $sofas->id,
+            'serial_number' => 'FUR-SALE-1',
+            'status' => 'Ready',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('admin.sales.index', [
+            'item_type' => 'all',
+        ]));
+
+        $response->assertSee('APP-SALE-1');
+        $response->assertSee('FUR-SALE-1');
+        $response->assertSee('data-col="type"', false);
+    }
+
+    public function test_sales_page_defaults_to_appliances_and_hides_the_type_column(): void
+    {
+        $user = $this->adminUser();
+        $truck = $this->truck($user);
+        $washers = $this->category($user, 'Washers', ItemType::Appliance);
+        $sofas = $this->category($user, 'Sofas', ItemType::Furniture);
+
+        TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'category_id' => $washers->id,
+            'serial_number' => 'APP-SALE-1',
+            'status' => 'Ready',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'category_id' => $sofas->id,
+            'serial_number' => 'FUR-SALE-1',
+            'status' => 'Ready',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('admin.sales.index'));
+
+        $response->assertSee('APP-SALE-1');
+        $response->assertDontSee('FUR-SALE-1');
+        $response->assertDontSee('data-col="type"', false);
     }
 
     public function test_normal_sale_can_mark_furniture_sold_by_item_id(): void
