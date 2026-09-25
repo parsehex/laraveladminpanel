@@ -139,7 +139,8 @@
                 || $showUsersLink
                 || $showUserChildren
                 || canAccess('inventory-statuses.manage')
-                || canAccess('inventory-locations.manage');
+                || canAccess('inventory-locations.manage')
+                || canAccess('categories.manage');
         @endphp
 
         @if($showManageFolder)
@@ -217,6 +218,14 @@
                class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.inventory-statuses.*') ? 'is-active' : '' }}">
                 <i class="fas fa-tags mr-3 w-5 text-center"></i>
                 <span>Statuses</span>
+            </a>
+            @endcanAccess
+
+            @canAccess('categories.manage')
+            <a href="{{ route('admin.categories.index') }}" @click="sidebarOpen = false"
+               class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.categories.*') ? 'is-active' : '' }}">
+                <i class="fas fa-folder-tree mr-3 w-5 text-center"></i>
+                <span>Categories</span>
             </a>
             @endcanAccess
         </x-admin.nav-folder>

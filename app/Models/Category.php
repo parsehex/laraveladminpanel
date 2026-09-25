@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Category extends Model
@@ -32,6 +32,11 @@ class Category extends Model
     public function models(): HasMany
     {
         return $this->hasMany(\App\Models\Model::class, 'category_id');
+    }
+
+    public function appliances(): HasMany
+    {
+        return $this->hasMany(TruckAppliance::class, 'category_id');
     }
 
     public function subcategories(): HasMany

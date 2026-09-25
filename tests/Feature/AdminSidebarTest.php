@@ -44,6 +44,7 @@ class AdminSidebarTest extends TestCase
             'User Actions',
             'Locations',
             'Statuses',
+            'Categories',
         ]);
 
         $inventory = $this->folder($xpath, 'inventory');

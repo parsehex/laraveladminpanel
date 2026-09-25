@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ApplianceDemanufactureController;
 use App\Http\Controllers\Admin\ApplianceRepairController;
 use App\Http\Controllers\Admin\ApplianceTestingController;
+use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DeliveryController;
 use App\Http\Controllers\Admin\DemanFlowController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Admin\PartController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SalesController;
+use App\Http\Controllers\Admin\SubcategoryController;
 use App\Http\Controllers\Admin\SuggestionController;
 use App\Http\Controllers\Admin\TestingFlowController;
 use App\Http\Controllers\Admin\TruckApplianceController;
@@ -204,6 +206,23 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('kits/{kit}/sop', [KitController::class, 'sop'])
         ->middleware('permission:kits.view')
         ->name('kits.sop');
+
+    Route::get('categories', [CategoryController::class, 'index'])
+        ->middleware('permission:categories.manage')
+        ->name('categories.index');
+    Route::post('categories', [CategoryController::class, 'store'])
+        ->middleware('permission:categories.manage')
+        ->name('categories.store');
+    Route::patch('categories/{category}', [CategoryController::class, 'update'])
+        ->middleware('permission:categories.manage')
+        ->name('categories.update');
+    Route::post('categories/{category}/subcategories', [SubcategoryController::class, 'store'])
+        ->middleware('permission:categories.manage')
+        ->name('categories.subcategories.store');
+    Route::patch('categories/{category}/subcategories/{subcategory}', [SubcategoryController::class, 'update'])
+        ->middleware('permission:categories.manage')
+        ->scopeBindings()
+        ->name('categories.subcategories.update');
 
     Route::get('inventory-statuses', [InventoryStatusController::class, 'index'])
         ->middleware('permission:inventory-statuses.manage')

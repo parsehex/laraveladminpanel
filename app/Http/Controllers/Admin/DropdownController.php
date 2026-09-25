@@ -79,7 +79,7 @@ class DropdownController extends Controller
         return response()->json([
             'data' => $models->getCollection()->map(fn (Model $model) => [
                 'id' => $valueField === 'id' ? $model->id : $model->model_number,
-                'text' => $model->model_number,//.($model->product_name ? ' - '.$model->product_name : '').' ($'.number_format((float) $model->msrp, 2).')',
+                'text' => $model->model_number, // .($model->product_name ? ' - '.$model->product_name : '').' ($'.number_format((float) $model->msrp, 2).')',
             ])->values(),
             'next_page' => $models->hasMorePages() ? $models->currentPage() + 1 : null,
         ]);
@@ -167,7 +167,7 @@ class DropdownController extends Controller
         abort_unless($request->user()?->can('category.create'), 403);
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', Rule::unique('categories', 'name')],
+            'name' => ['required', 'string', 'max:255', Rule::unique(Category::class, 'name')],
         ]);
 
         $category = Category::create([

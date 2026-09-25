@@ -100,6 +100,7 @@ if (! function_exists('isManageNavFolderActive')) {
     {
         return request()->routeIs(
             'admin.users.*',
+            'admin.categories.*',
             'admin.inventory-statuses.*',
             'admin.inventory-locations.*',
         ) || isProceduresNavFolderActive() || isUsersNavFolderActive();
