@@ -163,23 +163,59 @@
         color: rgba(255, 255, 255, 0.68);
     }
 
+    .ui-nav-folder-children .ui-nav-folder-children .ui-nav-link {
+        margin-left: 2.15rem;
+    }
+
     .ui-nav-folder-toggle {
         width: calc(100% - 1.5rem);
         text-align: left;
     }
 
-    /* Folder open state is driven by an html class set before paint (same idea as sidebar-collapsed). */
-    .ui-nav-folder[data-folder="manage"] .ui-nav-folder-children {
-        display: none;
+    .ui-nav-folder-children > .ui-nav-folder > .ui-nav-folder-toggle {
+        width: calc(100% - 1.9rem);
     }
 
-    html.sidebar-folder-manage-open .ui-nav-folder[data-folder="manage"] .ui-nav-folder-children {
+    .ui-nav-folder-children .ui-nav-folder-children > .ui-nav-folder > .ui-nav-folder-toggle {
+        width: calc(100% - 2.9rem);
+    }
+
+    .ui-nav-folder-label,
+    .ui-nav-folder-chevron-btn {
+        color: inherit;
+        background: transparent;
+        border: 0;
+        cursor: pointer;
+    }
+
+    .ui-nav-folder-chevron-btn:hover,
+    .ui-nav-folder-chevron-btn:focus-visible {
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+    .ui-nav-folder-children > .ui-nav-folder > .ui-nav-folder-row {
+        padding-left: 0;
+    }
+
+    .ui-nav-folder-children .ui-nav-folder-label {
+        padding-top: 0.625rem;
+        padding-bottom: 0.625rem;
+        padding-left: 1.1rem;
+    }
+
+    /* Folder open state is driven by an html class set before paint (same idea as sidebar-collapsed). */
+    .ui-nav-folder > .ui-nav-folder-children {
+        display: none;
+    }
+@foreach (sidebarFolderIds() as $sidebarFolderId)
+    html.sidebar-folder-{{ $sidebarFolderId }}-open .ui-nav-folder[data-folder="{{ $sidebarFolderId }}"] > .ui-nav-folder-children {
         display: block;
     }
 
-    html.sidebar-folder-manage-open .ui-nav-folder[data-folder="manage"] .ui-nav-folder-chevron {
+    html.sidebar-folder-{{ $sidebarFolderId }}-open .ui-nav-folder[data-folder="{{ $sidebarFolderId }}"] > .ui-nav-folder-toggle .ui-nav-folder-chevron {
         transform: rotate(180deg);
     }
+@endforeach
 
     .ui-topbar {
         background: rgba(255, 255, 255, 0.82);
@@ -287,9 +323,32 @@
         }
 
         html.sidebar-collapsed .ui-sidebar .ui-nav-link:hover > span,
-        html.sidebar-collapsed .ui-sidebar .ui-nav-link:focus-visible > span {
+        html.sidebar-collapsed .ui-sidebar .ui-nav-link:focus-visible > span,
+        html.sidebar-collapsed .ui-sidebar .ui-nav-folder-row:hover .ui-nav-folder-label > span,
+        html.sidebar-collapsed .ui-sidebar .ui-nav-folder-row:focus-within .ui-nav-folder-label > span {
             opacity: 1;
             visibility: visible;
+        }
+
+        html.sidebar-collapsed .ui-sidebar .ui-nav-folder-label > span {
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            margin-left: 0.75rem;
+            transform: translateY(-50%);
+            white-space: nowrap;
+            background: #0f1f38;
+            color: #fff;
+            padding: 0.45rem 0.85rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.28);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 120ms ease, visibility 120ms ease;
+            z-index: 60;
         }
 
         html.sidebar-collapsed .ui-sidebar .ui-nav-folder-toggle {
@@ -297,6 +356,13 @@
             justify-content: center;
         }
 
+        html.sidebar-collapsed .ui-sidebar .ui-nav-folder-label {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        html.sidebar-collapsed .ui-sidebar .ui-nav-folder-chevron-btn,
         html.sidebar-collapsed .ui-sidebar .ui-nav-folder-chevron {
             display: none;
         }

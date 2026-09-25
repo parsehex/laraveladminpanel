@@ -171,7 +171,7 @@ class DropdownController extends Controller
         abort_unless($request->user()?->can('category.create'), 403);
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255', Rule::unique('categories', 'name')],
+            'name' => ['required', 'string', 'max:255', Rule::unique(Category::class, 'name')],
             'type' => ['nullable', Rule::enum(ItemType::class)],
         ]);
 

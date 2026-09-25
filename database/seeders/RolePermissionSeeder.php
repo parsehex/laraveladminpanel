@@ -29,6 +29,7 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'roles.edit', 'module_name' => 'roles', 'description' => 'Edit roles'],
             ['name' => 'roles.delete', 'module_name' => 'roles', 'description' => 'Delete roles'],
             ['name' => 'category.create', 'module_name' => 'categories', 'description' => 'Create categories'],
+            ['name' => 'categories.manage', 'module_name' => 'categories', 'description' => 'Manage categories'],
             ['name' => 'parts.view', 'module_name' => 'parts', 'description' => 'List parts'],
             ['name' => 'parts.create', 'module_name' => 'parts', 'description' => 'Create parts'],
             ['name' => 'parts.edit', 'module_name' => 'parts', 'description' => 'Edit parts'],

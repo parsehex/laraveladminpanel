@@ -14,6 +14,7 @@
         }
 
         const active = sidebar.querySelector('a.ui-nav-link.is-active')
+            || sidebar.querySelector('a.is-active')
             || sidebar.querySelector('.ui-nav-link.is-active');
 
         if (! active) {
