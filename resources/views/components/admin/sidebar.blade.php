@@ -38,6 +38,25 @@
         </a>
         @endcanAccess
 
+        @canAccess('inventory.view')
+        <x-admin.nav-folder
+            id="inventory"
+            label="Inventory"
+            icon="fa-warehouse"
+            :active="isInventoryNavFolderActive()">
+            <a href="{{ route('admin.inventory.index') }}" @click="sidebarOpen = false"
+               class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ isApplianceInventoryNavActive() ? 'is-active' : '' }}">
+                <i class="fas fa-boxes-stacked mr-3 w-5 text-center"></i>
+                <span>Appliances</span>
+            </a>
+            <a href="{{ route('admin.inventory.scan') }}" @click="sidebarOpen = false"
+               class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.inventory.scan*') ? 'is-active' : '' }}">
+                <i class="fas fa-qrcode mr-3 w-5 text-center"></i>
+                <span>Scan</span>
+            </a>
+        </x-admin.nav-folder>
+        @endcanAccess
+
         @canAccess('trucks.view')
         <a href="{{ route('admin.trucks.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.trucks.*') ? 'is-active' : '' }}">
@@ -46,27 +65,19 @@
         </a>
         @endcanAccess
 
-        @canAccess('parts.view')
-        <a href="{{ route('admin.parts.index') }}" @click="sidebarOpen = false"
-           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.parts.*') ? 'is-active' : '' }}">
-            <i class="fas fa-cogs mr-3 w-5 text-center"></i>
-            <span>Parts</span>
-        </a>
-        @endcanAccess
-
-        @canAccess('kit-parts.view')
-        <a href="{{ route('admin.kit-parts.index') }}" @click="sidebarOpen = false"
-           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.kit-parts.*') ? 'is-active' : '' }}">
-            <i class="fas fa-screwdriver-wrench mr-3 w-5 text-center"></i>
-            <span>Kit Parts</span>
-        </a>
-        @endcanAccess
-
         @canAccess('models.view')
         <a href="{{ route('admin.models.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.models.*') ? 'is-active' : '' }}">
             <i class="fas fa-cube mr-3 w-5 text-center"></i>
             <span>Models</span>
+        </a>
+        @endcanAccess
+
+        @canAccess('parts.view')
+        <a href="{{ route('admin.parts.index') }}" @click="sidebarOpen = false"
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.parts.*') ? 'is-active' : '' }}">
+            <i class="fas fa-cogs mr-3 w-5 text-center"></i>
+            <span>Parts</span>
         </a>
         @endcanAccess
 
@@ -86,68 +97,87 @@
         </a>
         @endcanAccess
 
-        @canAccess('inventory.view')
-        <a href="{{ route('admin.inventory.index') }}" @click="sidebarOpen = false"
-           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.*') && ! request()->routeIs('admin.inventory.scan*') && ! request()->routeIs('admin.inventory.testing*') ? 'is-active' : '' }}">
-            <i class="fas fa-boxes-stacked mr-3 w-5 text-center"></i>
-            <span>Inventory</span>
-        </a>
-        <a href="{{ route('admin.inventory.scan') }}" @click="sidebarOpen = false"
-           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.scan*') ? 'is-active' : '' }}">
-            <i class="fas fa-qrcode mr-3 w-5 text-center"></i>
-            <span>Scan</span>
-        </a>
-        @endcanAccess
-
-        @canAccess('kits.view')
+        @php
+            $showKitsLink = canAccess('kits.view');
+            $showKitParts = canAccess('kit-parts.view');
+        @endphp
+        @if($showKitsLink && $showKitParts)
+        <x-admin.nav-folder
+            id="kits"
+            label="Kits"
+            icon="fa-toolbox"
+            :href="route('admin.kits.index')"
+            :active="request()->routeIs('admin.kits.*') || isKitsNavFolderActive()"
+            :link-active="request()->routeIs('admin.kits.*')">
+            <a href="{{ route('admin.kit-parts.index') }}" @click="sidebarOpen = false"
+               class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.kit-parts.*') ? 'is-active' : '' }}">
+                <i class="fas fa-screwdriver-wrench mr-3 w-5 text-center"></i>
+                <span>Kit Parts</span>
+            </a>
+        </x-admin.nav-folder>
+        @elseif($showKitsLink)
         <a href="{{ route('admin.kits.index') }}" @click="sidebarOpen = false"
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.kits.*') ? 'is-active' : '' }}">
             <i class="fas fa-toolbox mr-3 w-5 text-center"></i>
             <span>Kits</span>
         </a>
-        @endcanAccess
+        @elseif($showKitParts)
+        <a href="{{ route('admin.kit-parts.index') }}" @click="sidebarOpen = false"
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.kit-parts.*') ? 'is-active' : '' }}">
+            <i class="fas fa-screwdriver-wrench mr-3 w-5 text-center"></i>
+            <span>Kit Parts</span>
+        </a>
+        @endif
 
         @php
-            $showManageFolder = canAccess('users.view')
-                || canAccess('roles.view')
+            $showProcedures = canAccess('deman-flows.manage') || canAccess('testing-flows.manage');
+            $showUsersLink = canAccess('users.view');
+            $showUserChildren = canAccess('roles.view')
+                || canAccess('notification-settings.manage')
+                || canAccess('user-actions.view');
+            $showManageFolder = $showProcedures
+                || $showUsersLink
+                || $showUserChildren
                 || canAccess('inventory-statuses.manage')
-                || canAccess('inventory-locations.manage')
-                || canAccess('testing-flows.manage')
-                || canAccess('deman-flows.manage')
-                || canAccess('user-actions.view')
-                || canAccess('notification-settings.manage');
-            $manageFolderActive = isManageNavFolderActive();
+                || canAccess('inventory-locations.manage');
         @endphp
 
         @if($showManageFolder)
-        <div class="ui-nav-folder"
-             data-folder="manage"
-             x-data="{
-                open: document.documentElement.classList.contains('sidebar-folder-manage-open'),
-                toggle() {
-                    this.open = !this.open;
-                    document.documentElement.classList.toggle('sidebar-folder-manage-open', this.open);
-                    localStorage.setItem('sidebarFolder.manage', this.open ? '1' : '0');
-                }
-             }">
-            <button type="button"
-                    @click="toggle()"
-                    class="ui-nav-link ui-nav-folder-toggle flex w-[calc(100%-1.5rem)] items-center px-4 py-3 text-sm font-semibold {{ $manageFolderActive ? 'is-active' : '' }}"
-                    :aria-expanded="open.toString()">
-                <i class="fas fa-gears mr-3 w-5 text-center"></i>
-                <span>Manage</span>
-                <i class="ui-nav-folder-chevron fas fa-chevron-down ml-auto text-xs opacity-70 transition-transform duration-200"></i>
-            </button>
-
-            <div class="ui-nav-folder-children space-y-1 pb-1">
-                @canAccess('users.view')
-                <a href="{{ route('admin.users.index') }}" @click="sidebarOpen = false"
-                   class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.users.*') ? 'is-active' : '' }}">
-                    <i class="fas fa-users mr-3 w-5 text-center"></i>
-                    <span>Users</span>
+        <x-admin.nav-folder id="manage" label="Manage" icon="fa-gears" :active="isManageNavFolderActive()">
+            @if($showProcedures)
+            <x-admin.nav-folder id="procedures" label="Procedures" icon="fa-clipboard-list" :active="isProceduresNavFolderActive()">
+                @canAccess('deman-flows.manage')
+                <a href="{{ route('admin.deman-flows.index') }}" @click="sidebarOpen = false"
+                   class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.deman-flows.*') ? 'is-active' : '' }}">
+                    <i class="fas fa-recycle mr-3 w-5 text-center"></i>
+                    <span>Demanufacture</span>
                 </a>
                 @endcanAccess
 
+                @canAccess('testing-flows.manage')
+                <a href="{{ route('admin.testing-flows.index') }}" @click="sidebarOpen = false"
+                   class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.testing-flows.*') ? 'is-active' : '' }}">
+                    <i class="fas fa-clipboard-check mr-3 w-5 text-center"></i>
+                    <span>Testing</span>
+                </a>
+                @endcanAccess
+            </x-admin.nav-folder>
+            @endif
+
+            @if($showUsersLink && ! $showUserChildren)
+            <a href="{{ route('admin.users.index') }}" @click="sidebarOpen = false"
+               class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.users.*') ? 'is-active' : '' }}">
+                <i class="fas fa-users mr-3 w-5 text-center"></i>
+                <span>Users</span>
+            </a>
+            @elseif($showUsersLink || $showUserChildren)
+            <x-admin.nav-folder
+                id="users"
+                label="Users"
+                icon="fa-users"
+                :href="$showUsersLink ? route('admin.users.index') : null"
+                :active="($showUsersLink && request()->routeIs('admin.users.*')) || isUsersNavFolderActive()"
+                :link-active="request()->routeIs('admin.users.*')">
                 @canAccess('roles.view')
                 <a href="{{ route('admin.roles.index') }}" @click="sidebarOpen = false"
                    class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.roles.*') ? 'is-active' : '' }}">
@@ -164,38 +194,6 @@
                 </a>
                 @endcanAccess
 
-                @canAccess('inventory-statuses.manage')
-                <a href="{{ route('admin.inventory-statuses.index') }}" @click="sidebarOpen = false"
-                   class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.inventory-statuses.*') ? 'is-active' : '' }}">
-                    <i class="fas fa-tags mr-3 w-5 text-center"></i>
-                    <span>Statuses</span>
-                </a>
-                @endcanAccess
-
-                @canAccess('inventory-locations.manage')
-                <a href="{{ route('admin.inventory-locations.index') }}" @click="sidebarOpen = false"
-                   class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.inventory-locations.*') ? 'is-active' : '' }}">
-                    <i class="fas fa-map-marker-alt mr-3 w-5 text-center"></i>
-                    <span>Locations</span>
-                </a>
-                @endcanAccess
-
-                @canAccess('testing-flows.manage')
-                <a href="{{ route('admin.testing-flows.index') }}" @click="sidebarOpen = false"
-                   class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.testing-flows.*') ? 'is-active' : '' }}">
-                    <i class="fas fa-clipboard-check mr-3 w-5 text-center"></i>
-                    <span>Testing Flows</span>
-                </a>
-                @endcanAccess
-
-                @canAccess('deman-flows.manage')
-                <a href="{{ route('admin.deman-flows.index') }}" @click="sidebarOpen = false"
-                   class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.deman-flows.*') ? 'is-active' : '' }}">
-                    <i class="fas fa-recycle mr-3 w-5 text-center"></i>
-                    <span>Deman Flows</span>
-                </a>
-                @endcanAccess
-
                 @canAccess('user-actions.view')
                 <a href="{{ route('admin.user-actions.index') }}" @click="sidebarOpen = false"
                    class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.user-actions.*') ? 'is-active' : '' }}">
@@ -203,8 +201,25 @@
                     <span>User Actions</span>
                 </a>
                 @endcanAccess
-            </div>
-        </div>
+            </x-admin.nav-folder>
+            @endif
+
+            @canAccess('inventory-locations.manage')
+            <a href="{{ route('admin.inventory-locations.index') }}" @click="sidebarOpen = false"
+               class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.inventory-locations.*') ? 'is-active' : '' }}">
+                <i class="fas fa-map-marker-alt mr-3 w-5 text-center"></i>
+                <span>Locations</span>
+            </a>
+            @endcanAccess
+
+            @canAccess('inventory-statuses.manage')
+            <a href="{{ route('admin.inventory-statuses.index') }}" @click="sidebarOpen = false"
+               class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.inventory-statuses.*') ? 'is-active' : '' }}">
+                <i class="fas fa-tags mr-3 w-5 text-center"></i>
+                <span>Statuses</span>
+            </a>
+            @endcanAccess
+        </x-admin.nav-folder>
         @endif
 
         <div class="mx-3 mt-8 border-t border-white/10"></div>

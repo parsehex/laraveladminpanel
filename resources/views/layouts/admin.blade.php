@@ -10,8 +10,21 @@
         if (localStorage.getItem('sidebarCollapsed') === '1') {
             document.documentElement.classList.add('sidebar-collapsed');
         }
-        if (localStorage.getItem('sidebarFolder.manage') === '1' || @json(isManageNavFolderActive())) {
-            document.documentElement.classList.add('sidebar-folder-manage-open');
+        window.sidebarFolder = function (id) {
+            return {
+                open: document.documentElement.classList.contains('sidebar-folder-' + id + '-open'),
+                toggle() {
+                    this.open = !this.open;
+                    document.documentElement.classList.toggle('sidebar-folder-' + id + '-open', this.open);
+                    localStorage.setItem('sidebarFolder.' + id, this.open ? '1' : '0');
+                },
+            };
+        };
+        const sidebarFoldersActive = @json(sidebarFoldersOpenForRequest());
+        for (const id of @json(sidebarFolderIds())) {
+            if (localStorage.getItem('sidebarFolder.' + id) === '1' || sidebarFoldersActive.includes(id)) {
+                document.documentElement.classList.add('sidebar-folder-' + id + '-open');
+            }
         }
     </script>
 
