@@ -276,13 +276,9 @@ class TruckController extends Controller
                     'key' => 'cost',
                     'label' => 'Cost',
                     'align' => 'right',
-                    'sort' => 'trucks.cost_of_truck',
-                ],
-                [
-                    'key' => 'shipping',
-                    'label' => 'Shipping',
-                    'align' => 'right',
-                    'sort' => 'trucks.shipping_cost',
+                    'sort' => fn (Builder $query, string $direction) => $query->orderByRaw(
+                        '(trucks.cost_of_truck + trucks.shipping_cost) '.$direction
+                    ),
                 ],
                 [
                     'key' => 'total_msrp',
