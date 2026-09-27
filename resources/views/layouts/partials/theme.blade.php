@@ -394,6 +394,7 @@
     /*
      * Element colors belong in the base layer. Unlayered rules would beat
      * Tailwind utilities, which is why text-white headings rendered black.
+     * thead.text-white passes that color through to header cells.
      */
     @layer base {
         h1, h2, h3 {
@@ -405,9 +406,18 @@
             color: #334155;
         }
 
+        main h1,
+        main h2 {
+            font-weight: 800;
+        }
+
         th,
         td {
             color: #475569;
+        }
+
+        thead.text-white th {
+            color: inherit;
         }
 
         input:not([type="checkbox"]):not([type="radio"]),
@@ -415,11 +425,6 @@
         textarea {
             color: var(--ui-ink);
         }
-    }
-
-    main h1,
-    main h2 {
-        font-weight: 800;
     }
 
     input:not([type="checkbox"]):not([type="radio"]),
