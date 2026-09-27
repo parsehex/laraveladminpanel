@@ -391,18 +391,35 @@
         border-radius: 0.75rem !important;
     }
 
-    h1, h2, h3 {
-        letter-spacing: 0;
-        color: var(--ui-ink);
+    /*
+     * Element colors belong in the base layer. Unlayered rules would beat
+     * Tailwind utilities, which is why text-white headings rendered black.
+     */
+    @layer base {
+        h1, h2, h3 {
+            letter-spacing: 0;
+            color: var(--ui-ink);
+        }
+
+        label {
+            color: #334155;
+        }
+
+        th,
+        td {
+            color: #475569;
+        }
+
+        input:not([type="checkbox"]):not([type="radio"]),
+        select,
+        textarea {
+            color: var(--ui-ink);
+        }
     }
 
     main h1,
     main h2 {
         font-weight: 800;
-    }
-
-    label {
-        color: #334155 !important;
     }
 
     input:not([type="checkbox"]):not([type="radio"]),
@@ -411,7 +428,6 @@
         min-height: 2.75rem;
         border-color: #dbe3ee !important;
         background: rgba(255, 255, 255, 0.92) !important;
-        color: var(--ui-ink);
         border-radius: 0.75rem !important;
         transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
     }
@@ -472,13 +488,8 @@
     }
 
     th {
-        color: #475569 !important;
         font-weight: 700 !important;
         letter-spacing: 0.02em !important;
-    }
-
-    td {
-        color: #475569;
     }
 
     tbody tr {
