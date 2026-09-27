@@ -17,7 +17,7 @@
                 :aria-label="sidebarCollapsed ? 'Expand menu' : 'Collapse menu'"
                 title="Toggle sidebar">
             <i class="sidebar-icon-collapse fas fa-angles-left"></i>
-            <i class="sidebar-icon-expand fas fa-angles-right hidden"></i>
+            <i class="sidebar-icon-expand fas fa-angles-right"></i>
         </button>
     </div>
 
