@@ -156,3 +156,15 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Run `vendor/bin/phpunit` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
 
 </laravel-boost-guidelines>
+
+## Cursor Cloud specific instructions
+
+PHP 8.4, Composer, and PostgreSQL 16 are installed in the image. systemd is not PID 1, so Postgres does not start on boot. Start it with `sudo pg_ctlcluster 16 main start` and wait until `pg_isready -h 127.0.0.1` succeeds.
+
+Local TCP auth on `127.0.0.1` and `::1` is `trust`. Copy `.env.example` to `.env` and run `php artisan key:generate`. The dev database is `laravel`, user `root`, empty password. PHPUnit loads `.env.testing`, which uses database `laravel_admin_testing` as user `postgres`. `tests/TestCase.php` refuses any database whose name does not end in `_testing`, and it refuses to run while config is cached. Run `php artisan config:clear` before tests. Create or refresh the test database with `composer test:db:setup`.
+
+`npm` comes from nvm and is often missing from a non-login `PATH`. Add `$HOME/.nvm/versions/node/<version>/bin` before `npm ci` or `npm run build`. Most pages load Tailwind from a CDN. `npm run build` is still required for the Vite entrypoints on the inventory testing and testing-flow editor pages.
+
+The login form lists `admin@example.com` / `password`. `UserSeeder` creates `admin@yopmail.com` / `admin@123`.
+
+Dev server: `php artisan serve --host=0.0.0.0 --port=8000`.
