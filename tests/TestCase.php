@@ -16,6 +16,8 @@ abstract class TestCase extends BaseTestCase
         $this->guardAgainstDestructiveDatabase();
 
         parent::setUp();
+
+        $this->withoutVite();
     }
 
     /**
