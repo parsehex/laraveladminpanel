@@ -279,6 +279,11 @@
             margin-left: 0;
         }
 
+        /* Font Awesome sets display on .fas outside any layer, which beats Tailwind's layered .hidden. */
+        .ui-sidebar .sidebar-icon-expand {
+            display: none;
+        }
+
         html.sidebar-collapsed .ui-sidebar .sidebar-icon-collapse {
             display: none;
         }
