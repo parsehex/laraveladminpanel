@@ -12,6 +12,8 @@ use App\Models\KitInventory;
 use App\Models\KitMessage;
 use App\Models\KitPart;
 use App\Models\User;
+use App\Notifications\KitAssignedNotification;
+use App\Support\ModuleNotifier;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +22,8 @@ use Illuminate\Validation\ValidationException;
 
 class KitController extends Controller
 {
+    public const NOTIFICATION_MODULE = 'kits';
+
     public function __construct()
     {
         $this->middleware('permission:kits.view')->only(['index', 'sop']);
@@ -208,11 +212,20 @@ class KitController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        KitAssignment::create([
+        $assignment = KitAssignment::create([
             ...$data,
             'assigned_by' => $request->user()->id,
             'status' => KitAssignment::STATUS_PENDING,
         ]);
+
+        $assignment->load(['kit', 'assignee']);
+
+        ModuleNotifier::notify(
+            self::NOTIFICATION_MODULE,
+            new KitAssignedNotification($assignment),
+            (int) $request->user()->id,
+            [$assignment->assignee]
+        );
 
         return back()->with('success', __('Assignment created.'));
     }

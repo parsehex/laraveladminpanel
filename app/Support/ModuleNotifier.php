@@ -25,7 +25,11 @@ class ModuleNotifier
             ],
             'kits' => [
                 'label' => 'Kits',
-                'description' => 'Reserved for kit assignment alerts (wire-up later).',
+                'description' => 'Notify when a kit is assigned. The person assigned the kit is always included.',
+            ],
+            'suggestions' => [
+                'label' => 'Suggestions',
+                'description' => 'Notify when a staff member submits a suggestion.',
             ],
         ];
     }
@@ -104,9 +108,28 @@ class ModuleNotifier
         });
     }
 
-    public static function notify(string $module, Notification $notification, ?int $exceptUserId = null): void
+    /**
+     * @param  iterable<int, User|null>  $additionalRecipients
+     */
+    public static function notify(string $module, Notification $notification, ?int $exceptUserId = null, iterable $additionalRecipients = []): void
     {
         $recipients = self::recipients($module);
+
+        foreach ($additionalRecipients as $user) {
+            if (! $user instanceof User || ! $user->isActive()) {
+                continue;
+            }
+
+            $alreadyIncluded = $recipients->contains(
+                fn (User $existing) => (int) $existing->id === (int) $user->id
+            );
+
+            if ($alreadyIncluded) {
+                continue;
+            }
+
+            $recipients->push($user);
+        }
 
         if ($exceptUserId !== null) {
             $recipients = $recipients->reject(

@@ -134,7 +134,7 @@
             </div>
         </div>
 
-        <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+        <div id="suggestions" class="bg-white border border-gray-200 rounded-lg shadow-sm">
             <div class="px-5 py-4 border-b border-gray-200">
                 <h3 class="text-base font-semibold text-gray-900">Website Suggestion Box</h3>
             </div>

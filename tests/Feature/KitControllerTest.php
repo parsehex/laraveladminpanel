@@ -3,10 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\Kit;
+use App\Models\KitAssignment;
 use App\Models\KitInventory;
+use App\Models\ModuleNotificationSubscriber;
 use App\Models\User;
+use App\Notifications\KitAssignedNotification;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class KitControllerTest extends TestCase
@@ -153,5 +157,116 @@ class KitControllerTest extends TestCase
         $response->assertRedirectToRoute('admin.kits.index');
         $response->assertSessionHasErrors(['name' => 'The name field is required.']);
         $this->assertSame('Original Name', $kit->fresh()->name);
+    }
+
+    public function test_assigning_a_kit_notifies_the_assignee_and_kit_subscribers(): void
+    {
+        $assigner = $this->adminUser();
+        $assignee = User::factory()->active()->create(['name' => 'Kit Maker']);
+        $subscriber = User::factory()->active()->create(['name' => 'Kit Watcher']);
+        $kit = Kit::create(['code' => 'WASH-1', 'name' => 'Washer Kit']);
+        ModuleNotificationSubscriber::query()->create([
+            'module' => 'kits',
+            'user_id' => $subscriber->id,
+        ]);
+
+        Notification::fake();
+
+        $response = $this->actingAs($assigner)
+            ->from(route('admin.kits.index'))
+            ->post(route('admin.kits.assignments.store'), [
+                'kit_id' => $kit->id,
+                'quantity' => 3,
+                'platform' => 'amazon',
+                'assigned_to' => $assignee->id,
+                'due_date' => '2026-10-01',
+                'notes' => 'Rush',
+            ]);
+
+        $response->assertRedirectToRoute('admin.kits.index');
+        $response->assertSessionHas('success');
+
+        $assignment = KitAssignment::query()->where('kit_id', $kit->id)->firstOrFail();
+        $this->assertSame($assignee->id, $assignment->assigned_to);
+
+        Notification::assertSentTo(
+            [$assignee, $subscriber],
+            KitAssignedNotification::class,
+            function (KitAssignedNotification $notification, array $channels) use ($assignee, $assignment): bool {
+                $payload = $notification->toArray($assignee);
+
+                return $notification->assignment->is($assignment)
+                    && $payload['title'] === 'New kit assignment'
+                    && $payload['message'] === '3 × WASH-1 (Washer Kit) — Amazon, due Oct 1, 2026'
+                    && $payload['url'] === route('admin.kits.index', ['assign' => $assignment->id])
+                    && $channels === ['database'];
+            }
+        );
+        Notification::assertNotSentTo($assigner, KitAssignedNotification::class);
+    }
+
+    public function test_assigning_a_kit_notifies_a_subscribed_assignee_once(): void
+    {
+        $assigner = $this->adminUser();
+        $assignee = User::factory()->active()->create();
+        $kit = Kit::create(['code' => 'WASH-1', 'name' => 'Washer Kit']);
+        ModuleNotificationSubscriber::query()->create([
+            'module' => 'kits',
+            'user_id' => $assignee->id,
+        ]);
+
+        Notification::fake();
+
+        $this->actingAs($assigner)
+            ->from(route('admin.kits.index'))
+            ->post(route('admin.kits.assignments.store'), [
+                'kit_id' => $kit->id,
+                'quantity' => 1,
+                'platform' => 'shopify',
+                'assigned_to' => $assignee->id,
+                'due_date' => '2026-10-01',
+            ])
+            ->assertRedirectToRoute('admin.kits.index')
+            ->assertSessionHas('success');
+
+        Notification::assertSentToTimes($assignee, KitAssignedNotification::class, 1);
+        Notification::assertNotSentTo($assigner, KitAssignedNotification::class);
+    }
+
+    public function test_assigning_a_kit_skips_inactive_staff_and_the_assigner(): void
+    {
+        $assigner = $this->adminUser();
+        $assignee = User::factory()->inactive()->create();
+        $inactiveSubscriber = User::factory()->inactive()->create();
+        $kit = Kit::create(['code' => 'WASH-1', 'name' => 'Washer Kit']);
+        ModuleNotificationSubscriber::query()->create([
+            'module' => 'kits',
+            'user_id' => $inactiveSubscriber->id,
+        ]);
+        ModuleNotificationSubscriber::query()->create([
+            'module' => 'kits',
+            'user_id' => $assigner->id,
+        ]);
+
+        Notification::fake();
+
+        $this->actingAs($assigner)
+            ->from(route('admin.kits.index'))
+            ->post(route('admin.kits.assignments.store'), [
+                'kit_id' => $kit->id,
+                'quantity' => 1,
+                'platform' => 'amazon',
+                'assigned_to' => $assignee->id,
+                'due_date' => '2026-10-01',
+            ])
+            ->assertRedirectToRoute('admin.kits.index')
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('kit_assignments', [
+            'kit_id' => $kit->id,
+            'assigned_to' => $assignee->id,
+            'status' => KitAssignment::STATUS_PENDING,
+        ]);
+        Notification::assertNothingSent();
     }
 }
