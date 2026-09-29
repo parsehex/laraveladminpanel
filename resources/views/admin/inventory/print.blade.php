@@ -40,6 +40,7 @@
             border-bottom: 3px solid var(--brand);
             padding-bottom: 14px;
             margin-bottom: 16px;
+            position: relative;
         }
 
         .company {
@@ -58,25 +59,35 @@
             letter-spacing: 1.1px;
         }
 
-        .doc-box {
-            min-width: 188px;
-            border: 1px solid var(--line);
-            background: var(--soft);
-            padding: 10px 12px;
-            text-align: right;
-        }
-
-        .doc-title {
+        .printed-at {
+            margin-top: 4px;
             color: var(--muted);
             font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.9px;
         }
 
-        .doc-number {
-            margin-top: 3px;
-            font-size: 24px;
+        .grade-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0 4px;
+        }
+
+        .grade-label {
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            margin-bottom: 2px;
+        }
+
+        .grade-letter {
+            font-size: 72pt;
+            line-height: 0.85;
             font-weight: 800;
+            color: var(--ink);
+            min-width: 1.1em;
+            text-align: center;
         }
 
         .badge-row {
@@ -105,12 +116,6 @@
             border-color: #b9d6ff;
             color: #084b93;
             background: #eef6ff;
-        }
-
-        .grade-badge {
-            border-color: #f5d57d;
-            color: #805700;
-            background: #fff8df;
         }
 
         .grid {
@@ -242,17 +247,17 @@
                 <div>
                     <div class="company">Ben's Appliances</div>
                     <div class="subtitle">Inventory service sheet and cost breakdown</div>
+                    <div class="printed-at">{{ now()->timezone(config('app.timezone'))->format('M d, Y h:i A') }}</div>
                 </div>
-                <div class="doc-box">
-                    <div class="doc-title">Unit Record</div>
-                    <div class="doc-number">#{{ $item->id }}</div>
-                    <div class="doc-title">{{ now()->format('M d, Y h:i A') }}</div>
+                <div class="grade-block" aria-label="Receiving grade">
+                    <div class="grade-label">Grade</div>
+                    <div class="grade-letter">{{ $grade }}</div>
                 </div>
             </header>
 
             <div class="badge-row">
                 <div class="badge status-badge"><strong>Status</strong>{{ $item->status ?: 'Triage' }}</div>
-                <div class="badge grade-badge"><strong>Grade</strong>{{ $grade }}</div>
+                <div class="badge"><strong>ID</strong>#{{ $item->id }}</div>
                 <div class="badge"><strong>Truck</strong>{{ $item->truck?->name ?? 'Unassigned' }}</div>
                 <div class="badge"><strong>Location</strong>{{ $item->location ?: 'Not set' }}</div>
             </div>
@@ -278,7 +283,7 @@
                             <tr><th>Receiving Date</th><td>{{ optional($item->created_at)->format('M d, Y') ?: '-' }}</td></tr>
                             <tr><th>Condition</th><td>{{ $item->receiving_condition ?: '-' }}</td></tr>
                             <tr><th>Current Status</th><td>{{ $item->status ?: 'Triage' }}</td></tr>
-                            <tr><th>Last Update</th><td>{{ optional($latestHistory?->created_at ?? $item->updated_at)->format('M d, Y h:i A') ?: '-' }}</td></tr>
+                            <tr><th>Last Update</th><td>{{ optional($latestHistory?->created_at ?? $item->updated_at)?->timezone(config('app.timezone'))->format('M d, Y h:i A') ?: '-' }}</td></tr>
                             <tr><th>Updated By</th><td>{{ $latestHistory?->user?->name ?? $item->updater?->name ?? '-' }}</td></tr>
                         </table>
                     </div>
