@@ -5,19 +5,27 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePartRequest;
 use App\Http\Requests\UpdatePartRequest;
+use App\Imports\PartCsvImport;
+use App\Imports\StagedCsvImport;
 use App\Models\Model;
 use App\Models\Part;
 use App\Support\DataTable;
 use App\Support\PageSize;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PartController extends Controller
 {
     public function __construct()
     {
         $this->middleware('permission:parts.view')->only('index');
-        $this->middleware('permission:parts.create')->only(['store', 'import']);
+        $this->middleware('permission:parts.create')->only([
+            'store',
+            'importPreview',
+            'importReview',
+            'importConfirm',
+            'importCancel',
+        ]);
         $this->middleware('permission:parts.edit')->only('update');
         $this->middleware('permission:parts.delete')->only('destroy');
     }
@@ -148,76 +156,87 @@ class PartController extends Controller
         return redirect()->route('admin.parts.index')->with('success', __('Part created successfully.'));
     }
 
-    public function import(Request $request)
+    public function importPreview(Request $request)
     {
         $data = $request->validate([
             'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
         ]);
 
-        $handle = fopen($data['csv_file']->getRealPath(), 'r');
-        $headers = fgetcsv($handle) ?: [];
-        $columns = $this->csvColumns($headers);
-        $imported = 0;
-        $updated = 0;
+        $this->stagedCsvImport()->stage($request, $data['csv_file']);
 
-        while (($row = fgetcsv($handle)) !== false) {
-            if (count($row) < 7) {
-                continue;
-            }
+        return redirect()->route('admin.parts.import.review');
+    }
 
-            $partNumber = $this->normalizeIdentifier((string) $this->csvValue($row, $columns, ['part_number', 'partnumber'], 1));
-
-            if ($partNumber === '') {
-                continue;
-            }
-
-            $modelCompatibility = trim((string) $this->csvValue($row, $columns, ['models_it_applies_to', 'model_compatibility', 'models'], 6)) ?: null;
-
-            $payload = validator([
-                'part_number' => $partNumber,
-                'product_name' => trim((string) $this->csvValue($row, $columns, ['product_name', 'product', 'name'], null)) ?: null,
-                'model_compatibility' => $modelCompatibility,
-                'total_stock' => 0,
-                'retail_price' => $this->csvValue($row, $columns, ['retail_price', 'retail'], 2),
-                'your_price' => $this->csvValue($row, $columns, ['your_price', 'cost'], 3),
-                'cross_reference' => trim((string) $this->csvValue($row, $columns, ['cross_reference_information', 'cross_reference'], 5)) ?: null,
-            ], [
-                'part_number' => ['required', 'string', 'max:255'],
-                'product_name' => ['nullable', 'string', 'max:255'],
-                'model_compatibility' => ['nullable', 'string', 'max:255'],
-                'total_stock' => ['nullable', 'integer', 'min:0'],
-                'retail_price' => ['required', 'numeric', 'min:0'],
-                'your_price' => ['required', 'numeric', 'min:0'],
-                'cross_reference' => ['nullable', 'string', 'max:255'],
-            ])->validate();
-
-            $part = Part::withTrashed()->where('part_number', $payload['part_number'])->first();
-            $payload['total_stock'] = $payload['total_stock'] ?? 0;
-            $payload['updated_by'] = $request->user()->id;
-
-            if ($part) {
-                if ($part->trashed()) {
-                    $part->restore();
-                    $payload['created_by'] = $part->created_by ?: $request->user()->id;
-                    $imported++;
-                } else {
-                    $updated++;
-                }
-                $part->update($payload);
-            } else {
-                $payload['created_by'] = $request->user()->id;
-                $part = Part::create($payload);
-                $imported++;
-            }
-
-            $this->syncModelsFromCompatibilityString($part, $modelCompatibility);
+    public function importReview(Request $request, PartCsvImport $importer)
+    {
+        try {
+            $staged = $this->stagedCsvImport()->require($request);
+        } catch (ValidationException $exception) {
+            return redirect()
+                ->route('admin.parts.index')
+                ->with('error', $exception->errors()['csv_file'][0] ?? __('Upload the CSV again.'));
         }
 
-        fclose($handle);
+        $preview = $importer->preview($this->stagedCsvImport()->absolutePath($staged));
+
+        return view('admin.shared.csv-import-review', [
+            'title' => 'Review Parts Import',
+            'preview' => $preview,
+            'confirmRoute' => route('admin.parts.import.confirm'),
+            'cancelRoute' => route('admin.parts.import.cancel'),
+            'backRoute' => route('admin.parts.index'),
+            'backLabel' => 'Back to parts',
+            'matchHelp' => 'Review the changes below. Matching uses part number (including soft-deleted parts, which will be restored). Confirm only when there are no errors. Total stock from CSV is forced to 0.',
+        ]);
+    }
+
+    public function importConfirm(Request $request, PartCsvImport $importer)
+    {
+        $staging = $this->stagedCsvImport();
+
+        try {
+            $staged = $staging->require($request);
+        } catch (ValidationException $exception) {
+            return redirect()
+                ->route('admin.parts.index')
+                ->with('error', $exception->errors()['csv_file'][0] ?? __('Upload the CSV again.'));
+        }
+
+        $absolutePath = $staging->absolutePath($staged);
+
+        try {
+            $preview = $importer->preview($absolutePath);
+
+            if (! $preview->canConfirm()) {
+                return redirect()
+                    ->route('admin.parts.import.review')
+                    ->with('error', __('Fix the CSV errors before confirming the import.'));
+            }
+
+            $result = $importer->commit($absolutePath, $request->user());
+        } catch (ValidationException $exception) {
+            return redirect()
+                ->route('admin.parts.import.review')
+                ->withErrors($exception->errors());
+        }
+
+        $staging->discard($request);
 
         return redirect()
             ->route('admin.parts.index')
-            ->with('success', __("Imported {$imported} new part(s), updated {$updated} existing part(s)."));
+            ->with('success', __("Imported {$result->imported} new part(s), updated {$result->updated} existing part(s)."));
+    }
+
+    public function importCancel(Request $request)
+    {
+        $this->stagedCsvImport()->discard($request);
+
+        return redirect()->route('admin.parts.index')->with('success', __('Import cancelled.'));
+    }
+
+    private function stagedCsvImport(): StagedCsvImport
+    {
+        return new StagedCsvImport('part_csv_import');
     }
 
     public function update(UpdatePartRequest $request, Part $part)
@@ -239,69 +258,5 @@ class PartController extends Controller
         $part->delete();
 
         return redirect()->route('admin.parts.index')->with('success', __('Part deleted successfully.'));
-    }
-
-    private function syncModelsFromCompatibilityString(Part $part, ?string $compatibility): void
-    {
-        if ($compatibility === null || trim($compatibility) === '') {
-            return;
-        }
-
-        $numbers = collect(preg_split('/[,;|]+/', $compatibility) ?: [])
-            ->map(fn ($value) => $this->normalizeIdentifier((string) $value))
-            ->filter()
-            ->unique()
-            ->values();
-
-        if ($numbers->isEmpty()) {
-            return;
-        }
-
-        $modelIds = Model::query()
-            ->whereIn('model_number', $numbers)
-            ->pluck('id')
-            ->all();
-
-        if ($modelIds === []) {
-            return;
-        }
-
-        $existingIds = DB::table('model_parts')
-            ->where('part_id', $part->id)
-            ->distinct()
-            ->pluck('model_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-
-        $part->syncCompatibleModels(array_values(array_unique([...$existingIds, ...$modelIds])));
-    }
-
-    private function normalizeIdentifier(string $value): string
-    {
-        return strtoupper(preg_replace('/[^A-Z0-9-]/', '', strtoupper(trim($value))) ?? '');
-    }
-
-    private function csvColumns(array $headers): array
-    {
-        $columns = [];
-
-        foreach ($headers as $index => $header) {
-            $key = strtolower(trim((string) $header));
-            $key = preg_replace('/[^a-z0-9]+/', '_', $key);
-            $columns[trim($key, '_')] = $index;
-        }
-
-        return $columns;
-    }
-
-    private function csvValue(array $row, array $columns, array $keys, ?int $fallbackIndex = null): mixed
-    {
-        foreach ($keys as $key) {
-            if (array_key_exists($key, $columns)) {
-                return $row[$columns[$key]] ?? null;
-            }
-        }
-
-        return $fallbackIndex !== null ? ($row[$fallbackIndex] ?? null) : null;
     }
 }

@@ -365,9 +365,18 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('parts', [PartController::class, 'store'])
         ->middleware('permission:parts.create')
         ->name('parts.store');
-    Route::post('parts/import', [PartController::class, 'import'])
+    Route::post('parts/import', [PartController::class, 'importPreview'])
         ->middleware('permission:parts.create')
         ->name('parts.import');
+    Route::get('parts/import/review', [PartController::class, 'importReview'])
+        ->middleware('permission:parts.create')
+        ->name('parts.import.review');
+    Route::post('parts/import/confirm', [PartController::class, 'importConfirm'])
+        ->middleware('permission:parts.create')
+        ->name('parts.import.confirm');
+    Route::post('parts/import/cancel', [PartController::class, 'importCancel'])
+        ->middleware('permission:parts.create')
+        ->name('parts.import.cancel');
     Route::put('parts/{part}', [PartController::class, 'update'])
         ->middleware('permission:parts.edit')
         ->name('parts.update');
@@ -381,9 +390,18 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('kit-parts', [KitCatalogPartController::class, 'store'])
         ->middleware('permission:kit-parts.create')
         ->name('kit-parts.store');
-    Route::post('kit-parts/import', [KitCatalogPartController::class, 'import'])
+    Route::post('kit-parts/import', [KitCatalogPartController::class, 'importPreview'])
         ->middleware('permission:kit-parts.create')
         ->name('kit-parts.import');
+    Route::get('kit-parts/import/review', [KitCatalogPartController::class, 'importReview'])
+        ->middleware('permission:kit-parts.create')
+        ->name('kit-parts.import.review');
+    Route::post('kit-parts/import/confirm', [KitCatalogPartController::class, 'importConfirm'])
+        ->middleware('permission:kit-parts.create')
+        ->name('kit-parts.import.confirm');
+    Route::post('kit-parts/import/cancel', [KitCatalogPartController::class, 'importCancel'])
+        ->middleware('permission:kit-parts.create')
+        ->name('kit-parts.import.cancel');
     Route::put('kit-parts/{kitPart}', [KitCatalogPartController::class, 'update'])
         ->middleware('permission:kit-parts.edit')
         ->name('kit-parts.update');
@@ -416,9 +434,18 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->middleware('permission:models.delete')
         ->name('models.destroy');
 
-    Route::post('trucks/import', [TruckController::class, 'import'])
+    Route::post('trucks/import', [TruckController::class, 'importPreview'])
         ->middleware('permission:trucks.create')
         ->name('trucks.import');
+    Route::get('trucks/import/review', [TruckController::class, 'importReview'])
+        ->middleware('permission:trucks.create')
+        ->name('trucks.import.review');
+    Route::post('trucks/import/confirm', [TruckController::class, 'importConfirm'])
+        ->middleware('permission:trucks.create')
+        ->name('trucks.import.confirm');
+    Route::post('trucks/import/cancel', [TruckController::class, 'importCancel'])
+        ->middleware('permission:trucks.create')
+        ->name('trucks.import.cancel');
     Route::post('trucks/{truck}/appliances', [TruckApplianceController::class, 'store'])
         ->middleware('permission:appliance.create')
         ->name('trucks.appliances.store');

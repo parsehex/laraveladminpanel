@@ -64,7 +64,7 @@ class TruckApplianceCsvImport
         'sold_at' => 'Sold Date',
     ];
 
-    public function preview(Truck $truck, string $path, User $user): TruckApplianceCsvImportPreview
+    public function preview(Truck $truck, string $path, User $user): CsvImportPreview
     {
         $creates = [];
         $updates = [];
@@ -90,8 +90,9 @@ class TruckApplianceCsvImport
             if ($parsed['action'] === 'error') {
                 $errors[] = [
                     'row_number' => $parsed['row_number'],
-                    'unit_label' => $parsed['display']['unit_label'] ?? null,
-                    'serial_number' => $parsed['display']['serial_number'] ?? null,
+                    'match_key' => $parsed['match_key'] !== ''
+                        ? $parsed['match_key']
+                        : trim(($parsed['display']['unit_label'] ?? '').' / '.($parsed['display']['serial_number'] ?? ''), ' /'),
                     'errors' => $parsed['errors'],
                 ];
 
@@ -124,10 +125,7 @@ class TruckApplianceCsvImport
 
             $updates[] = [
                 'row_number' => $parsed['row_number'],
-                'appliance_id' => $parsed['existing']->id,
                 'match_key' => $parsed['match_key'],
-                'unit_label' => $parsed['display']['unit_label'],
-                'serial_number' => $parsed['display']['serial_number'],
                 'changes' => $parsed['changes'],
             ];
         }
@@ -137,19 +135,24 @@ class TruckApplianceCsvImport
         sort($newBrands);
         sort($newModels);
 
-        return new TruckApplianceCsvImportPreview(
+        $sideEffects = array_filter([
+            'Categories' => array_values(array_unique($newCategories)),
+            'Subcategories' => array_values(array_unique($newSubcategories)),
+            'Brands' => array_values(array_unique($newBrands)),
+            'Models' => array_values(array_unique($newModels)),
+        ]);
+
+        return new CsvImportPreview(
             creates: $creates,
             updates: $updates,
             errors: $errors,
             unchangedCount: $unchangedCount,
-            newCategories: array_values(array_unique($newCategories)),
-            newSubcategories: array_values(array_unique($newSubcategories)),
-            newBrands: array_values(array_unique($newBrands)),
-            newModels: array_values(array_unique($newModels)),
+            createColumns: self::FIELD_LABELS,
+            sideEffects: $sideEffects,
         );
     }
 
-    public function commit(Truck $truck, string $path, User $user): TruckApplianceCsvImportResult
+    public function commit(Truck $truck, string $path, User $user): CsvImportResult
     {
         $imported = 0;
         $updated = 0;
@@ -182,7 +185,7 @@ class TruckApplianceCsvImport
             }
         });
 
-        return new TruckApplianceCsvImportResult($imported, $updated);
+        return new CsvImportResult($imported, $updated);
     }
 
     /**
@@ -227,7 +230,7 @@ class TruckApplianceCsvImport
                     continue;
                 }
 
-                yield $this->parseRow(
+                $parsed = $this->parseRow(
                     $truck,
                     $row,
                     $columns,
@@ -237,6 +240,12 @@ class TruckApplianceCsvImport
                     $existingAppliances,
                     $nextUnitNumber,
                 );
+
+                if ($parsed['action'] === 'create' && ! $writeCatalog) {
+                    $existingAppliances->push(new TruckAppliance($parsed['payload']));
+                }
+
+                yield $parsed;
             }
         } finally {
             fclose($handle);

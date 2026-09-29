@@ -7,11 +7,11 @@
     @canAccess('trucks.create')
     <x-admin.csv-import-trigger
         :action="route('admin.trucks.import')"
-        modal-title="Import trucks"
+        modal-title="Review truck import"
         modal-id="trucks-import-modal"
         class="inline-flex items-center justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
     >
-        <i class="fas fa-file-import mr-2"></i>Import trucks
+        <i class="fas fa-file-import mr-2"></i>Review truck import
     </x-admin.csv-import-trigger>
     <button type="button" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700" data-toggle-create>
         <i class="fas fa-plus mr-2"></i>Add truck
@@ -187,7 +187,8 @@
     <x-admin.csv-import-modal
         id="trucks-import-modal"
         :example-url="asset('examples/trucks-import-example.csv')"
-        description="Upload a CSV to add or update trucks. Rows with a matching name will be updated."
+        submit-label="Review import"
+        description="Upload a CSV to preview add/update changes for trucks. Rows with a matching name will be updated."
     />
     @endcanAccess
 

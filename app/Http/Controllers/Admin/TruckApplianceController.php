@@ -6,6 +6,7 @@ use App\Enums\ItemType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTruckApplianceRequest;
 use App\Http\Requests\UpdateTruckApplianceRequest;
+use App\Imports\StagedCsvImport;
 use App\Imports\TruckApplianceCsvImport;
 use App\Models\Brand;
 use App\Models\Category;
@@ -14,8 +15,6 @@ use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\UserAction;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class TruckApplianceController extends Controller
@@ -185,17 +184,8 @@ class TruckApplianceController extends Controller
             'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
         ]);
 
-        $this->discardStagedImport($request);
-
-        $token = (string) Str::uuid();
-        $relativePath = 'private/csv-imports/'.$request->user()->id.'/'.$token.'.csv';
-        Storage::disk('local')->put($relativePath, file_get_contents($data['csv_file']->getRealPath()));
-
-        $request->session()->put($this->importSessionKey(), [
-            'token' => $token,
+        $this->stagedCsvImport()->stage($request, $data['csv_file'], [
             'truck_id' => $truck->id,
-            'path' => $relativePath,
-            'expires_at' => now()->addMinutes(30)->timestamp,
         ]);
 
         return redirect()->route('admin.trucks.appliances.import.review', $truck);
@@ -205,20 +195,27 @@ class TruckApplianceController extends Controller
     {
         abort_unless($request->user()?->can('appliance.create'), 403);
 
+        $staging = $this->stagedCsvImport();
+
         try {
-            $staged = $this->stagedImport($request, $truck);
+            $staged = $staging->require($request, ['truck_id' => $truck->id]);
         } catch (ValidationException $exception) {
             return redirect()
                 ->route('admin.trucks.show', $truck)
                 ->with('error', $exception->errors()['csv_file'][0] ?? __('Upload the CSV again.'));
         }
 
-        $absolutePath = Storage::disk('local')->path($staged['path']);
-        $preview = $importer->preview($truck, $absolutePath, $request->user());
+        $preview = $importer->preview($truck, $staging->absolutePath($staged), $request->user());
 
-        return view('admin.trucks.appliances.import-review', [
-            'truck' => $truck,
+        return view('admin.shared.csv-import-review', [
+            'title' => 'Review Appliance Import',
+            'subtitle' => $truck->name,
             'preview' => $preview,
+            'confirmRoute' => route('admin.trucks.appliances.import.confirm', $truck),
+            'cancelRoute' => route('admin.trucks.appliances.import.cancel', $truck),
+            'backRoute' => route('admin.trucks.show', $truck),
+            'backLabel' => 'Back to truck',
+            'matchHelp' => 'Review the changes below. Matching uses unit label first, then serial number. Confirm only when there are no errors.',
         ]);
     }
 
@@ -226,15 +223,17 @@ class TruckApplianceController extends Controller
     {
         abort_unless($request->user()?->can('appliance.create'), 403);
 
+        $staging = $this->stagedCsvImport();
+
         try {
-            $staged = $this->stagedImport($request, $truck);
+            $staged = $staging->require($request, ['truck_id' => $truck->id]);
         } catch (ValidationException $exception) {
             return redirect()
                 ->route('admin.trucks.show', $truck)
                 ->with('error', $exception->errors()['csv_file'][0] ?? __('Upload the CSV again.'));
         }
 
-        $absolutePath = Storage::disk('local')->path($staged['path']);
+        $absolutePath = $staging->absolutePath($staged);
 
         try {
             $preview = $importer->preview($truck, $absolutePath, $request->user());
@@ -252,7 +251,7 @@ class TruckApplianceController extends Controller
                 ->withErrors($exception->errors());
         }
 
-        $this->discardStagedImport($request);
+        $staging->discard($request);
 
         return redirect()
             ->route('admin.trucks.show', $truck)
@@ -263,46 +262,14 @@ class TruckApplianceController extends Controller
     {
         abort_unless($request->user()?->can('appliance.create'), 403);
 
-        $this->discardStagedImport($request);
+        $this->stagedCsvImport()->discard($request);
 
         return redirect()->route('admin.trucks.show', $truck)->with('success', __('Import cancelled.'));
     }
 
-    /**
-     * @return array{token: string, truck_id: int, path: string, expires_at: int}
-     */
-    private function stagedImport(Request $request, Truck $truck): array
+    private function stagedCsvImport(): StagedCsvImport
     {
-        $staged = $request->session()->get($this->importSessionKey());
-
-        if (! is_array($staged)
-            || (int) ($staged['truck_id'] ?? 0) !== $truck->id
-            || empty($staged['path'])
-            || empty($staged['expires_at'])
-            || (int) $staged['expires_at'] < now()->timestamp
-            || ! Storage::disk('local')->exists($staged['path'])) {
-            $this->discardStagedImport($request);
-
-            throw ValidationException::withMessages([
-                'csv_file' => ['The staged import expired or was not found. Upload the CSV again.'],
-            ]);
-        }
-
-        return $staged;
-    }
-
-    private function discardStagedImport(Request $request): void
-    {
-        $staged = $request->session()->pull($this->importSessionKey());
-
-        if (is_array($staged) && ! empty($staged['path'])) {
-            Storage::disk('local')->delete($staged['path']);
-        }
-    }
-
-    private function importSessionKey(): string
-    {
-        return 'appliance_csv_import';
+        return new StagedCsvImport('appliance_csv_import');
     }
 
     private function syncBrand(?string $brand, int $userId): void

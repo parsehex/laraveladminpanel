@@ -3,19 +3,28 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Imports\KitCatalogPartCsvImport;
+use App\Imports\StagedCsvImport;
 use App\Models\KitCatalogPart;
 use App\Models\KitInventory;
 use App\Models\Model;
 use App\Support\PageSize;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class KitCatalogPartController extends Controller
 {
     public function __construct()
     {
         $this->middleware('permission:kit-parts.view')->only('index');
-        $this->middleware('permission:kit-parts.create')->only(['store', 'import']);
+        $this->middleware('permission:kit-parts.create')->only([
+            'store',
+            'importPreview',
+            'importReview',
+            'importConfirm',
+            'importCancel',
+        ]);
         $this->middleware('permission:kit-parts.edit')->only('update');
         $this->middleware('permission:kit-parts.delete')->only('destroy');
     }
@@ -67,64 +76,87 @@ class KitCatalogPartController extends Controller
         return redirect()->route('admin.kit-parts.index')->with('success', __('Kit part created successfully.'));
     }
 
-    public function import(Request $request)
+    public function importPreview(Request $request)
     {
         $data = $request->validate([
             'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
         ]);
 
-        $handle = fopen($data['csv_file']->getRealPath(), 'r');
-        $headers = fgetcsv($handle) ?: [];
-        $columns = $this->csvColumns($headers);
-        $imported = 0;
-        $updated = 0;
+        $this->stagedCsvImport()->stage($request, $data['csv_file']);
 
-        while (($row = fgetcsv($handle)) !== false) {
-            if (collect($row)->filter(fn ($value) => trim((string) $value) !== '')->isEmpty()) {
-                continue;
-            }
+        return redirect()->route('admin.kit-parts.import.review');
+    }
 
-            $partNumber = $this->normalizeIdentifier((string) $this->csvValue($row, $columns, ['part_number', 'partnumber'], 1));
-            if ($partNumber === '') {
-                continue;
-            }
-
-            $payload = validator([
-                'part_number' => $partNumber,
-                'product_name' => trim((string) $this->csvValue($row, $columns, ['product_name', 'product', 'name'], null)) ?: null,
-                'model_compatibility' => trim((string) $this->csvValue($row, $columns, ['models_it_applies_to', 'model_compatibility', 'models'], 6)) ?: null,
-                'total_stock' => (int) ($this->csvMoney($this->csvValue($row, $columns, ['total_stock', 'stock'], null)) ?: 0),
-                'retail_price' => $this->csvMoney($this->csvValue($row, $columns, ['retail_price', 'retail'], 2)),
-                'your_price' => $this->csvMoney($this->csvValue($row, $columns, ['your_price', 'cost'], 3)),
-                'cross_reference' => trim((string) $this->csvValue($row, $columns, ['cross_reference_information', 'cross_reference'], 5)) ?: null,
-            ], $this->rulesForImport())->validate();
-
-            $part = KitCatalogPart::withTrashed()->where('part_number', $payload['part_number'])->first();
-            $payload['updated_by'] = $request->user()->id;
-
-            if ($part) {
-                if ($part->trashed()) {
-                    $part->restore();
-                    $payload['created_by'] = $part->created_by ?: $request->user()->id;
-                    $imported++;
-                } else {
-                    $updated++;
-                }
-                $part->update($payload);
-            } else {
-                $payload['created_by'] = $request->user()->id;
-                $part = KitCatalogPart::create($payload);
-                $imported++;
-            }
-
-            $this->syncInventory($part);
+    public function importReview(Request $request, KitCatalogPartCsvImport $importer)
+    {
+        try {
+            $staged = $this->stagedCsvImport()->require($request);
+        } catch (ValidationException $exception) {
+            return redirect()
+                ->route('admin.kit-parts.index')
+                ->with('error', $exception->errors()['csv_file'][0] ?? __('Upload the CSV again.'));
         }
 
-        fclose($handle);
+        $preview = $importer->preview($this->stagedCsvImport()->absolutePath($staged));
+
+        return view('admin.shared.csv-import-review', [
+            'title' => 'Review Kit Parts Import',
+            'preview' => $preview,
+            'confirmRoute' => route('admin.kit-parts.import.confirm'),
+            'cancelRoute' => route('admin.kit-parts.import.cancel'),
+            'backRoute' => route('admin.kit-parts.index'),
+            'backLabel' => 'Back to kit parts',
+            'matchHelp' => 'Review the changes below. Matching uses part number (including soft-deleted parts, which will be restored). Confirm only when there are no errors.',
+        ]);
+    }
+
+    public function importConfirm(Request $request, KitCatalogPartCsvImport $importer)
+    {
+        $staging = $this->stagedCsvImport();
+
+        try {
+            $staged = $staging->require($request);
+        } catch (ValidationException $exception) {
+            return redirect()
+                ->route('admin.kit-parts.index')
+                ->with('error', $exception->errors()['csv_file'][0] ?? __('Upload the CSV again.'));
+        }
+
+        $absolutePath = $staging->absolutePath($staged);
+
+        try {
+            $preview = $importer->preview($absolutePath);
+
+            if (! $preview->canConfirm()) {
+                return redirect()
+                    ->route('admin.kit-parts.import.review')
+                    ->with('error', __('Fix the CSV errors before confirming the import.'));
+            }
+
+            $result = $importer->commit($absolutePath, $request->user());
+        } catch (ValidationException $exception) {
+            return redirect()
+                ->route('admin.kit-parts.import.review')
+                ->withErrors($exception->errors());
+        }
+
+        $staging->discard($request);
 
         return redirect()
             ->route('admin.kit-parts.index')
-            ->with('success', __("Imported {$imported} new kit part(s), updated {$updated} existing kit part(s)."));
+            ->with('success', __("Imported {$result->imported} new kit part(s), updated {$result->updated} existing kit part(s)."));
+    }
+
+    public function importCancel(Request $request)
+    {
+        $this->stagedCsvImport()->discard($request);
+
+        return redirect()->route('admin.kit-parts.index')->with('success', __('Import cancelled.'));
+    }
+
+    private function stagedCsvImport(): StagedCsvImport
+    {
+        return new StagedCsvImport('kit_part_csv_import');
     }
 
     public function update(Request $request, KitCatalogPart $kitPart)
@@ -210,53 +242,9 @@ class KitCatalogPartController extends Controller
         return $label !== '' ? $label : null;
     }
 
-    private function rulesForImport(): array
-    {
-        return [
-            'part_number' => ['required', 'string', 'max:255'],
-            'product_name' => ['nullable', 'string', 'max:255'],
-            'model_compatibility' => ['nullable', 'string', 'max:255'],
-            'total_stock' => ['nullable', 'integer', 'min:0'],
-            'retail_price' => ['required', 'numeric', 'min:0'],
-            'your_price' => ['required', 'numeric', 'min:0'],
-            'cross_reference' => ['nullable', 'string', 'max:255'],
-        ];
-    }
-
     private function normalizeIdentifier(string $value): string
     {
         return strtoupper(preg_replace('/[^A-Z0-9-]/', '', strtoupper(trim($value))) ?? '');
-    }
-
-    private function csvColumns(array $headers): array
-    {
-        $columns = [];
-
-        foreach ($headers as $index => $header) {
-            $key = strtolower(trim((string) $header));
-            $key = preg_replace('/[^a-z0-9]+/', '_', $key);
-            $columns[trim($key, '_')] = $index;
-        }
-
-        return $columns;
-    }
-
-    private function csvValue(array $row, array $columns, array $keys, ?int $fallbackIndex = null): mixed
-    {
-        foreach ($keys as $key) {
-            if (array_key_exists($key, $columns)) {
-                return $row[$columns[$key]] ?? null;
-            }
-        }
-
-        return $fallbackIndex !== null ? ($row[$fallbackIndex] ?? null) : null;
-    }
-
-    private function csvMoney(mixed $value): float
-    {
-        $normalized = preg_replace('/[^0-9.\-]/', '', (string) $value);
-
-        return $normalized === '' || $normalized === '-' ? 0.0 : (float) $normalized;
     }
 
     private function syncInventory(KitCatalogPart $part): void

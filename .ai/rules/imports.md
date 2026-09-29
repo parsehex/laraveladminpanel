@@ -5,5 +5,5 @@ paths:
 
 # Imports
 
-## Appliance CSV import uses preview then confirm
-Appliance CSV import is a two-step preview-then-confirm flow: upload stages the file, review shows create/update/error tables with field diffs, confirm re-parses and commits. Do not write appliances on the initial POST.
+## Admin CSV imports use preview then confirm
+Admin CSV imports (trucks, appliances, parts, kit-parts) are two-step: upload stages a file, review shows create/update/error tables, confirm re-parses and commits. Use `StagedCsvImport` for staging. Do not write on the initial POST.

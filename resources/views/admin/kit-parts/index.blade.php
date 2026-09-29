@@ -58,9 +58,10 @@
             <div>
                 <label for="kit-parts-csv" class="block text-sm font-medium text-gray-700 mb-1">CSV Upload</label>
                 <input id="kit-parts-csv" type="file" name="csv_file" accept=".csv,text/csv" required class="rounded-md border border-gray-300 px-3 py-2 text-sm">
-                <p class="mt-1 max-w-3xl text-xs text-gray-500">Expected columns: URL (ignored), Part Number, Product Name, Retail Price, Your Price, Images (ignored), Cross Reference Information, Models it applies to.</p>
+                <p class="mt-1 max-w-3xl text-xs text-gray-500">Expected columns: URL (ignored), Part Number, Product Name, Retail Price, Your Price, Images (ignored), Cross Reference Information, Models it applies to. You'll review changes before they are applied.</p>
             </div>
-            <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Upload CSV</button>
+            <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Review import</button>
+            <a href="{{ asset('examples/parts-import-example.csv') }}" class="rounded-md bg-gray-600 px-4 py-2 text-white hover:bg-gray-700" download>Example CSV</a>
         </form>
         @endcanAccess
     </div>

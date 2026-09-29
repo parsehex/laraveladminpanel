@@ -2,7 +2,7 @@
 
 namespace App\Imports;
 
-class TruckApplianceCsvImportResult
+class CsvImportResult
 {
     public function __construct(
         public readonly int $imported,
