@@ -11,7 +11,8 @@
         "esModuleInterop": true,
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
+        "jsx": "preserve",
         "types": ["vite/client"]
     },
-    "include": ["resources/js/**/*.ts"]
+    "include": ["resources/js/**/*.ts", "resources/js/**/*.vue", "resources/js/vite-env.d.ts"]
 }

@@ -23,7 +23,7 @@ class TestingFlowController extends Controller
         ]);
     }
 
-    public function edit(string $flow)
+    public function edit(Request $request, string $flow)
     {
         $data = $this->flows->get($flow);
         abort_if($data === null, 404);
@@ -31,6 +31,7 @@ class TestingFlowController extends Controller
         return view('admin.testing-flows.edit', [
             'flow' => $data,
             'statuses' => $this->terminalStatuses(),
+            'useCanvasEditor' => $request->query('editor') === 'canvas',
         ]);
     }
 
@@ -43,6 +44,7 @@ class TestingFlowController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'start' => ['required', 'string', 'max:64'],
             'flow_json' => ['required', 'string'],
+            'editor' => ['nullable', 'string', 'in:canvas'],
         ]);
 
         $decoded = json_decode($payload['flow_json'], true);
@@ -61,8 +63,13 @@ class TestingFlowController extends Controller
             return back()->withInput()->with('error', $exception->getMessage());
         }
 
+        $routeParams = ['flow' => $saved['slug']];
+        if (($payload['editor'] ?? null) === 'canvas') {
+            $routeParams['editor'] = 'canvas';
+        }
+
         return redirect()
-            ->route('admin.testing-flows.edit', $saved['slug'])
+            ->route('admin.testing-flows.edit', $routeParams)
             ->with('success', __('Testing flow saved as version :version.', [
                 'version' => $saved['version'],
             ]));
