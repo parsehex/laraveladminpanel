@@ -28,14 +28,51 @@
                 <input type="hidden" name="sale_type" value="normal">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Scan serial, item ID, or sticker</label>
-                    <input type="text" name="serial_number" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                    <input type="text" name="serial_number" value="{{ old('serial_number') }}" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Sold Price (excl. taxes)</label>
-                    <input type="number" step="0.01" name="sold_price" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                    <input type="number" step="0.01" name="sold_price" value="{{ old('sold_price') }}" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
                 </div>
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">Mark Sold</button>
             </form>
+
+            @if (session('sale_lookup_conflict'))
+                @php
+                    $conflict = session('sale_lookup_conflict');
+                @endphp
+                <div class="mt-6 rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-4">
+                    <div>
+                        <h3 class="text-sm font-semibold text-amber-900">Choose which unit to mark sold</h3>
+                        <p class="mt-1 text-sm text-amber-800">
+                            <code class="rounded bg-amber-100 px-1">{{ $conflict['query'] }}</code>
+                            matches both an item ID and a different serial number.
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        @foreach ($conflict['matches'] as $match)
+                            <form method="POST" action="{{ route('admin.sales.mark-sold') }}" class="rounded-md border border-amber-200 bg-white p-4 space-y-3">
+                                @csrf
+                                <input type="hidden" name="sale_type" value="normal">
+                                <input type="hidden" name="serial_number" value="{{ $conflict['query'] }}">
+                                <input type="hidden" name="sold_price" value="{{ $conflict['sold_price'] }}">
+                                <input type="hidden" name="appliance_id" value="{{ $match['id'] }}">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">{{ $match['matched_as'] }}</p>
+                                <dl class="space-y-1 text-sm text-gray-700">
+                                    <div><span class="font-medium">ID:</span> {{ $match['id'] }}</div>
+                                    <div><span class="font-medium">Serial:</span> {{ $match['serial_number'] ?: '—' }}</div>
+                                    <div><span class="font-medium">Model:</span> {{ $match['model_number'] ?: '—' }}</div>
+                                    <div><span class="font-medium">Name:</span> {{ $match['product_name'] ?: '—' }}</div>
+                                    <div><span class="font-medium">Status:</span> {{ $match['status'] ?: '—' }}</div>
+                                </dl>
+                                <button type="submit" class="w-full rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-700">
+                                    Mark this unit sold
+                                </button>
+                            </form>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
             <form method="POST" action="{{ route('admin.sales.mark-sold') }}" id="custom-sale-form" class="hidden space-y-4">
                 @csrf

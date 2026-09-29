@@ -169,10 +169,12 @@ class TruckAppliance extends EloquentModel
             return (int) $payload;
         }
 
+        // match on old site URL
         if (preg_match('/[?&]id=(\d+)/i', $payload, $matches)) {
             return (int) $matches[1];
         }
 
+        // match on new site URL
         if (preg_match('#/(?:admin/)?inventory/(\d+)#i', $payload, $matches)) {
             return (int) $matches[1];
         }
@@ -180,31 +182,79 @@ class TruckAppliance extends EloquentModel
         return null;
     }
 
-    public static function findForSale(string $input): ?self
+    /**
+     * Resolve a sales scan/typed identifier to an appliance.
+     *
+     * Pure digit input can mean either an item ID or a numeric serial. When those
+     * point at two different units, return a conflict instead of guessing.
+     * Non-digit sticker URLs / ?id= payloads are treated as unambiguous item IDs.
+     *
+     * @return array{
+     *     status: 'match',
+     *     appliance: self
+     * }|array{
+     *     status: 'conflict',
+     *     by_id: self,
+     *     by_serial: self
+     * }|array{
+     *     status: 'none'
+     * }
+     */
+    public static function resolveForSale(string $input): array
     {
         $input = trim($input);
 
         if ($input === '') {
-            return null;
+            return ['status' => 'none'];
         }
 
+        $isPureDigits = ctype_digit($input);
         $id = self::idFromScan($input);
+        $byId = $id !== null ? self::query()->find($id) : null;
 
-        if ($id !== null) {
-            $match = self::query()->find($id);
-
-            if ($match) {
-                return $match;
+        if (! $isPureDigits) {
+            if ($byId !== null) {
+                return ['status' => 'match', 'appliance' => $byId];
             }
+
+            $serial = strtoupper((string) preg_replace('/[^A-Z0-9-]/', '', $input));
+            if ($serial === '') {
+                return ['status' => 'none'];
+            }
+
+            $bySerial = self::query()->where('serial_number', $serial)->first();
+
+            return $bySerial !== null
+                ? ['status' => 'match', 'appliance' => $bySerial]
+                : ['status' => 'none'];
         }
 
-        $serial = strtoupper((string) preg_replace('/[^A-Z0-9-]/', '', $input));
+        $bySerial = self::query()->where('serial_number', $input)->first();
 
-        if ($serial === '') {
-            return null;
+        if ($byId !== null && $bySerial !== null && $byId->id !== $bySerial->id) {
+            return [
+                'status' => 'conflict',
+                'by_id' => $byId,
+                'by_serial' => $bySerial,
+            ];
         }
 
-        return self::query()->where('serial_number', $serial)->first();
+        if ($byId !== null) {
+            return ['status' => 'match', 'appliance' => $byId];
+        }
+
+        if ($bySerial !== null) {
+            return ['status' => 'match', 'appliance' => $bySerial];
+        }
+
+        return ['status' => 'none'];
+    }
+
+    public static function findForSale(string $input): ?self
+    {
+        $resolved = self::resolveForSale($input);
+
+        return $resolved['status'] === 'match' ? $resolved['appliance'] : null;
     }
 
     public function model(): BelongsTo

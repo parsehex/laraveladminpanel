@@ -237,6 +237,7 @@ class SalesController extends Controller
             'sale_type' => ['required', Rule::in(['normal', 'custom'])],
             'serial_number' => ['required', 'string', 'max:255'],
             'sold_price' => ['required', 'numeric', 'min:0'],
+            'appliance_id' => ['nullable', 'integer', 'exists:truck_appliances,id'],
             'model_number' => ['required_if:sale_type,custom', 'nullable', 'string', 'max:255'],
             'estimated_price' => ['required_if:sale_type,custom', 'nullable', 'numeric', 'min:0'],
         ]);
@@ -254,7 +255,34 @@ class SalesController extends Controller
             return back()->with('success', __('Custom sale saved successfully.'));
         }
 
-        $appliance = TruckAppliance::findForSale($data['serial_number']);
+        $resolved = TruckAppliance::resolveForSale($data['serial_number']);
+        $appliance = null;
+
+        if ($resolved['status'] === 'conflict') {
+            $chosenId = isset($data['appliance_id']) ? (int) $data['appliance_id'] : null;
+            $candidates = [
+                $resolved['by_id']->id => $resolved['by_id'],
+                $resolved['by_serial']->id => $resolved['by_serial'],
+            ];
+
+            if ($chosenId === null || ! isset($candidates[$chosenId])) {
+                return back()
+                    ->withInput()
+                    ->with('sale_lookup_conflict', [
+                        'query' => $data['serial_number'],
+                        'sold_price' => $data['sold_price'],
+                        'matches' => [
+                            $this->saleConflictPayload($resolved['by_id'], 'Item ID'),
+                            $this->saleConflictPayload($resolved['by_serial'], 'Serial number'),
+                        ],
+                    ])
+                    ->with('warning', __('That number matches both an item ID and a different serial. Choose which unit to mark sold.'));
+            }
+
+            $appliance = $candidates[$chosenId];
+        } elseif ($resolved['status'] === 'match') {
+            $appliance = $resolved['appliance'];
+        }
 
         if (! $appliance) {
             return back()->with('error', __('Item not found.'));
@@ -291,6 +319,23 @@ class SalesController extends Controller
         return back()->with('success', __('Item marked as sold. Profit: $:profit', [
             'profit' => number_format((float) $data['sold_price'] - $cost, 2),
         ]));
+    }
+
+    /**
+     * @return array{id: int, matched_as: string, serial_number: ?string, model_number: ?string, product_name: ?string, status: ?string}
+     */
+    private function saleConflictPayload(TruckAppliance $appliance, string $matchedAs): array
+    {
+        $appliance->loadMissing('model');
+
+        return [
+            'id' => $appliance->id,
+            'matched_as' => $matchedAs,
+            'serial_number' => $appliance->serial_number,
+            'model_number' => $appliance->model?->model_number,
+            'product_name' => $appliance->product_name,
+            'status' => $appliance->status,
+        ];
     }
 
     public function updateSoldPrice(Request $request, TruckAppliance $appliance)
