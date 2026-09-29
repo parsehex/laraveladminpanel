@@ -428,9 +428,18 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('trucks/{truck}/appliances/export', [TruckApplianceController::class, 'export'])
         ->middleware('permission:trucks.view')
         ->name('trucks.appliances.export');
-    Route::post('trucks/{truck}/appliances/import', [TruckApplianceController::class, 'import'])
+    Route::post('trucks/{truck}/appliances/import', [TruckApplianceController::class, 'importPreview'])
         ->middleware('permission:appliance.create')
         ->name('trucks.appliances.import');
+    Route::get('trucks/{truck}/appliances/import/review', [TruckApplianceController::class, 'importReview'])
+        ->middleware('permission:appliance.create')
+        ->name('trucks.appliances.import.review');
+    Route::post('trucks/{truck}/appliances/import/confirm', [TruckApplianceController::class, 'importConfirm'])
+        ->middleware('permission:appliance.create')
+        ->name('trucks.appliances.import.confirm');
+    Route::post('trucks/{truck}/appliances/import/cancel', [TruckApplianceController::class, 'importCancel'])
+        ->middleware('permission:appliance.create')
+        ->name('trucks.appliances.import.cancel');
     Route::put('trucks/{truck}/appliances/{appliance}', [TruckApplianceController::class, 'update'])
         ->middleware('permission:appliance.edit')
         ->name('trucks.appliances.update');

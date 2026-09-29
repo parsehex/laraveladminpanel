@@ -170,7 +170,11 @@ CSV;
 
         $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
             'csv_file' => $file,
-        ])->assertRedirect();
+        ])->assertRedirect(route('admin.trucks.appliances.import.review', $truck));
+
+        $this->actingAs($user)
+            ->post(route('admin.trucks.appliances.import.confirm', $truck))
+            ->assertRedirect(route('admin.trucks.show', $truck));
 
         $appliance = TruckAppliance::query()->where('serial_number', 'IGNOREPARTS1')->first();
 

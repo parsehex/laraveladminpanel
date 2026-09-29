@@ -151,9 +151,9 @@
                             @canAccess('appliance.create')
                             <x-admin.csv-import-trigger
                                 :action="route('admin.trucks.appliances.import', $truck)"
-                                :modal-title="'Import appliances for '.$truck->name"
+                                :modal-title="'Review appliance import for '.$truck->name"
                                 class="text-indigo-600 hover:text-indigo-900"
-                                title="Import appliances"
+                                title="Review appliance import"
                             >
                                 <i class="fas fa-file-import"></i>
                             </x-admin.csv-import-trigger>
@@ -194,7 +194,8 @@
     @canAccess('appliance.create')
     <x-admin.csv-import-modal
         :example-url="asset('examples/truck-appliances-import-example.csv')"
-        description="Upload a CSV to add or update appliances on the selected truck. Rows with a matching serial number will be updated. Optional sold columns: Sold Price, Sold By, Sold Date (or set Status to Sold)."
+        submit-label="Review import"
+        description="Upload a CSV to preview add/update changes for appliances on the selected truck. Rows match by unit label first, then serial number. Optional sold columns: Sold Price, Sold By, Sold Date (or set Status to Sold)."
     />
     @endcanAccess
 </div>

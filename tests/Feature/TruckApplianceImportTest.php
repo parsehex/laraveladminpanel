@@ -9,6 +9,8 @@ use Database\Seeders\InventoryStatusSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class TruckApplianceImportTest extends TestCase
@@ -17,22 +19,7 @@ class TruckApplianceImportTest extends TestCase
 
     public function test_authorized_user_can_import_appliances_from_csv(): void
     {
-        $this->seed(RolePermissionSeeder::class);
-        $this->seed(InventoryStatusSeeder::class);
-
-        $user = User::factory()->admin()->active()->create();
-        $user->syncRoles(['admin']);
-
-        $truck = Truck::query()->create([
-            'name' => 'Test Truck',
-            'units_on_truck' => 3,
-            'cost_of_truck' => 1000,
-            'shipping_cost' => 50,
-            'arrival_date' => now()->toDateString(),
-            'status' => 'active',
-            'created_by' => $user->id,
-            'updated_by' => $user->id,
-        ]);
+        [$user, $truck] = $this->adminAndTruck('Test Truck');
 
         $csv = <<<'CSV'
 Unit Label,Category,Sub Category,Brand,Model #,Product Name,Quantity,Our Cost,Serial #,Receiving Condition,MSRP,Fuel Type,Status,Total Parts Cost
@@ -40,14 +27,9 @@ Unit 1,Washer,Top Load,Whirlpool,WTW5000DW1,Top Load Washer,1,175.00,CX1234567,A
 Unit 2,Dryer,Electric Dryer,Whirlpool,WED4815EW1,Electric Dryer,1,150.00,MX7654321,B-Grade,349.00,Electric,Ready,0.00
 CSV;
 
-        $file = UploadedFile::fake()->createWithContent('appliances.csv', $csv);
-
-        $response = $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
-            'csv_file' => $file,
-        ]);
-
-        $response->assertRedirect(route('admin.trucks.show', $truck));
-        $response->assertSessionHas('success');
+        $this->importAndConfirm($user, $truck, $csv)
+            ->assertRedirect(route('admin.trucks.show', $truck))
+            ->assertSessionHas('success');
 
         $this->assertDatabaseCount('truck_appliances', 2);
         $this->assertDatabaseHas('truck_appliances', [
@@ -63,24 +45,126 @@ CSV;
         ]);
     }
 
-    public function test_import_updates_existing_appliance_when_serial_number_matches(): void
+    public function test_upload_redirects_to_review_without_writing_appliances(): void
     {
-        $this->seed(RolePermissionSeeder::class);
-        $this->seed(InventoryStatusSeeder::class);
+        [$user, $truck] = $this->adminAndTruck('Preview Truck');
 
-        $user = User::factory()->admin()->active()->create();
-        $user->syncRoles(['admin']);
+        $csv = <<<'CSV'
+Unit Label,Category,Sub Category,Brand,Model #,Product Name,Quantity,Our Cost,Serial #,Receiving Condition,MSRP,Fuel Type,Status,Total Parts Cost
+Unit 1,Washer,Top Load,Whirlpool,WTW5000DW1,Top Load Washer,1,175.00,CX1234567,A-Grade,399.00,Electric,Testing,15.00
+CSV;
 
-        $truck = Truck::query()->create([
-            'name' => 'Update Truck',
-            'units_on_truck' => 1,
-            'cost_of_truck' => 500,
-            'shipping_cost' => 0,
-            'arrival_date' => now()->toDateString(),
-            'status' => 'active',
+        $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
+            'csv_file' => UploadedFile::fake()->createWithContent('appliances.csv', $csv),
+        ])->assertRedirect(route('admin.trucks.appliances.import.review', $truck));
+
+        $this->assertDatabaseCount('truck_appliances', 0);
+
+        $this->actingAs($user)
+            ->get(route('admin.trucks.appliances.import.review', $truck))
+            ->assertOk()
+            ->assertSee('Will create')
+            ->assertSee('Unit 1')
+            ->assertSee('CX1234567')
+            ->assertSee('Confirm import');
+    }
+
+    public function test_review_shows_updates_and_errors(): void
+    {
+        [$user, $truck] = $this->adminAndTruck('Diff Truck');
+
+        TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'unit_label' => 'Unit 1',
+            'serial_number' => 'CX1234567',
+            'msrp' => 100,
+            'price' => 10,
+            'quantity' => 1,
+            'status' => 'Triage',
             'created_by' => $user->id,
             'updated_by' => $user->id,
         ]);
+
+        $csv = <<<'CSV'
+Unit Label,Category,Sub Category,Brand,Model #,Product Name,Quantity,Our Cost,Serial #,Receiving Condition,MSRP,Fuel Type,Status,Total Parts Cost
+Unit 1,Washer,Top Load,Whirlpool,WTW5000DW1,Top Load Washer,1,175.00,CX1234567,A-Grade,399.00,Electric,Testing,15.00
+Unit 2,Dryer,Electric Dryer,Whirlpool,WED4815EW1,Electric Dryer,1,150.00,MX7654321,Bad-Grade,349.00,Electric,Ready,0.00
+CSV;
+
+        $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
+            'csv_file' => UploadedFile::fake()->createWithContent('appliances.csv', $csv),
+        ])->assertRedirect(route('admin.trucks.appliances.import.review', $truck));
+
+        $this->actingAs($user)
+            ->get(route('admin.trucks.appliances.import.review', $truck))
+            ->assertOk()
+            ->assertSee('Will update')
+            ->assertSee('Will skip / errors')
+            ->assertSee('Status:')
+            ->assertSee('Triage')
+            ->assertSee('Testing')
+            ->assertSee('cursor-not-allowed')
+            ->assertDontSee('action="'.route('admin.trucks.appliances.import.confirm', $truck).'"', false);
+
+        $this->assertDatabaseCount('truck_appliances', 1);
+        $this->assertDatabaseHas('truck_appliances', [
+            'serial_number' => 'CX1234567',
+            'status' => 'Triage',
+            'msrp' => 100,
+        ]);
+    }
+
+    public function test_confirm_is_rejected_when_preview_has_errors(): void
+    {
+        [$user, $truck] = $this->adminAndTruck('Blocked Truck');
+
+        $csv = <<<'CSV'
+Unit Label,Category,Sub Category,Brand,Model #,Product Name,Quantity,Our Cost,Serial #,Receiving Condition,MSRP,Fuel Type,Status,Total Parts Cost
+Unit 1,Washer,Top Load,Whirlpool,WTW5000DW1,Top Load Washer,1,175.00,CX1234567,Bad-Grade,399.00,Electric,Testing,15.00
+CSV;
+
+        $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
+            'csv_file' => UploadedFile::fake()->createWithContent('appliances.csv', $csv),
+        ])->assertRedirect(route('admin.trucks.appliances.import.review', $truck));
+
+        $this->actingAs($user)
+            ->post(route('admin.trucks.appliances.import.confirm', $truck))
+            ->assertRedirect(route('admin.trucks.appliances.import.review', $truck))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseCount('truck_appliances', 0);
+    }
+
+    public function test_cancel_discards_staged_import_without_writing(): void
+    {
+        Storage::fake('local');
+        [$user, $truck] = $this->adminAndTruck('Cancel Truck');
+
+        $csv = <<<'CSV'
+Unit Label,Category,Sub Category,Brand,Model #,Product Name,Quantity,Our Cost,Serial #,Receiving Condition,MSRP,Fuel Type,Status,Total Parts Cost
+Unit 1,Washer,Top Load,Whirlpool,WTW5000DW1,Top Load Washer,1,175.00,CX1234567,A-Grade,399.00,Electric,Testing,15.00
+CSV;
+
+        $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
+            'csv_file' => UploadedFile::fake()->createWithContent('appliances.csv', $csv),
+        ])->assertRedirect(route('admin.trucks.appliances.import.review', $truck));
+
+        $staged = session('appliance_csv_import');
+        $this->assertIsArray($staged);
+        Storage::disk('local')->assertExists($staged['path']);
+
+        $this->actingAs($user)
+            ->post(route('admin.trucks.appliances.import.cancel', $truck))
+            ->assertRedirect(route('admin.trucks.show', $truck));
+
+        $this->assertNull(session('appliance_csv_import'));
+        Storage::disk('local')->assertMissing($staged['path']);
+        $this->assertDatabaseCount('truck_appliances', 0);
+    }
+
+    public function test_import_updates_existing_appliance_when_serial_number_matches(): void
+    {
+        [$user, $truck] = $this->adminAndTruck('Update Truck');
 
         TruckAppliance::query()->create([
             'truck_id' => $truck->id,
@@ -98,11 +182,7 @@ Unit Label,Category,Sub Category,Brand,Model #,Product Name,Quantity,Our Cost,Se
 Unit 1,Washer,Top Load,Whirlpool,WTW5000DW1,Top Load Washer,1,175.00,CX1234567,A-Grade,399.00,Electric,Testing,15.00
 CSV;
 
-        $file = UploadedFile::fake()->createWithContent('appliances.csv', $csv);
-
-        $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
-            'csv_file' => $file,
-        ])->assertRedirect();
+        $this->importAndConfirm($user, $truck, $csv)->assertRedirect();
 
         $this->assertDatabaseCount('truck_appliances', 1);
         $this->assertDatabaseHas('truck_appliances', [
@@ -120,28 +200,14 @@ CSV;
 
         $user = User::factory()->admin()->active()->create(['name' => 'Importer User']);
         $user->syncRoles(['admin']);
-
-        $truck = Truck::query()->create([
-            'name' => 'Sold Truck',
-            'units_on_truck' => 1,
-            'cost_of_truck' => 500,
-            'shipping_cost' => 0,
-            'arrival_date' => now()->toDateString(),
-            'status' => 'active',
-            'created_by' => $user->id,
-            'updated_by' => $user->id,
-        ]);
+        $truck = $this->truckFor($user, 'Sold Truck');
 
         $csv = <<<'CSV'
 Unit Label,Category,Sub Category,Brand,Model #,Product Name,Quantity,Our Cost,Serial #,Receiving Condition,MSRP,Fuel Type,Status,Total Parts Cost,Sold Price,Sold By,Sold Date
 Unit 1,Washer,Top Load,Whirlpool,WTW5000DW1,Top Load Washer,1,175.00,SOLD1234,A-Grade,399.00,Electric,Sold,15.00,275.00,Ben Smith,2026-08-15 14:30
 CSV;
 
-        $file = UploadedFile::fake()->createWithContent('appliances.csv', $csv);
-
-        $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
-            'csv_file' => $file,
-        ])->assertRedirect();
+        $this->importAndConfirm($user, $truck, $csv)->assertRedirect();
 
         $appliance = TruckAppliance::query()->where('serial_number', 'SOLD1234')->first();
 
@@ -155,12 +221,7 @@ CSV;
 
     public function test_import_keeps_an_unsold_status_when_sold_price_is_zero(): void
     {
-        $this->seed(RolePermissionSeeder::class);
-        $this->seed(InventoryStatusSeeder::class);
-
-        $user = User::factory()->admin()->active()->create();
-        $user->syncRoles(['admin']);
-        $truck = $this->truckFor($user, 'Unsold Truck');
+        [$user, $truck] = $this->adminAndTruck('Unsold Truck');
 
         TruckAppliance::query()->create([
             'truck_id' => $truck->id,
@@ -180,9 +241,7 @@ Unit Label,Category,Sub Category,Brand,Model #,Product Name,Quantity,Our Cost,Se
 SD-001-005,Dishwasher,Tall Tub,Beko,DUT36522X,Tall Tub Dishwasher,1,228.99,2280761206,A-Grade,799.00,N/A,Scrap,0.00,0.00,,
 CSV;
 
-        $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
-            'csv_file' => UploadedFile::fake()->createWithContent('appliances.csv', $csv),
-        ])->assertRedirect();
+        $this->importAndConfirm($user, $truck, $csv)->assertRedirect();
 
         $this->assertDatabaseCount('truck_appliances', 1);
 
@@ -195,12 +254,7 @@ CSV;
 
     public function test_import_matches_unit_label_before_a_shared_serial(): void
     {
-        $this->seed(RolePermissionSeeder::class);
-        $this->seed(InventoryStatusSeeder::class);
-
-        $user = User::factory()->admin()->active()->create();
-        $user->syncRoles(['admin']);
-        $truck = $this->truckFor($user, 'Shared Serial Truck');
+        [$user, $truck] = $this->adminAndTruck('Shared Serial Truck');
 
         foreach (['SD-001-058' => 429, 'SD-001-060' => 379] as $label => $msrp) {
             TruckAppliance::query()->create([
@@ -222,9 +276,7 @@ SD-001-058,Refrigerators,Top Freezer,Vissani,MDTF10WHES4,White Top Freezer,1,122
 SD-001-060,Refrigerators,Top Freezer,Vissani,MDTF10BKES4,Black Top Freezer,1,108.62,EZ59E1Z,A-Grade,379.00,N/A,Sold,0.00,200.00,Ben,2026-01-03 10:00
 CSV;
 
-        $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
-            'csv_file' => UploadedFile::fake()->createWithContent('appliances.csv', $csv),
-        ])->assertRedirect();
+        $this->importAndConfirm($user, $truck, $csv)->assertRedirect();
 
         $this->assertDatabaseCount('truck_appliances', 2);
         $this->assertSame('429.00', TruckAppliance::query()->where('unit_label', 'SD-001-058')->value('msrp'));
@@ -233,12 +285,7 @@ CSV;
 
     public function test_import_keeps_the_stored_serial_when_the_csv_value_is_damaged(): void
     {
-        $this->seed(RolePermissionSeeder::class);
-        $this->seed(InventoryStatusSeeder::class);
-
-        $user = User::factory()->admin()->active()->create();
-        $user->syncRoles(['admin']);
-        $truck = $this->truckFor($user, 'Serial Truck');
+        [$user, $truck] = $this->adminAndTruck('Serial Truck');
 
         TruckAppliance::query()->create([
             'truck_id' => $truck->id,
@@ -281,9 +328,7 @@ SD-001-065,Refrigerators,Top Freezer,Vissani,MDTF10BKES4,Top Freezer,1,108.62,42
 SD-001-001,Washers,Front Load,Electrolux,ELFW7637AW2,Front Load Washer,1,357.97,4C52410393,A-Grade,1249.00,N/A,Sold,0.00
 CSV;
 
-        $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
-            'csv_file' => UploadedFile::fake()->createWithContent('appliances.csv', $csv),
-        ])->assertRedirect();
+        $this->importAndConfirm($user, $truck, $csv)->assertRedirect();
 
         $this->assertDatabaseCount('truck_appliances', 3);
         $this->assertSame('7620409580228002630101', TruckAppliance::query()->where('unit_label', 'SD-001-008')->value('serial_number'));
@@ -314,6 +359,33 @@ CSV;
         $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
             'csv_file' => $file,
         ])->assertForbidden();
+    }
+
+    /**
+     * @return array{0: User, 1: Truck}
+     */
+    private function adminAndTruck(string $name): array
+    {
+        $this->seed(RolePermissionSeeder::class);
+        $this->seed(InventoryStatusSeeder::class);
+
+        $user = User::factory()->admin()->active()->create();
+        $user->syncRoles(['admin']);
+
+        return [$user, $this->truckFor($user, $name)];
+    }
+
+    private function importAndConfirm(User $user, Truck $truck, string $csv): TestResponse
+    {
+        $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
+            'csv_file' => UploadedFile::fake()->createWithContent('appliances.csv', $csv),
+        ])->assertRedirect(route('admin.trucks.appliances.import.review', $truck));
+
+        $this->actingAs($user)
+            ->get(route('admin.trucks.appliances.import.review', $truck))
+            ->assertOk();
+
+        return $this->actingAs($user)->post(route('admin.trucks.appliances.import.confirm', $truck));
     }
 
     private function truckFor(User $user, string $name): Truck

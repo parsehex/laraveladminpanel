@@ -6,19 +6,17 @@ use App\Enums\ItemType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTruckApplianceRequest;
 use App\Http\Requests\UpdateTruckApplianceRequest;
+use App\Imports\TruckApplianceCsvImport;
 use App\Models\Brand;
 use App\Models\Category;
-use App\Models\InventoryStatus;
 use App\Models\Model as ApplianceModel;
-use App\Models\Subcategory;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\UserAction;
-use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class TruckApplianceController extends Controller
 {
@@ -27,7 +25,12 @@ class TruckApplianceController extends Controller
         $this->middleware('permission:appliance.create')->only('store');
         $this->middleware('permission:appliance.edit')->only('update');
         $this->middleware('permission:appliance.delete')->only('destroy');
-        $this->middleware('permission:appliance.create')->only('import');
+        $this->middleware('permission:appliance.create')->only([
+            'importPreview',
+            'importReview',
+            'importConfirm',
+            'importCancel',
+        ]);
         $this->middleware('permission:trucks.view')->only('export');
     }
 
@@ -174,7 +177,7 @@ class TruckApplianceController extends Controller
         }, $safeName.'_appliances.csv', $headers);
     }
 
-    public function import(Request $request, Truck $truck)
+    public function importPreview(Request $request, Truck $truck)
     {
         abort_unless($request->user()?->can('appliance.create'), 403);
 
@@ -182,131 +185,124 @@ class TruckApplianceController extends Controller
             'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
         ]);
 
-        $handle = fopen($data['csv_file']->getRealPath(), 'r');
-        $headers = fgetcsv($handle) ?: [];
-        $columns = $this->csvColumns($headers);
-        $imported = 0;
-        $updated = 0;
+        $this->discardStagedImport($request);
 
-        DB::transaction(function () use ($handle, $columns, $truck, $request, &$imported, &$updated) {
-            $nextUnitNumber = $this->maxUnitNumber($truck) + 1;
-            $existingAppliances = $truck->appliances()->orderBy('id')->get();
+        $token = (string) Str::uuid();
+        $relativePath = 'private/csv-imports/'.$request->user()->id.'/'.$token.'.csv';
+        Storage::disk('local')->put($relativePath, file_get_contents($data['csv_file']->getRealPath()));
 
-            while (($row = fgetcsv($handle)) !== false) {
-                if (count($row) < 11 || collect($row)->filter(fn ($value) => trim((string) $value) !== '')->isEmpty()) {
-                    continue;
-                }
+        $request->session()->put($this->importSessionKey(), [
+            'token' => $token,
+            'truck_id' => $truck->id,
+            'path' => $relativePath,
+            'expires_at' => now()->addMinutes(30)->timestamp,
+        ]);
 
-                $unitLabel = trim((string) $this->csvValue($row, $columns, ['unit_label'], 0));
-                if ($unitLabel === '') {
-                    $unitLabel = $this->formatUnitLabel($truck, $nextUnitNumber);
-                    $nextUnitNumber++;
-                }
-                $categoryName = trim((string) $this->csvValue($row, $columns, ['category'], 1));
-                $subcategory = trim((string) $this->csvValue($row, $columns, ['sub_category'], null));
-                $brand = trim((string) $this->csvValue($row, $columns, ['brand'], 2));
-                $modelNumber = $this->normalizeIdentifier((string) $this->csvValue($row, $columns, ['model', 'model_number', 'model_'], 3));
-                $productName = trim((string) $this->csvValue($row, $columns, ['product_name', 'product'], 4));
-                $quantity = (int) $this->csvValue($row, $columns, ['quantity'], 5);
-                $ourCost = $this->csvMoney($this->csvValue($row, $columns, ['our_cost', 'cost'], 6));
-                $serialNumber = $this->normalizeIdentifier((string) $this->csvValue($row, $columns, ['serial', 'serial_number'], 7));
-                $receivingCondition = trim((string) $this->csvValue($row, $columns, ['receiving_condition'], 8));
-                $msrp = $this->csvMoney($this->csvValue($row, $columns, ['msrp'], 9));
-                $fuelType = trim((string) $this->csvValue($row, $columns, ['fuel_type'], 10));
-                $status = trim((string) $this->csvValue($row, $columns, ['status'], null));
-                $soldPrice = $this->csvNullableMoney($this->csvValue($row, $columns, ['sold_price'], null));
-                $soldBy = trim((string) $this->csvValue($row, $columns, ['sold_by'], null));
-                $soldAtRaw = trim((string) $this->csvValue($row, $columns, ['sold_at', 'sold_date'], null));
-                $hasSoldInfo = $status === 'Sold'
-                    || ($soldPrice !== null && $soldPrice > 0)
-                    || $soldBy !== ''
-                    || $soldAtRaw !== '';
+        return redirect()->route('admin.trucks.appliances.import.review', $truck);
+    }
 
-                $category = $categoryName !== ''
-                    ? Category::firstOrCreate(
-                        ['name' => $categoryName],
-                        ['status' => 1, 'created_by' => $request->user()->id, 'updated_by' => $request->user()->id]
-                    )
-                    : null;
-                $categoryId = Category::where('name', $categoryName)->first(['id', 'name']);
-                $subCategory = $categoryId?->id ? Subcategory::firstOrCreate(
-                    ['name' => $subcategory, 'category_id' => $categoryId?->id],
-                    ['status' => 1, 'created_by' => $request->user()->id, 'updated_by' => $request->user()->id]
-                ) : null;
-                $model = $modelNumber !== ''
-                    ? $this->resolveModel($modelNumber, $msrp, $productName, $brand, $category?->id, $request->user()->id)
-                    : null;
+    public function importReview(Request $request, Truck $truck, TruckApplianceCsvImport $importer)
+    {
+        abort_unless($request->user()?->can('appliance.create'), 403);
 
-                validator([
-                    'msrp' => $msrp,
-                    'receiving_condition' => $receivingCondition ?: null,
-                    'status' => $hasSoldInfo ? 'Sold' : ($status ?: null),
-                    'sold_price' => $soldPrice,
-                    'sold_by' => $soldBy !== '' ? $soldBy : null,
-                    'sold_at' => $soldAtRaw !== '' ? $soldAtRaw : null,
-                ], [
-                    'msrp' => ['required', 'numeric', 'min:0'],
-                    'receiving_condition' => ['nullable', Rule::in(TruckAppliance::RECEIVING_CONDITIONS)],
-                    'status' => ['nullable', Rule::in(InventoryStatus::activeNames())],
-                    'sold_price' => ['nullable', 'numeric', 'min:0'],
-                    'sold_by' => ['nullable', 'string', 'max:255'],
-                    'sold_at' => ['nullable', 'date'],
-                ])->validate();
+        try {
+            $staged = $this->stagedImport($request, $truck);
+        } catch (ValidationException $exception) {
+            return redirect()
+                ->route('admin.trucks.show', $truck)
+                ->with('error', $exception->errors()['csv_file'][0] ?? __('Upload the CSV again.'));
+        }
 
-                if ($hasSoldInfo) {
-                    $status = 'Sold';
-                }
+        $absolutePath = Storage::disk('local')->path($staged['path']);
+        $preview = $importer->preview($truck, $absolutePath, $request->user());
 
-                $this->syncBrand($brand, $request->user()->id);
+        return view('admin.trucks.appliances.import-review', [
+            'truck' => $truck,
+            'preview' => $preview,
+        ]);
+    }
 
-                $existing = $this->findExistingAppliance($existingAppliances, $unitLabel, $serialNumber);
-                $serialToStore = $this->serialToStore($existing?->serial_number, $serialNumber);
+    public function importConfirm(Request $request, Truck $truck, TruckApplianceCsvImport $importer)
+    {
+        abort_unless($request->user()?->can('appliance.create'), 403);
 
-                $payload = [
-                    'unit_label' => $unitLabel ?: null,
-                    'category_id' => $category?->id,
-                    'subcategory' => $subcategory ?: null,
-                    'model_id' => $model?->id,
-                    'serial_number' => $serialToStore,
-                    'brand' => $brand ?: null,
-                    'product_name' => $productName ?: null,
-                    'quantity' => $quantity,
-                    'price' => $ourCost,
-                    'msrp' => $msrp,
-                    'fuel_type' => $fuelType ?: null,
-                    'receiving_condition' => $receivingCondition ?: null,
-                    'status' => $status ?: null,
-                    'updated_by' => $request->user()->id,
-                ];
+        try {
+            $staged = $this->stagedImport($request, $truck);
+        } catch (ValidationException $exception) {
+            return redirect()
+                ->route('admin.trucks.show', $truck)
+                ->with('error', $exception->errors()['csv_file'][0] ?? __('Upload the CSV again.'));
+        }
 
-                if ($hasSoldInfo) {
-                    $payload['status'] = 'Sold';
-                    $payload['sold_price'] = $soldPrice;
-                    $payload['sold_by'] = $soldBy !== '' ? $soldBy : $request->user()->name;
-                    $payload['sold_at'] = $soldAtRaw !== '' ? Carbon::parse($soldAtRaw) : now();
-                    $payload['location'] = null;
-                } else {
-                    $payload['sold_price'] = null;
-                    $payload['sold_by'] = null;
-                    $payload['sold_at'] = null;
-                }
+        $absolutePath = Storage::disk('local')->path($staged['path']);
 
-                if ($existing) {
-                    $existing->update($payload);
-                    $updated++;
-                } else {
-                    $existingAppliances->push($truck->appliances()->create([
-                        ...$payload,
-                        'created_by' => $request->user()->id,
-                    ]));
-                    $imported++;
-                }
+        try {
+            $preview = $importer->preview($truck, $absolutePath, $request->user());
+
+            if (! $preview->canConfirm()) {
+                return redirect()
+                    ->route('admin.trucks.appliances.import.review', $truck)
+                    ->with('error', __('Fix the CSV errors before confirming the import.'));
             }
-        });
 
-        fclose($handle);
+            $result = $importer->commit($truck, $absolutePath, $request->user());
+        } catch (ValidationException $exception) {
+            return redirect()
+                ->route('admin.trucks.appliances.import.review', $truck)
+                ->withErrors($exception->errors());
+        }
 
-        return redirect()->route('admin.trucks.show', $truck)->with('success', __("Import successful! Added {$imported}, updated {$updated}."));
+        $this->discardStagedImport($request);
+
+        return redirect()
+            ->route('admin.trucks.show', $truck)
+            ->with('success', __("Import successful! Added {$result->imported}, updated {$result->updated}."));
+    }
+
+    public function importCancel(Request $request, Truck $truck)
+    {
+        abort_unless($request->user()?->can('appliance.create'), 403);
+
+        $this->discardStagedImport($request);
+
+        return redirect()->route('admin.trucks.show', $truck)->with('success', __('Import cancelled.'));
+    }
+
+    /**
+     * @return array{token: string, truck_id: int, path: string, expires_at: int}
+     */
+    private function stagedImport(Request $request, Truck $truck): array
+    {
+        $staged = $request->session()->get($this->importSessionKey());
+
+        if (! is_array($staged)
+            || (int) ($staged['truck_id'] ?? 0) !== $truck->id
+            || empty($staged['path'])
+            || empty($staged['expires_at'])
+            || (int) $staged['expires_at'] < now()->timestamp
+            || ! Storage::disk('local')->exists($staged['path'])) {
+            $this->discardStagedImport($request);
+
+            throw ValidationException::withMessages([
+                'csv_file' => ['The staged import expired or was not found. Upload the CSV again.'],
+            ]);
+        }
+
+        return $staged;
+    }
+
+    private function discardStagedImport(Request $request): void
+    {
+        $staged = $request->session()->pull($this->importSessionKey());
+
+        if (is_array($staged) && ! empty($staged['path'])) {
+            Storage::disk('local')->delete($staged['path']);
+        }
+    }
+
+    private function importSessionKey(): string
+    {
+        return 'appliance_csv_import';
     }
 
     private function syncBrand(?string $brand, int $userId): void
@@ -454,102 +450,6 @@ class TruckApplianceController extends Controller
         return $model;
     }
 
-    /**
-     * @param  Collection<int, TruckAppliance>  $appliances
-     */
-    private function findExistingAppliance(Collection $appliances, string $unitLabel, string $serialNumber): ?TruckAppliance
-    {
-        if ($unitLabel !== '') {
-            $byLabel = $appliances->first(
-                fn (TruckAppliance $appliance) => trim((string) $appliance->unit_label) === $unitLabel
-            );
-
-            if ($byLabel) {
-                return $byLabel;
-            }
-        }
-
-        if ($serialNumber === '') {
-            return null;
-        }
-
-        return $appliances->first(
-            fn (TruckAppliance $appliance) => $this->serialsReferToSameUnit($appliance->serial_number, $serialNumber)
-        );
-    }
-
-    private function serialToStore(?string $stored, string $incoming): ?string
-    {
-        if ($incoming === '') {
-            $trimmed = trim((string) $stored);
-
-            return $trimmed === '' ? null : $trimmed;
-        }
-
-        if ($stored === null || trim($stored) === '') {
-            return $incoming;
-        }
-
-        $storedTrimmed = trim($stored);
-
-        if ($storedTrimmed === $incoming
-            || $this->incomingSerialDropsLeadingZeros($storedTrimmed, $incoming)
-            || $this->incomingSerialIsExcelNotation($storedTrimmed, $incoming)) {
-            return $storedTrimmed;
-        }
-
-        return $incoming;
-    }
-
-    private function serialsReferToSameUnit(?string $stored, string $incoming): bool
-    {
-        if ($incoming === '' || $stored === null || trim($stored) === '') {
-            return false;
-        }
-
-        $storedTrimmed = trim($stored);
-
-        return $storedTrimmed === $incoming
-            || $this->incomingSerialDropsLeadingZeros($storedTrimmed, $incoming)
-            || $this->incomingSerialIsExcelNotation($storedTrimmed, $incoming);
-    }
-
-    private function incomingSerialDropsLeadingZeros(string $stored, string $incoming): bool
-    {
-        if ($stored === $incoming || ! ctype_digit($stored) || ! ctype_digit($incoming)) {
-            return false;
-        }
-
-        return ltrim($stored, '0') === ltrim($incoming, '0');
-    }
-
-    /**
-     * Excel rewrites a long numeric serial as scientific notation. Stripping
-     * punctuation turns 4325033486600 into 433E12 and 7620409580228002630101 into 762E21.
-     */
-    private function incomingSerialIsExcelNotation(string $stored, string $incoming): bool
-    {
-        if (! ctype_digit($stored) || ! preg_match('/^(\d+)E(\d+)$/i', $incoming, $matches)) {
-            return false;
-        }
-
-        $coefficient = $matches[1];
-        $exponent = (int) $matches[2];
-
-        if (strlen($stored) !== $exponent + 1) {
-            return false;
-        }
-
-        $prefix = substr($stored, 0, strlen($coefficient));
-
-        if ($prefix === $coefficient) {
-            return true;
-        }
-
-        return strlen($prefix) === strlen($coefficient)
-            && abs((int) $prefix - (int) $coefficient) <= 1;
-    }
-
     private function normalizeIdentifier(string $value): string
     {
         return strtoupper(preg_replace('/[^A-Z0-9-]/', '', strtoupper(trim($value))) ?? '');
@@ -575,45 +475,5 @@ class TruckApplianceController extends Controller
     private function formatUnitLabel(Truck $truck, int $number): string
     {
         return trim((string) $truck->name).'-'.sprintf('%03d', $number);
-    }
-
-    private function csvColumns(array $headers): array
-    {
-        $columns = [];
-
-        foreach ($headers as $index => $header) {
-            $key = strtolower(trim((string) $header));
-            $key = preg_replace('/[^a-z0-9]+/', '_', $key);
-            $columns[trim($key, '_')] = $index;
-        }
-
-        return $columns;
-    }
-
-    private function csvValue(array $row, array $columns, array $keys, ?int $fallbackIndex = null): mixed
-    {
-        foreach ($keys as $key) {
-            if (array_key_exists($key, $columns)) {
-                return $row[$columns[$key]] ?? null;
-            }
-        }
-
-        return $fallbackIndex !== null ? ($row[$fallbackIndex] ?? null) : null;
-    }
-
-    private function csvMoney(mixed $value): float
-    {
-        $normalized = preg_replace('/[^0-9.\-]/', '', (string) $value);
-
-        return $normalized === '' || $normalized === '-' ? 0.0 : (float) $normalized;
-    }
-
-    private function csvNullableMoney(mixed $value): ?float
-    {
-        if (trim((string) $value) === '') {
-            return null;
-        }
-
-        return $this->csvMoney($value);
     }
 }

@@ -151,7 +151,7 @@
                     @csrf
                     <input type="file" name="csv_file" accept=".csv,text/csv" required class="max-w-52 rounded-md bg-white px-2 py-1 text-sm text-gray-800">
                     <button type="submit" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100">
-                        <i class="fas fa-file-import mr-1"></i>Import
+                        <i class="fas fa-file-import mr-1"></i>Review import
                     </button>
                     <a href="{{ asset('examples/truck-appliances-import-example.csv') }}" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-100" download>Example CSV</a>
                 </form>

@@ -3,6 +3,7 @@
     'exampleUrl' => null,
     'exampleLabel' => 'Download example CSV',
     'description' => null,
+    'submitLabel' => 'Import',
 ])
 
 <div
@@ -50,7 +51,7 @@
             <div class="flex justify-end gap-2 pt-2">
                 <button type="button" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600" data-csv-import-close>Cancel</button>
                 <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                    <i class="fas fa-file-import mr-1"></i>Import
+                    <i class="fas fa-file-import mr-1"></i>{{ $submitLabel }}
                 </button>
             </div>
         </form>
