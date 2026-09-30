@@ -51,17 +51,24 @@ class DashboardController extends Controller
             ->take(25)
             ->get();
 
+        $suggestionStatus = $request->get('suggestion_status', 'pending');
+        if (! in_array($suggestionStatus, ['pending', 'completed', 'all'], true)) {
+            $suggestionStatus = 'pending';
+        }
+
         $suggestions = Suggestion::query()
             ->with(['user', 'completedBy'])
+            ->when($suggestionStatus !== 'all', fn ($query) => $query->where('status', $suggestionStatus))
             ->latest()
-            ->take(25)
-            ->get();
+            ->paginate(10, ['*'], 'suggestions_page')
+            ->withQueryString();
 
         return view('admin.dashboard', [
             'stats' => $stats,
             'activityRows' => $activityRows,
             'holdingForParts' => $holdingForParts,
             'suggestions' => $suggestions,
+            'suggestionStatus' => $suggestionStatus,
             'period' => $request->get('period', 'weekly'),
             'periodLabel' => $periodLabel,
             'from' => $from,
