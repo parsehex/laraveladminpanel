@@ -14,7 +14,6 @@
 @push('styles')
 <style>
     th.role-module-th {
-        position: relative;
         height: 8rem;
         width: 2.35rem;
         min-width: 2.35rem;
