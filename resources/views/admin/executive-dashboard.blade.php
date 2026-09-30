@@ -12,7 +12,7 @@
                 <p class="text-sm text-gray-500">Production value and employee output for {{ $periodLabel }}.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                @foreach(['daily' => 'Daily', 'weekly' => 'Weekly', 'monthly' => 'Monthly', 'all' => 'All Time'] as $key => $label)
+                @foreach(['daily' => 'Daily', 'weekly' => 'Weekly', 'monthly' => 'Monthly', 'yearly' => 'Yearly', 'all' => 'All Time'] as $key => $label)
                     <a href="{{ route('admin.executive-dashboard.index', ['period' => $key]) }}"
                        class="px-3 py-2 rounded-md text-sm font-semibold border {{ $period === $key ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }}">
                         {{ $label }}

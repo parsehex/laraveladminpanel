@@ -6,11 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\CustomSale;
 use App\Models\InventoryStatusHistory;
 use App\Models\Suggestion;
-use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\User;
+use App\Models\UserAction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
@@ -18,11 +19,17 @@ class DashboardController extends Controller
     {
         [$from, $to, $periodLabel] = $this->resolvePeriod($request);
 
+        $unitsAdded = TruckAppliance::query()->whereBetween('created_at', [$from, $to]);
+
+        $soldInPeriod = TruckAppliance::query()
+            ->where('status', 'Sold')
+            ->whereRaw('COALESCE(sold_at, updated_at) BETWEEN ? AND ?', [$from, $to]);
+
         $stats = [
             'total_users' => User::count(),
             'active_users' => User::where('status', 'active')->count(),
-            'total_units' => TruckAppliance::count(),
-            'inventory_value' => TruckAppliance::query()
+            'total_units' => (clone $unitsAdded)->count(),
+            'inventory_value' => (clone $unitsAdded)
                 ->where(function ($query) {
                     $query->whereNull('status')
                         ->orWhere('status', '')
@@ -30,47 +37,12 @@ class DashboardController extends Controller
                 })
                 ->selectRaw('SUM('.TruckAppliance::totalCostSql().') as value')
                 ->value('value') ?: 0,
-            'sold_units' => TruckAppliance::where('status', 'Sold')->count(),
-            'sales_total' => (float) TruckAppliance::where('status', 'Sold')->sum('sold_price')
-                + (float) CustomSale::sum('sold_price'),
+            'sold_units' => (clone $soldInPeriod)->count(),
+            'sales_total' => (float) (clone $soldInPeriod)->sum('sold_price')
+                + (float) CustomSale::query()->whereBetween('created_at', [$from, $to])->sum('sold_price'),
         ];
 
-        $users = User::query()
-            ->whereIn('role', config('authorization.legacy_admin_role_values', ['admin']))
-            ->orWhereHas('roles')
-            ->orderBy('name')
-            ->get();
-
-        $activityRows = $users->map(function (User $user) use ($from, $to) {
-            $trucksAdded = Truck::query()
-                ->where('created_by', $user->id)
-                ->whereBetween('created_at', [$from, $to])
-                ->count();
-
-            $unitsQuery = TruckAppliance::query()
-                ->where('created_by', $user->id)
-                ->whereBetween('created_at', [$from, $to]);
-
-            return [
-                'user' => $user,
-                'trucks_added' => $trucksAdded,
-                'trucks_deleted' => Truck::onlyTrashed()
-                    ->where('updated_by', $user->id)
-                    ->whereBetween('deleted_at', [$from, $to])
-                    ->count(),
-                'units_added' => (clone $unitsQuery)->count(),
-                'units_deleted' => TruckAppliance::onlyTrashed()
-                    ->where('updated_by', $user->id)
-                    ->whereBetween('deleted_at', [$from, $to])
-                    ->count(),
-                'total_msrp_added' => (float) (clone $unitsQuery)->sum('msrp'),
-                'units_tested' => $this->statusCount($user, 'Testing', $from, $to),
-                'demanufactured' => $this->statusCount($user, 'Demanufacture', $from, $to),
-                'repaired' => $this->statusCount($user, 'Repair', $from, $to),
-                'showroom_sent' => $this->statusCount($user, 'Show Room', $from, $to),
-                'sales_marked' => $this->statusCount($user, 'Sold', $from, $to),
-            ];
-        });
+        $activityRows = $this->activityRows($from, $to);
 
         $holdingForParts = TruckAppliance::query()
             ->with(['truck', 'model', 'category', 'statusHistories.user'])
@@ -150,7 +122,6 @@ class DashboardController extends Controller
 
     private function resolvePeriod(Request $request): array
     {
-
         $period = $request->get('period', 'weekly');
         $now = now();
 
@@ -164,9 +135,68 @@ class DashboardController extends Controller
         return match ($period) {
             'daily' => [$now->copy()->subDay()->startOfDay(), $now->copy()->endOfDay(), 'Last 1 day'],
             'monthly' => [$now->copy()->subDays(30)->startOfDay(), $now->copy()->endOfDay(), 'Last 30 days'],
+            'yearly' => [$now->copy()->subDays(365)->startOfDay(), $now->copy()->endOfDay(), 'Last 365 days'],
             'all' => [Carbon::create(1970, 1, 1)->startOfDay(), $now->copy()->endOfDay(), 'All time'],
             default => [$now->copy()->subDays(7)->startOfDay(), $now->copy()->endOfDay(), 'Last 7 days'],
         };
+    }
+
+    /**
+     * Staff activity breakdown from user_actions for the selected period.
+     * Matches the legacy dashboard.php aggregates.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function activityRows(Carbon $from, Carbon $to): Collection
+    {
+        $trackedActions = [
+            'add_truck',
+            'delete_truck',
+            'add_appliance',
+            'create_appliance',
+            'delete_appliance',
+            'test_unit',
+            'deman_unit',
+            'repair_unit',
+            'showroom_sent',
+            'mark_sold',
+        ];
+
+        return UserAction::query()
+            ->whereBetween('created_at', [$from, $to])
+            ->select('username')
+            ->selectRaw("COUNT(CASE WHEN action_type = 'add_truck' THEN 1 END) AS trucks_added")
+            ->selectRaw("COUNT(CASE WHEN action_type = 'delete_truck' THEN 1 END) AS trucks_deleted")
+            ->selectRaw("COUNT(CASE WHEN action_type IN ('add_appliance', 'create_appliance') THEN 1 END) AS units_added")
+            ->selectRaw("COUNT(CASE WHEN action_type = 'delete_appliance' THEN 1 END) AS units_deleted")
+            ->selectRaw("COALESCE(SUM(CASE WHEN action_type IN ('add_appliance', 'create_appliance') THEN (SELECT msrp FROM truck_appliances WHERE truck_appliances.id = user_actions.item_id) ELSE 0 END), 0) AS total_msrp_added")
+            ->selectRaw("COUNT(DISTINCT CASE WHEN action_type = 'test_unit' THEN item_id END) AS units_tested")
+            ->selectRaw("COUNT(DISTINCT CASE WHEN action_type = 'deman_unit' THEN item_id END) AS demanufactured")
+            ->selectRaw("COUNT(DISTINCT CASE WHEN action_type IN ('repair_unit', 'test_unit') THEN item_id END) AS repaired")
+            ->selectRaw("COUNT(DISTINCT CASE WHEN action_type = 'showroom_sent' THEN item_id END) AS showroom_sent")
+            ->selectRaw("COUNT(CASE WHEN action_type = 'mark_sold' THEN 1 END) AS sales_marked")
+            ->groupBy('username')
+            ->havingRaw(
+                'COUNT(CASE WHEN action_type IN ('.implode(', ', array_fill(0, count($trackedActions), '?')).') THEN 1 END) > 0',
+                $trackedActions
+            )
+            ->orderBy('username')
+            ->get()
+            ->map(function ($row): array {
+                return [
+                    'username' => $row->username ?: 'Unknown',
+                    'trucks_added' => (int) $row->trucks_added,
+                    'trucks_deleted' => (int) $row->trucks_deleted,
+                    'units_added' => (int) $row->units_added,
+                    'units_deleted' => (int) $row->units_deleted,
+                    'total_msrp_added' => (float) $row->total_msrp_added,
+                    'units_tested' => (int) $row->units_tested,
+                    'demanufactured' => (int) $row->demanufactured,
+                    'repaired' => (int) $row->repaired,
+                    'showroom_sent' => (int) $row->showroom_sent,
+                    'sales_marked' => (int) $row->sales_marked,
+                ];
+            });
     }
 
     private function productionRows(Carbon $from, Carbon $to)
@@ -188,14 +218,5 @@ class DashboardController extends Controller
             ->selectRaw('COALESCE(SUM(COALESCE(truck_appliances.msrp, 0)), 0) as total_msrp')
             ->orderByDesc('total_msrp')
             ->get();
-    }
-
-    private function statusCount(User $user, string $status, Carbon $from, Carbon $to): int
-    {
-        return InventoryStatusHistory::query()
-            ->where('user_id', $user->id)
-            ->where('status', $status)
-            ->whereBetween('created_at', [$from, $to])
-            ->count();
     }
 }
