@@ -125,8 +125,9 @@
                             <th class="px-4 py-3 text-left font-semibold text-gray-600">Model #</th>
                             <th class="px-4 py-3 text-left font-semibold text-gray-600">Serial #</th>
                             <th class="px-4 py-3 text-left font-semibold text-gray-600">Notes</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-600">Set By</th>
                             <th class="px-4 py-3 text-left font-semibold text-gray-600">Parts Ordered</th>
-                            <th class="px-4 py-3 text-right font-semibold text-gray-600">Action</th>
+                            <th class="px-4 py-3 text-right font-semibold text-gray-600"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -138,18 +139,68 @@
                                 <td class="px-4 py-3 font-semibold text-gray-900">{{ $appliance->model?->model_number ?? '-' }}</td>
                                 <td class="px-4 py-3">{{ $appliance->serial_number ?: '-' }}</td>
                                 <td class="px-4 py-3 max-w-xs text-gray-600">{{ $history?->notes ?: '-' }}</td>
+                                <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $history?->user?->name ?: '-' }}</td>
                                 <td class="px-4 py-3">
                                     <span class="inline-flex px-2 py-1 rounded-full text-xs font-semibold {{ $history?->parts_ordered ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700' }}">
                                         {{ $history?->parts_ordered ? 'Yes' : 'No' }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-right">
-                                    <a href="{{ route('admin.inventory.show', $appliance) }}" class="text-blue-600 hover:text-blue-800 font-semibold">View</a>
+                                    <a href="{{ route('admin.inventory.show', $appliance) }}"
+                                       class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                                       title="View details"
+                                       aria-label="View details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-4 py-8 text-center text-gray-500">No appliances are currently holding for parts.</td>
+                                <td colspan="6" class="px-4 py-8 text-center text-gray-500">No appliances are currently holding for parts.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div class="px-5 py-4 border-b border-gray-200">
+                <h3 class="text-base font-semibold text-gray-900">Appliances Holding</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-600">Model #</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-600">Serial #</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-600">Notes</th>
+                            <th class="px-4 py-3 text-left font-semibold text-gray-600">Set By</th>
+                            <th class="px-4 py-3 text-right font-semibold text-gray-600"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @forelse($holding as $appliance)
+                            @php
+                                $history = $appliance->statusHistories->sortByDesc('created_at')->first();
+                            @endphp
+                            <tr class="hover:bg-gray-50 align-top">
+                                <td class="px-4 py-3 font-semibold text-gray-900">{{ $appliance->model?->model_number ?? '-' }}</td>
+                                <td class="px-4 py-3">{{ $appliance->serial_number ?: '-' }}</td>
+                                <td class="px-4 py-3 max-w-xs text-gray-600">{{ $history?->notes ?: '-' }}</td>
+                                <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $history?->user?->name ?: '-' }}</td>
+                                <td class="px-4 py-3 text-right">
+                                    <a href="{{ route('admin.inventory.show', $appliance) }}"
+                                       class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                                       title="View details"
+                                       aria-label="View details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-gray-500">No appliances are currently holding.</td>
                             </tr>
                         @endforelse
                     </tbody>

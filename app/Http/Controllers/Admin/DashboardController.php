@@ -51,6 +51,14 @@ class DashboardController extends Controller
             ->take(25)
             ->get();
 
+        $holding = TruckAppliance::query()
+            ->appliances()
+            ->with(['truck', 'model', 'category', 'statusHistories.user'])
+            ->where('status', 'Holding')
+            ->latest('updated_at')
+            ->take(25)
+            ->get();
+
         $suggestionStatus = $request->get('suggestion_status', 'pending');
         if (! in_array($suggestionStatus, ['pending', 'completed', 'all'], true)) {
             $suggestionStatus = 'pending';
@@ -67,6 +75,7 @@ class DashboardController extends Controller
             'stats' => $stats,
             'activityRows' => $activityRows,
             'holdingForParts' => $holdingForParts,
+            'holding' => $holding,
             'suggestions' => $suggestions,
             'suggestionStatus' => $suggestionStatus,
             'period' => $request->get('period', 'weekly'),
