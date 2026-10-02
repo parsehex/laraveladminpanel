@@ -21,6 +21,14 @@
         </div>
         
         <div class="flex flex-shrink-0 items-center space-x-2 sm:space-x-4">
+            @canAccess('inventory.view')
+            <a href="{{ route('admin.inventory.scan') }}"
+               class="lg:hidden relative flex h-10 w-10 items-center justify-center rounded-full border {{ request()->routeIs('admin.inventory.scan*') ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-500 hover:bg-white hover:text-slate-900' }}"
+               aria-label="Scan">
+                <i class="fas fa-qrcode"></i>
+            </a>
+            @endcanAccess
+
             <div class="relative">
                 <button type="button" class="h-10 w-10 rounded-full border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-white flex items-center justify-center">
                     <i class="fas fa-bell"></i>
