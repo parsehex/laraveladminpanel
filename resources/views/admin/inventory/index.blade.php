@@ -30,26 +30,8 @@
             <span class="font-semibold"><i class="fas fa-dollar-sign mr-2"></i>Active Inventory Cost Structure</span>
             <i class="fas fa-chevron-down"></i>
         </button>
-        <div id="inventory-value-panel" class="{{ request('cost_date') ? '' : 'hidden' }} overflow-x-auto">
-            <div class="border-b border-blue-100 bg-blue-50 p-3">
-                <form method="GET" action="{{ route($listRoute) }}" class="flex flex-wrap items-center gap-2" onclick="event.stopPropagation();">
-                    @foreach(request()->except(['cost_date', 'page']) as $key => $value)
-                        @if(is_array($value))
-                            @foreach($value as $nestedValue)
-                                <input type="hidden" name="{{ $key }}[]" value="{{ $nestedValue }}">
-                            @endforeach
-                        @else
-                            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                        @endif
-                    @endforeach
-                    <label for="cost_date" class="text-sm font-semibold text-gray-700">Date (EOD):</label>
-                    <input type="date" id="cost_date" name="cost_date" value="{{ request('cost_date') }}" class="rounded-md border border-gray-300 px-3 py-2 text-sm">
-                    <button type="submit" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100">Apply</button>
-                    @if(request('cost_date'))
-                    <span class="text-sm font-semibold text-blue-700">Showing End of Day snapshot for: {{ \Carbon\Carbon::parse(request('cost_date'))->format('m/d/Y') }}</span>
-                    @endif
-                </form>
-            </div>
+        <div id="inventory-value-panel" class="{{ $costRange->isSelected() ? '' : 'hidden' }} overflow-x-auto">
+            <x-admin.cost-range-filter :action="route($listRoute)" :range="$costRange" />
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
@@ -366,7 +348,7 @@
         $('[data-select-all]').prop('checked', false);
     });
 
-    @if(request('cost_date'))
+    @if($costRange->isSelected())
     setTimeout(function () {
         const target = document.getElementById('inventory-value-card');
         if (target) {

@@ -64,6 +64,72 @@
     </div>
     @endcanAccess
 
+    <div id="truck-breakdown-card" class="bg-white rounded-lg shadow overflow-hidden">
+        <button type="button" data-toggle-breakdown class="w-full bg-green-600 text-white px-6 py-4 flex items-center justify-between text-left">
+            <span class="font-semibold"><i class="fas fa-th mr-2"></i>Truck Inventory Breakdown</span>
+            <i class="fas fa-chevron-down"></i>
+        </button>
+        <div id="truck-breakdown-panel" class="{{ $costRange->isSelected() ? '' : 'hidden' }} overflow-x-auto">
+            <x-admin.cost-range-filter :action="route('admin.trucks.index')" :range="$costRange" />
+            <table class="min-w-full divide-y divide-gray-200 truck-breakdown-table">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="truck-breakdown-sticky px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">Truck</th>
+                        @foreach($breakdownStatuses as $breakdownStatus)
+                        <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ $breakdownStatus }}</th>
+                        @endforeach
+                        @if($showAdminValue)
+                        <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap border-l border-gray-200">Active Units</th>
+                        <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Active Base Cost</th>
+                        <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Parts Cost</th>
+                        <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Active Value</th>
+                        @endif
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @forelse($breakdownRows as $breakdownRow)
+                    <tr class="hover:bg-gray-50">
+                        <td class="truck-breakdown-sticky px-4 py-2 text-sm font-medium whitespace-nowrap bg-white">
+                            <a href="{{ route('admin.trucks.show', $breakdownRow['truck']) }}" class="text-blue-600 hover:text-blue-900">{{ $breakdownRow['truck']->name }}</a>
+                        </td>
+                        @foreach($breakdownStatuses as $breakdownStatus)
+                        <td class="px-3 py-2 text-sm text-center {{ $breakdownRow['counts'][$breakdownStatus] ? 'text-gray-900 font-semibold' : 'text-gray-300' }}">
+                            {{ $breakdownRow['counts'][$breakdownStatus] ?: '-' }}
+                        </td>
+                        @endforeach
+                        @if($showAdminValue)
+                        <td class="px-3 py-2 text-sm text-center text-gray-700 border-l border-gray-200">{{ $breakdownRow['active_units'] }}</td>
+                        <td class="px-3 py-2 text-sm text-right text-gray-700 whitespace-nowrap">${{ number_format($breakdownRow['active_base_cost'], 2) }}</td>
+                        <td class="px-3 py-2 text-sm text-right text-gray-700 whitespace-nowrap">${{ number_format($breakdownRow['active_parts_cost'], 2) }}</td>
+                        <td class="px-3 py-2 text-sm text-right font-semibold text-gray-900 whitespace-nowrap">${{ number_format($breakdownRow['active_value'], 2) }}</td>
+                        @endif
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="{{ 1 + count($breakdownStatuses) + ($showAdminValue ? 4 : 0) }}" class="px-6 py-6 text-center text-gray-500">{{ $costRange->from || $costRange->to ? 'No units added in this range.' : 'No trucks found.' }}</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+                @if(count($breakdownRows))
+                <tfoot class="bg-gray-50">
+                    <tr class="font-semibold text-gray-900">
+                        <td class="truck-breakdown-sticky px-4 py-3 text-sm bg-gray-50">Totals</td>
+                        @foreach($breakdownStatuses as $breakdownStatus)
+                        <td class="px-3 py-3 text-sm text-center">{{ $breakdownTotals['counts'][$breakdownStatus] }}</td>
+                        @endforeach
+                        @if($showAdminValue)
+                        <td class="px-3 py-3 text-sm text-center border-l border-gray-200">{{ $breakdownTotals['active_units'] }}</td>
+                        <td class="px-3 py-3 text-sm text-right whitespace-nowrap">${{ number_format($breakdownTotals['active_base_cost'], 2) }}</td>
+                        <td class="px-3 py-3 text-sm text-right whitespace-nowrap">${{ number_format($breakdownTotals['active_parts_cost'], 2) }}</td>
+                        <td class="px-3 py-3 text-right text-lg font-bold text-green-700 whitespace-nowrap">${{ number_format($breakdownTotals['active_value'], 2) }}</td>
+                        @endif
+                    </tr>
+                </tfoot>
+                @endif
+            </table>
+        </div>
+    </div>
+
     <div class="bg-white rounded-lg shadow p-6 inventory-filter-card">
         <form method="GET" action="{{ route('admin.trucks.index') }}" class="grid grid-cols-1 md:grid-cols-6 gap-4">
             @if(request('sort'))
@@ -295,6 +361,13 @@
     .status-green { background: #dcfce7 !important; color: #111827 !important; }
     .status-sold { background: #cffafe !important; color: #111827 !important; }
 
+    .truck-breakdown-sticky {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        box-shadow: inset -1px 0 0 #e5e7eb;
+    }
+
     .inventory-filter-card {
         position: relative;
         z-index: 100000;
@@ -320,6 +393,10 @@
         }
     });
 
+    $('[data-toggle-breakdown]').on('click', function () {
+        $('#truck-breakdown-panel').toggleClass('hidden');
+    });
+
     $('[data-status-filter] > button').on('click', function (event) {
         event.stopPropagation();
         const $filter = $(this).closest('[data-status-filter]');
@@ -342,7 +419,11 @@
         $(this).siblings('[data-cost-details]').toggleClass('hidden');
     });
 
-    @if(request()->hasAny(['search', 'status', 'item_status']))
+    @if($costRange->isSelected())
+        setTimeout(function () {
+            document.getElementById('truck-breakdown-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+    @elseif(request()->hasAny(['search', 'status', 'item_status']))
         setTimeout(function () {
             document.getElementById('truck-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 150);

@@ -12,6 +12,7 @@ use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\UserAction;
 use App\Support\DataTable;
+use App\Support\InventoryCostRange;
 use App\Support\PageSize;
 use App\Testing\RepairResultRepository;
 use App\Testing\TestingFlowRepository;
@@ -126,40 +127,13 @@ class InventoryController extends Controller
         $totalInventoryValue = 0.0;
         $showAdminValue = (bool) $request->user()?->can('inventory.value.view');
 
+        $costRange = InventoryCostRange::fromRequest($request);
+
         if ($showAdminValue) {
-            $statusExpression = "COALESCE(NULLIF(status, ''), 'Triage')";
-            $costDate = $request->date('cost_date');
-
-            $partsCostSql = TruckAppliance::partsCostSql('truck_appliances');
-
-            $baseInventoryRows = DB::table('truck_appliances')
-                ->selectRaw("$statusExpression as current_status")
-                ->selectRaw('COALESCE(price, 0) as base_cost')
-                ->selectRaw("{$partsCostSql} as total_parts_cost")
-                ->whereNull('deleted_at')
-                ->whereIn('id', TruckAppliance::query()->ofType($type)->select('id'));
-
-            if ($costDate) {
-                $endOfDate = $costDate->copy()->endOfDay();
-                $latestStatusRows = DB::table('inventory_status_histories')
-                    ->select('truck_appliance_id', 'status')
-                    ->selectRaw('ROW_NUMBER() OVER(PARTITION BY truck_appliance_id ORDER BY created_at DESC) as row_number')
-                    ->where('created_at', '<=', $endOfDate);
-
-                $rankedStatusRows = DB::query()
-                    ->fromSub($latestStatusRows, 'ranked_status')
-                    ->where('row_number', 1);
-
-                $baseInventoryRows = DB::table('truck_appliances')
-                    ->joinSub($rankedStatusRows, 'latest_status', function ($join) {
-                        $join->on('latest_status.truck_appliance_id', '=', 'truck_appliances.id');
-                    })
-                    ->selectRaw('latest_status.status as current_status')
-                    ->selectRaw('COALESCE(truck_appliances.price, 0) as base_cost')
-                    ->selectRaw("{$partsCostSql} as total_parts_cost")
-                    ->whereNull('truck_appliances.deleted_at')
-                    ->whereIn('truck_appliances.id', TruckAppliance::query()->ofType($type)->select('id'));
-            }
+            $baseInventoryRows = $costRange->rowsQuery(fn ($query) => $query->whereIn(
+                'truck_appliances.id',
+                TruckAppliance::query()->ofType($type)->select('id'),
+            ));
 
             $inventoryData = DB::query()
                 ->fromSub($baseInventoryRows, 'inventory_rows')
@@ -188,6 +162,7 @@ class InventoryController extends Controller
             'inventoryData' => $inventoryData,
             'totalInventoryValue' => $totalInventoryValue,
             'showAdminValue' => $showAdminValue,
+            'costRange' => $costRange,
             'dataTable' => $dataTable,
             ...$dataTable->sortState($request),
         ]);

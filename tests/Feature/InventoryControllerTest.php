@@ -493,6 +493,52 @@ class InventoryControllerTest extends TestCase
         $response->assertJsonPath('matches.0.url', route('admin.inventory.floor', $appliance));
     }
 
+    public function test_cost_structure_preset_only_counts_units_added_in_the_range(): void
+    {
+        $user = $this->adminUser();
+        $recent = $this->floorAppliance($user, ['serial_number' => 'COST-RECENT', 'status' => 'Ready', 'price' => 111]);
+        $old = TruckAppliance::query()->create([
+            'truck_id' => $recent->truck_id,
+            'serial_number' => 'COST-OLD',
+            'product_name' => 'Old Washer',
+            'status' => 'Ready',
+            'price' => 999,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        TruckAppliance::query()->whereKey($old->id)->update(['created_at' => now()->subDays(20)]);
+
+        $weekly = $this->actingAs($user)->get(route('admin.inventory.index', ['cost_period' => 'weekly']));
+
+        $weekly->assertOk();
+        $weekly->assertSee('Showing Last 7 days.');
+        $this->assertEqualsWithDelta(111.0, $weekly->viewData('totalInventoryValue'), 0.001);
+
+        $monthly = $this->actingAs($user)->get(route('admin.inventory.index', ['cost_period' => 'monthly']));
+
+        $this->assertEqualsWithDelta(1110.0, $monthly->viewData('totalInventoryValue'), 0.001);
+    }
+
+    public function test_cost_structure_custom_range_uses_status_as_of_the_end_date(): void
+    {
+        $user = $this->adminUser();
+        $appliance = $this->floorAppliance($user, ['serial_number' => 'COST-HISTORY', 'status' => 'Sold', 'price' => 250]);
+        TruckAppliance::query()->whereKey($appliance->id)->update(['created_at' => now()->subDays(10)]);
+        $appliance->statusHistories()->create(['status' => 'Ready', 'user_id' => $user->id])
+            ->forceFill(['created_at' => now()->subDays(9)])->save();
+        $appliance->statusHistories()->create(['status' => 'Sold', 'user_id' => $user->id])
+            ->forceFill(['created_at' => now()->subDays(2)])->save();
+
+        $response = $this->actingAs($user)->get(route('admin.inventory.index', [
+            'cost_from' => now()->subDays(12)->toDateString(),
+            'cost_date' => now()->subDays(5)->toDateString(),
+        ]));
+
+        $response->assertOk();
+        $this->assertSame(['Ready'], $response->viewData('inventoryData')->pluck('current_status')->all());
+        $this->assertEqualsWithDelta(250.0, $response->viewData('totalInventoryValue'), 0.001);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */

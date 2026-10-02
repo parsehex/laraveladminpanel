@@ -14,10 +14,12 @@ use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\UserAction;
 use App\Support\DataTable;
+use App\Support\InventoryCostRange;
 use App\Support\PageSize;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class TruckController extends Controller
@@ -48,17 +50,7 @@ class TruckController extends Controller
                 $query->where('status', 'Sold');
             }], 'sold_price');
 
-        if ($request->filled('search')) {
-            $search = $request->string('search')->trim();
-
-            $query->whereLike('name', '%'.$search.'%');
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->get('status'));
-        }
-
-        $this->applyItemStatusFilter($query, $request);
+        $this->applyTruckFilters($query, $request);
 
         $dataTable->applySorting($query, $request);
 
@@ -77,12 +69,128 @@ class TruckController extends Controller
             return $truck;
         });
 
+        $costRange = InventoryCostRange::fromRequest($request);
+        $breakdown = $this->truckStatusBreakdown($request, $costRange);
+
         return view('admin.trucks.index', [
             'trucks' => $trucks,
             'dataTable' => $dataTable,
             'statuses' => InventoryStatus::activeNames(),
+            'breakdownRows' => $breakdown['rows'],
+            'breakdownStatuses' => $breakdown['statuses'],
+            'breakdownTotals' => $breakdown['totals'],
+            'showAdminValue' => (bool) $request->user()?->can('inventory.value.view'),
+            'costRange' => $costRange,
             ...$dataTable->sortState($request),
         ]);
+    }
+
+    /**
+     * Per-truck unit counts by item status, plus active (not Sold / Show Room) cost totals, for every truck matching the index filters.
+     *
+     * @return array{
+     *     rows: list<array{truck: Truck, counts: array<string, int>, active_units: int, active_base_cost: float, active_parts_cost: float, active_value: float}>,
+     *     statuses: list<string>,
+     *     totals: array{counts: array<string, int>, active_units: int, active_base_cost: float, active_parts_cost: float, active_value: float}
+     * }
+     */
+    private function truckStatusBreakdown(Request $request, InventoryCostRange $costRange): array
+    {
+        $truckQuery = Truck::query()->orderBy('name');
+        $this->applyTruckFilters($truckQuery, $request);
+        $trucks = $truckQuery->get(['id', 'name']);
+
+        $inactiveStatuses = ['Sold', 'Show Room'];
+
+        $unitRows = $costRange->rowsQuery(
+            fn ($query) => $query->whereIn('truck_appliances.truck_id', $trucks->modelKeys()),
+        );
+
+        $groupedRows = DB::query()
+            ->fromSub($unitRows, 'unit_rows')
+            ->select('truck_id', 'current_status')
+            ->selectRaw('COUNT(*) as unit_count')
+            ->selectRaw('SUM(base_cost) as total_base_cost')
+            ->selectRaw('SUM(total_parts_cost) as total_parts_cost')
+            ->groupBy('truck_id', 'current_status')
+            ->get()
+            ->groupBy('truck_id');
+
+        if ($costRange->from || $costRange->to) {
+            $trucks = $trucks->filter(fn (Truck $truck) => $groupedRows->has($truck->id))->values();
+        }
+
+        $presentStatuses = $groupedRows->flatten(1)->pluck('current_status')->unique();
+        $catalogOrder = InventoryStatus::query()->orderBy('sort_order')->orderBy('id')->pluck('name');
+        $statuses = $catalogOrder
+            ->intersect($presentStatuses)
+            ->merge($presentStatuses->diff($catalogOrder)->sort())
+            ->values()
+            ->all();
+
+        $emptyCounts = array_fill_keys($statuses, 0);
+        $totals = [
+            'counts' => $emptyCounts,
+            'active_units' => 0,
+            'active_base_cost' => 0.0,
+            'active_parts_cost' => 0.0,
+            'active_value' => 0.0,
+        ];
+
+        $rows = $trucks->map(function (Truck $truck) use ($groupedRows, $emptyCounts, $inactiveStatuses, &$totals) {
+            $row = [
+                'truck' => $truck,
+                'counts' => $emptyCounts,
+                'active_units' => 0,
+                'active_base_cost' => 0.0,
+                'active_parts_cost' => 0.0,
+                'active_value' => 0.0,
+            ];
+
+            foreach ($groupedRows->get($truck->id, collect()) as $statusRow) {
+                $unitCount = (int) $statusRow->unit_count;
+                $row['counts'][$statusRow->current_status] = $unitCount;
+                $totals['counts'][$statusRow->current_status] += $unitCount;
+
+                if (in_array($statusRow->current_status, $inactiveStatuses, true)) {
+                    continue;
+                }
+
+                $row['active_units'] += $unitCount;
+                $row['active_base_cost'] += (float) $statusRow->total_base_cost;
+                $row['active_parts_cost'] += (float) $statusRow->total_parts_cost;
+            }
+
+            $row['active_value'] = $row['active_base_cost'] + $row['active_parts_cost'];
+
+            $totals['active_units'] += $row['active_units'];
+            $totals['active_base_cost'] += $row['active_base_cost'];
+            $totals['active_parts_cost'] += $row['active_parts_cost'];
+            $totals['active_value'] += $row['active_value'];
+
+            return $row;
+        })->all();
+
+        return [
+            'rows' => $rows,
+            'statuses' => $statuses,
+            'totals' => $totals,
+        ];
+    }
+
+    private function applyTruckFilters(Builder $query, Request $request): void
+    {
+        if ($request->filled('search')) {
+            $search = $request->string('search')->trim();
+
+            $query->whereLike('name', '%'.$search.'%');
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->get('status'));
+        }
+
+        $this->applyItemStatusFilter($query, $request);
     }
 
     private function applyItemStatusFilter(Builder $query, Request $request): void
