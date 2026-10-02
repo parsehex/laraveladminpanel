@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateTruckRequest;
 use App\Imports\StagedCsvImport;
 use App\Imports\TruckCsvImport;
 use App\Models\Category;
+use App\Models\InventoryStatus;
 use App\Models\Model as ApplianceModel;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
@@ -57,6 +58,8 @@ class TruckController extends Controller
             $query->where('status', $request->get('status'));
         }
 
+        $this->applyItemStatusFilter($query, $request);
+
         $dataTable->applySorting($query, $request);
 
         $trucks = PageSize::paginate($query, $request);
@@ -77,8 +80,38 @@ class TruckController extends Controller
         return view('admin.trucks.index', [
             'trucks' => $trucks,
             'dataTable' => $dataTable,
+            'statuses' => InventoryStatus::activeNames(),
             ...$dataTable->sortState($request),
         ]);
+    }
+
+    private function applyItemStatusFilter(Builder $query, Request $request): void
+    {
+        $statuses = collect($request->input('item_status', []))
+            ->map(fn ($status) => trim((string) $status))
+            ->filter()
+            ->values();
+
+        if ($statuses->isEmpty()) {
+            return;
+        }
+
+        $query->whereHas('appliances', function (Builder $applianceQuery) use ($statuses) {
+            $applianceQuery->where(function (Builder $statusQuery) use ($statuses) {
+                $explicitStatuses = $statuses->reject(fn ($status) => $status === 'Triage')->values();
+
+                if ($explicitStatuses->isNotEmpty()) {
+                    $statusQuery->whereIn('status', $explicitStatuses->all());
+                }
+
+                if ($statuses->contains('Triage')) {
+                    $method = $explicitStatuses->isNotEmpty() ? 'orWhere' : 'where';
+                    $statusQuery->{$method}(function (Builder $triageQuery) {
+                        $triageQuery->whereNull('status')->orWhere('status', '')->orWhere('status', 'Triage');
+                    });
+                }
+            });
+        });
     }
 
     public function create()

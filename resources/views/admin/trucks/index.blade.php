@@ -21,6 +21,7 @@
 
 @section('content')
 @php
+    $selectedItemStatuses = collect(request('item_status', []))->filter()->values()->all();
     $applianceStatusClasses = [
         'triage' => 'status-white',
         '' => 'status-white',
@@ -63,8 +64,8 @@
     </div>
     @endcanAccess
 
-    <div class="bg-white rounded-lg shadow p-6">
-        <form method="GET" action="{{ route('admin.trucks.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="bg-white rounded-lg shadow p-6 inventory-filter-card">
+        <form method="GET" action="{{ route('admin.trucks.index') }}" class="grid grid-cols-1 md:grid-cols-6 gap-4">
             @if(request('sort'))
                 <input type="hidden" name="sort" value="{{ request('sort') }}">
             @endif
@@ -78,13 +79,30 @@
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
-                <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Truck status</label>
                 <select id="status" name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All</option>
                     <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
                     <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
                     <option value="breakdown" {{ request('status') === 'breakdown' ? 'selected' : '' }}>Breakdown</option>
                 </select>
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Item status</label>
+                <div class="relative" data-status-filter>
+                    <button type="button" class="w-full min-h-[42px] px-3 py-2 border border-gray-300 rounded-md text-left bg-white text-gray-800 shadow-sm flex items-center justify-between gap-2 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <span class="truncate">{{ count($selectedItemStatuses) ? count($selectedItemStatuses).' selected' : 'Select status' }}</span>
+                        <i class="fas fa-chevron-down text-xs text-blue-600"></i>
+                    </button>
+                    <div class="status-filter-menu hidden w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-gray-200 bg-white p-2 shadow-2xl ring-1 ring-black/5 max-h-72 overflow-y-auto">
+                        @foreach($statuses as $status)
+                        <label class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+                            <input type="checkbox" name="item_status[]" value="{{ $status }}" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" @checked(in_array($status, $selectedItemStatuses, true))>
+                            <span>{{ $status }}</span>
+                        </label>
+                        @endforeach
+                    </div>
+                </div>
             </div>
             <div class="flex items-end gap-2">
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">Filter</button>
@@ -130,10 +148,23 @@
                                         $status = $item['status'] ?: 'Triage';
                                         $count = $item['count'];
                                         $classes = $applianceStatusClasses[strtolower($status)] ?? 'status-white';
+                                        $isSelected = in_array($status, $selectedItemStatuses, true);
+                                        $nextItemStatuses = $isSelected
+                                            ? array_values(array_filter($selectedItemStatuses, fn ($selected) => $selected !== $status))
+                                            : [...$selectedItemStatuses, $status];
+                                        $chipQuery = array_filter([
+                                            'search' => request('search'),
+                                            'status' => request('status'),
+                                            'sort' => request('sort'),
+                                            'direction' => request('direction'),
+                                            'item_status' => $nextItemStatuses ?: null,
+                                        ], fn ($value) => $value !== null && $value !== '');
                                     @endphp
-                                    <span class="status-chip {{ $classes }}">
+                                    <a href="{{ route('admin.trucks.index', $chipQuery) }}"
+                                       class="status-chip status-chip-filter {{ $classes }} {{ $isSelected ? 'is-selected' : '' }}"
+                                       title="{{ $isSelected ? 'Remove '.$status.' filter' : 'Filter by '.$status }}">
                                         {{ ucfirst($status) }} ({{ $count }})
-                                    </span>
+                                    </a>
                                 @empty
                                     <span class="text-gray-500 text-sm">N/A</span>
                                 @endforelse
@@ -218,6 +249,21 @@
         white-space: nowrap;
     }
 
+    a.status-chip-filter {
+        text-decoration: none;
+        cursor: pointer;
+        transition: box-shadow 0.15s ease, transform 0.15s ease;
+    }
+
+    a.status-chip-filter:hover {
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.45);
+        transform: translateY(-1px);
+    }
+
+    a.status-chip-filter.is-selected {
+        box-shadow: 0 0 0 2px #2563eb;
+    }
+
     .truck-status-breakdown-cell {
         min-width: 34rem;
         width: 34rem;
@@ -248,6 +294,19 @@
     .status-black { background: #d1d5db !important; color: #111827 !important; }
     .status-green { background: #dcfce7 !important; color: #111827 !important; }
     .status-sold { background: #cffafe !important; color: #111827 !important; }
+
+    .inventory-filter-card {
+        position: relative;
+        z-index: 100000;
+        overflow: visible !important;
+    }
+
+    .status-filter-menu {
+        position: absolute;
+        top: calc(100% + 0.5rem);
+        right: 0;
+        z-index: 100001;
+    }
 </style>
 @endpush
 
@@ -261,12 +320,29 @@
         }
     });
 
+    $('[data-status-filter] > button').on('click', function (event) {
+        event.stopPropagation();
+        const $filter = $(this).closest('[data-status-filter]');
+        const $menu = $filter.children('.status-filter-menu');
+
+        $('.status-filter-menu').not($menu).addClass('hidden');
+        $menu.toggleClass('hidden');
+    });
+
+    $('[data-status-filter]').on('click', function (event) {
+        event.stopPropagation();
+    });
+
+    $(document).on('click', function () {
+        $('.status-filter-menu').addClass('hidden');
+    });
+
     $('[data-cost-toggle]').on('click', function (event) {
         event.stopPropagation();
         $(this).siblings('[data-cost-details]').toggleClass('hidden');
     });
 
-    @if(request()->hasAny(['search', 'status']))
+    @if(request()->hasAny(['search', 'status', 'item_status']))
         setTimeout(function () {
             document.getElementById('truck-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 150);

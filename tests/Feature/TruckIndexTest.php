@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Truck;
+use App\Models\TruckAppliance;
 use App\Models\User;
+use Database\Seeders\InventoryStatusSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -38,9 +40,69 @@ class TruckIndexTest extends TestCase
         $response->assertDontSee('Shipping:</strong> $0.00', false);
     }
 
+    public function test_item_status_filter_returns_trucks_with_matching_appliance_statuses(): void
+    {
+        $user = $this->adminUser();
+
+        $readyTruck = $this->createTruck($user, ['name' => 'Ready Only Truck']);
+        $this->createAppliance($readyTruck, $user, [
+            'serial_number' => 'READY-1',
+            'status' => 'Ready',
+        ]);
+
+        $testingTruck = $this->createTruck($user, ['name' => 'Testing Only Truck']);
+        $this->createAppliance($testingTruck, $user, [
+            'serial_number' => 'TEST-1',
+            'status' => 'Testing',
+        ]);
+
+        $triageTruck = $this->createTruck($user, ['name' => 'Triage Null Truck']);
+        $this->createAppliance($triageTruck, $user, [
+            'serial_number' => 'TRIAGE-1',
+            'status' => null,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('admin.trucks.index', [
+            'item_status' => ['Ready', 'Triage'],
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('Ready Only Truck');
+        $response->assertSee('Triage Null Truck');
+        $response->assertDontSee('Testing Only Truck');
+        $response->assertDontSee('Active Inventory Cost Structure');
+    }
+
+    public function test_status_breakdown_chips_link_to_item_status_filters(): void
+    {
+        $user = $this->adminUser();
+        $truck = $this->createTruck($user, ['name' => 'Chip Truck']);
+        $this->createAppliance($truck, $user, [
+            'serial_number' => 'CHIP-READY',
+            'status' => 'Ready',
+        ]);
+
+        $indexResponse = $this->actingAs($user)->get(route('admin.trucks.index'));
+        $indexResponse->assertOk();
+        $indexResponse->assertSee('title="Filter by Ready"', false);
+        $indexResponse->assertSee(
+            'href="'.route('admin.trucks.index', ['item_status' => ['Ready']]).'"',
+            false
+        );
+
+        $filteredResponse = $this->actingAs($user)->get(route('admin.trucks.index', [
+            'item_status' => ['Ready'],
+        ]));
+        $filteredResponse->assertOk();
+        $filteredResponse->assertSee('title="Remove Ready filter"', false);
+        $filteredResponse->assertSee('status-chip-filter', false);
+        $filteredResponse->assertSee('is-selected', false);
+    }
+
     private function adminUser(): User
     {
         $this->seed(RolePermissionSeeder::class);
+        $this->seed(InventoryStatusSeeder::class);
 
         $user = User::factory()->admin()->active()->create();
         $user->syncRoles(['admin']);
@@ -64,5 +126,21 @@ class TruckIndexTest extends TestCase
             'updated_by' => $user->id,
             ...$overrides,
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function createAppliance(Truck $truck, User $user, array $overrides = []): TruckAppliance
+    {
+        return TruckAppliance::query()->create(array_merge([
+            'truck_id' => $truck->id,
+            'serial_number' => 'SN-TRUCK',
+            'product_name' => 'Washer',
+            'status' => 'Ready',
+            'price' => 0,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ], $overrides));
     }
 }
