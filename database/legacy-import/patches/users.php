@@ -9,11 +9,11 @@ return [
     'Seth' => ['match' => 'email:seth@Bens-Appliances.com'],
 
     'WillFlory' => ['create_inactive' => ['name' => 'Will Flory', 'email' => 'will@legacy-import.local']],
-    'GregC' => ['create_inactive' => ['name' => 'Greg C', 'email' => 'gregc@legacy-import.local']],
+    'GregC' => ['match' => 'email:gregc@Bens-Appliances.com'],
     'Tim' => ['create_inactive' => ['name' => 'Tim', 'email' => 'tim@legacy-import.local']],
     'Thomas' => ['create_inactive' => ['name' => 'Thomas', 'email' => 'thomas@legacy-import.local']],
     'GregH' => ['create_inactive' => ['name' => 'Greg H', 'email' => 'gregh@legacy-import.local']],
     'Meagan' => ['create_inactive' => ['name' => 'Meagan', 'email' => 'meagan@legacy-import.local']],
 
-    'Test' => ['match' => null],
+    'Test' => ['create_inactive' => ['name' => 'Test User', 'email' => 'test@legacy-import.local']],
 ];
