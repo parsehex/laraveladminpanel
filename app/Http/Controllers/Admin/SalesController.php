@@ -40,27 +40,27 @@ class SalesController extends Controller
 
         $normalQuery = TruckAppliance::query()
             ->with(['model', 'category'])
-            ->whereIn('status', self::TRACKING_STATUSES)
+            ->whereIn('truck_appliances.status', self::TRACKING_STATUSES)
             ->when($itemType, fn (Builder $query) => $query->ofType($itemType));
 
         if ($search->isNotEmpty()) {
             $normalQuery->where(function (Builder $query) use ($search) {
-                $query->whereLike('serial_number', '%'.$search.'%')
-                    ->orWhereLike('location', '%'.$search.'%')
-                    ->orWhereLike('brand', '%'.$search.'%')
-                    ->orWhereLike('product_name', '%'.$search.'%')
+                $query->whereLike('truck_appliances.serial_number', '%'.$search.'%')
+                    ->orWhereLike('truck_appliances.location', '%'.$search.'%')
+                    ->orWhereLike('truck_appliances.brand', '%'.$search.'%')
+                    ->orWhereLike('truck_appliances.product_name', '%'.$search.'%')
                     ->orWhereHas('model', fn (Builder $modelQuery) => $modelQuery->whereLike('model_number', '%'.$search.'%'));
             });
         }
 
         $statusCounts = (clone $normalQuery)
             ->reorder()
-            ->select('status', DB::raw('COUNT(*) as aggregate'))
-            ->groupBy('status')
+            ->select('truck_appliances.status', DB::raw('COUNT(*) as aggregate'))
+            ->groupBy('truck_appliances.status')
             ->pluck('aggregate', 'status');
 
-        $soldTotalsQuery = (clone $normalQuery)->where('status', 'Sold');
-        $normalQuery->whereIn('status', $selectedStatuses);
+        $soldTotalsQuery = (clone $normalQuery)->where('truck_appliances.status', 'Sold');
+        $normalQuery->whereIn('truck_appliances.status', $selectedStatuses);
 
         $customQuery = CustomSale::query();
 
