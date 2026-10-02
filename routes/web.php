@@ -236,6 +236,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('inventory-statuses/{inventoryStatus}/archive', [InventoryStatusController::class, 'archive'])
         ->middleware('permission:inventory-statuses.manage')
         ->name('inventory-statuses.archive');
+    Route::post('inventory-statuses/{inventoryStatus}/apply-auto-location', [InventoryStatusController::class, 'applyAutoLocation'])
+        ->middleware('permission:inventory-statuses.manage')
+        ->name('inventory-statuses.apply-auto-location');
 
     Route::get('inventory-locations', [InventoryLocationController::class, 'index'])
         ->middleware('permission:inventory-locations.manage')

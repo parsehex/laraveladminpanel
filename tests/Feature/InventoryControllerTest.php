@@ -366,10 +366,29 @@ class InventoryControllerTest extends TestCase
         $response->assertSee('Start Testing');
         $response->assertSee(route('admin.inventory.testing.show', $appliance), false);
         $response->assertSee(route('admin.inventory.status.update', $appliance), false);
+        $response->assertSee(route('admin.inventory.location.update', $appliance), false);
+        $response->assertSee('Update location');
         $response->assertSee(route('admin.inventory.scan'), false);
         $response->assertSee(route('admin.inventory.show', $appliance), false);
         $response->assertDontSee('Open Repair');
         $response->assertDontSee('Open Demanufacture');
+    }
+
+    public function test_floor_page_can_update_location(): void
+    {
+        $user = $this->adminUser();
+        $appliance = $this->floorAppliance($user, [
+            'status' => 'Ready',
+            'location' => 'Aisle 4',
+        ]);
+
+        $response = $this->actingAs($user)->from(route('admin.inventory.floor', $appliance))->patch(
+            route('admin.inventory.location.update', $appliance),
+            ['location' => 'Bay 2'],
+        );
+
+        $response->assertRedirectToRoute('admin.inventory.floor', $appliance);
+        $this->assertSame('Bay 2', $appliance->fresh()->location);
     }
 
     public function test_floor_page_hides_status_form_without_appliance_edit(): void
@@ -392,6 +411,7 @@ class InventoryControllerTest extends TestCase
         $response->assertSee('Scan again');
         $response->assertSee('Full record');
         $response->assertDontSee(route('admin.inventory.status.update', $appliance), false);
+        $response->assertDontSee(route('admin.inventory.location.update', $appliance), false);
     }
 
     public function test_exact_scan_resolve_returns_the_floor_url(): void

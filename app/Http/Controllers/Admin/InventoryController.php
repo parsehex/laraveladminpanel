@@ -362,6 +362,13 @@ class InventoryController extends Controller
         return view('admin.inventory.floor', [
             'appliance' => $appliance,
             'statuses' => InventoryStatus::assignableNames($appliance->status),
+            'locations' => TruckAppliance::query()
+                ->whereNotNull('location')
+                ->where('location', '<>', '')
+                ->selectRaw('MIN(location) as location')
+                ->groupBy(DB::raw('LOWER(TRIM(location))'))
+                ->orderBy('location')
+                ->pluck('location'),
         ]);
     }
 

@@ -82,19 +82,31 @@
                             @endif
                         </td>
                         <td class="px-4 py-3 text-right">
-                            @if(! $status->is_system && $status->archived_at === null && $status->item_count === 0)
-                                <form method="POST" action="{{ route('admin.inventory-statuses.archive', $status) }}"
-                                      onsubmit="return confirm(@json('Archive '.$status->name.'? It will no longer appear in status dropdowns.'));">
-                                    @csrf
-                                    <button type="submit" class="text-amber-700 hover:text-amber-900 font-medium">Archive</button>
-                                </form>
-                            @elseif($status->is_system)
-                                <span class="text-xs text-gray-400">Locked</span>
-                            @elseif($status->archived_at)
-                                <span class="text-xs text-gray-400">Archived</span>
-                            @else
-                                <span class="text-xs text-gray-400">In use</span>
-                            @endif
+                            <div class="flex flex-col items-end gap-2">
+                                @if($status->auto_location && $status->items_needing_location > 0 && ! $status->archived_at)
+                                    <form method="POST" action="{{ route('admin.inventory-statuses.apply-auto-location', $status) }}"
+                                          onsubmit="return confirm(@json('Update '.$status->items_needing_location.' item(s) currently in '.$status->name.' to location “'.$status->auto_location.'”?'));">
+                                        @csrf
+                                        <button type="submit" class="inline-flex items-center rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
+                                            Apply location to {{ $status->items_needing_location }}
+                                        </button>
+                                    </form>
+                                @elseif($status->auto_location && $status->item_count > 0 && ! $status->archived_at)
+                                    <span class="text-xs text-emerald-700">Locations current</span>
+                                @endif
+
+                                @if(! $status->is_system && $status->archived_at === null && $status->item_count === 0)
+                                    <form method="POST" action="{{ route('admin.inventory-statuses.archive', $status) }}"
+                                          onsubmit="return confirm(@json('Archive '.$status->name.'? It will no longer appear in status dropdowns.'));">
+                                        @csrf
+                                        <button type="submit" class="text-amber-700 hover:text-amber-900 font-medium">Archive</button>
+                                    </form>
+                                @elseif($status->archived_at)
+                                    <span class="text-xs text-gray-400">Archived</span>
+                                @elseif(! $status->auto_location || $status->item_count === 0)
+                                    <span class="text-xs text-gray-400">{{ $status->is_system ? 'Locked' : 'In use' }}</span>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                     @empty

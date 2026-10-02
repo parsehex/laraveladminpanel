@@ -117,6 +117,32 @@
             </div>
         </form>
     </section>
+
+    <section class="rounded-lg bg-white p-4 shadow">
+        <h3 class="text-sm font-semibold text-gray-900">Update location</h3>
+        <form method="POST" action="{{ route('admin.inventory.location.update', $appliance) }}" class="mt-3 space-y-3">
+            @csrf
+            @method('PATCH')
+            <div>
+                <label for="floor-location" class="sr-only">Location</label>
+                <input id="floor-location" type="text" name="location" list="floor-location-options"
+                       value="{{ old('location', $appliance->location) }}"
+                       placeholder="Search or enter a location…"
+                       class="w-full rounded-md border border-gray-300 px-3 py-2.5 text-sm">
+                <datalist id="floor-location-options">
+                    @foreach($locations as $locationOption)
+                        <option value="{{ $locationOption }}"></option>
+                    @endforeach
+                </datalist>
+                @error('location')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+            <button type="submit" class="flex min-h-12 w-full items-center justify-center rounded-md bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700">
+                Save location
+            </button>
+        </form>
+    </section>
     @endcanAccess
 </div>
 @endsection
