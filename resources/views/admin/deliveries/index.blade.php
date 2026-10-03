@@ -124,12 +124,21 @@
             </div>
         </div>
         <div class="p-4">
-            <form method="GET" action="{{ route('admin.deliveries.index') }}" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                <input type="hidden" name="status" value="{{ $listStatus }}">
+            <x-admin.filter-bar
+                bare
+                :action="route('admin.deliveries.index')"
+                :reset-url="route('admin.deliveries.index', ['status' => $listStatus])"
+                :preserve="[]"
+                :hidden="['status' => $listStatus]"
+                form-class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4"
+                actions-class="contents"
+            >
                 <input type="text" name="search" value="{{ request('search') }}" class="px-3 py-2 border border-gray-300 rounded-md" placeholder="Search customer, phone, or order">
-                <button class="bg-blue-600 text-white px-4 py-2 rounded-md">Filter</button>
-                <a href="{{ route('admin.deliveries.index', ['status' => $listStatus]) }}" class="bg-gray-500 text-white px-4 py-2 rounded-md text-center">Reset</a>
-            </form>
+                <x-slot:actions>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md">Filter</button>
+                    <a href="{{ route('admin.deliveries.index', ['status' => $listStatus]) }}" class="bg-gray-500 text-white px-4 py-2 rounded-md text-center">Reset</a>
+                </x-slot:actions>
+            </x-admin.filter-bar>
 
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">

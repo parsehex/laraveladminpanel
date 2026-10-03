@@ -40,27 +40,23 @@
     @endcanAccess
 
     <div class="bg-white rounded-lg shadow p-6 space-y-4">
-        <form method="GET" action="{{ route('admin.parts.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            @if(request('sort'))
-                <input type="hidden" name="sort" value="{{ request('sort') }}">
-            @endif
-            @if(request('direction'))
-                <input type="hidden" name="direction" value="{{ request('direction') }}">
-            @endif
-            @if(request('is_from_model_section'))
-                <input type="hidden" name="is_from_model_section" value="1">
-            @endif
-            <div class="md:col-span-3">
-                <label for="search" class="block text-sm font-medium text-gray-700 mb-1">{{ request('is_from_model_section') ? 'Search Model Compatibility' : 'Search by any field' }}</label>
+        <x-admin.filter-bar
+            bare
+            :action="route('admin.parts.index')"
+            :hidden="request('is_from_model_section') ? ['is_from_model_section' => 1] : []"
+            form-class="grid grid-cols-1 md:grid-cols-4 gap-4"
+            actions-class="flex items-end gap-2"
+        >
+            <x-admin.filter-field
+                :label="request('is_from_model_section') ? 'Search Model Compatibility' : 'Search by any field'"
+                for="search"
+                class="md:col-span-3"
+            >
                 <input type="text" id="search" name="search" value="{{ request('search') }}"
                        placeholder="{{ request('is_from_model_section') ? 'Search Model Compatibility' : 'Search by any field' }}"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div class="flex items-end gap-2">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">Filter</button>
-                <a href="{{ route('admin.parts.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">Reset</a>
-            </div>
-        </form>
+            </x-admin.filter-field>
+        </x-admin.filter-bar>
         @canAccess('parts.create')
         <form method="POST" action="{{ route('admin.parts.import') }}" enctype="multipart/form-data" class="flex flex-wrap items-end gap-3 border-t border-gray-200 pt-4">
             @csrf

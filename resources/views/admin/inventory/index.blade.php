@@ -90,78 +90,57 @@
             </button>
         </x-slot:header>
         <x-slot:filters>
-        <div class="inventory-filter-card bg-white p-4">
-            <form method="GET" action="{{ route($listRoute) }}" class="relative grid grid-cols-1 lg:grid-cols-12 gap-4">
-                @if(request('sort'))
-                    <input type="hidden" name="sort" value="{{ request('sort') }}">
-                @endif
-                @if(request('direction'))
-                    <input type="hidden" name="direction" value="{{ request('direction') }}">
-                @endif
-                <div class="lg:col-span-2">
-                    <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-                    <input type="text" id="search" name="search" value="{{ request('search') }}" placeholder="Model, serial, product, location..."
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="lg:col-span-2">
-                    <label for="brand" class="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-                    <select id="brand" name="brand" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">All brands</option>
-                        @foreach($brands as $brand)
-                        <option value="{{ $brand }}" @selected(request('brand') === $brand)>{{ $brand }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="lg:col-span-2">
-                    <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                    <select id="location" name="location" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">All locations</option>
-                        @foreach($locations as $location)
-                        <option value="{{ $location }}" @selected(request('location') === $location)>{{ $location }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="lg:col-span-2">
-                    <label for="sub_category" class="block text-sm font-medium text-gray-700 mb-1">Sub Category</label>
-                    <select id="sub_category" name="sub_category" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">All sub categories</option>
-                        @foreach($subcategories as $subcategory)
-                        <option value="{{ $subcategory }}" @selected(request('sub_category') === $subcategory)>{{ $subcategory }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="lg:col-span-2">
-                    <label for="category_id" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                    <select id="category_id" name="category_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">All categories</option>
-                        @foreach($categories as $category)
-                        <option value="{{ $category->id }}" @selected((string) request('category_id') === (string) $category->id)>{{ $category->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="lg:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <div class="relative" data-status-filter>
-                        <button type="button" class="w-full min-h-[42px] px-3 py-2 border border-gray-300 rounded-md text-left bg-white text-gray-800 shadow-sm flex items-center justify-between gap-2 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <span class="truncate">{{ count($selectedStatuses) ? count($selectedStatuses).' selected' : 'Select status' }}</span>
-                            <i class="fas fa-chevron-down text-xs text-blue-600"></i>
-                        </button>
-                        <div class="status-filter-menu hidden w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-gray-200 bg-white p-2 shadow-2xl ring-1 ring-black/5 max-h-72 overflow-y-auto">
-                            @foreach($statuses as $status)
-                            <label class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700">
-                                <input type="checkbox" name="status[]" value="{{ $status }}" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" @checked(in_array($status, $selectedStatuses, true))>
-                                <span>{{ $status }}</span>
-                            </label>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-                <div class="lg:col-span-12 flex flex-wrap justify-end gap-2">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">Apply</button>
-                    <a href="{{ route($listRoute) }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">Clear</a>
-                </div>
-            </form>
-        </div>
+        <x-admin.filter-bar
+            bare
+            class="bg-white p-4"
+            :action="route($listRoute)"
+            :reset-url="route($listRoute)"
+            form-class="relative grid grid-cols-1 lg:grid-cols-12 gap-4"
+            actions-class="lg:col-span-12 flex flex-wrap justify-end gap-2"
+        >
+            <x-admin.filter-field label="Search" for="search" class="lg:col-span-2">
+                <input type="text" id="search" name="search" value="{{ request('search') }}" placeholder="Model, serial, product, location..."
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </x-admin.filter-field>
+            <x-admin.filter-field label="Brand" for="brand" class="lg:col-span-2">
+                <select id="brand" name="brand" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All brands</option>
+                    @foreach($brands as $brand)
+                    <option value="{{ $brand }}" @selected(request('brand') === $brand)>{{ $brand }}</option>
+                    @endforeach
+                </select>
+            </x-admin.filter-field>
+            <x-admin.filter-field label="Location" for="location" class="lg:col-span-2">
+                <select id="location" name="location" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All locations</option>
+                    @foreach($locations as $location)
+                    <option value="{{ $location }}" @selected(request('location') === $location)>{{ $location }}</option>
+                    @endforeach
+                </select>
+            </x-admin.filter-field>
+            <x-admin.filter-field label="Sub Category" for="sub_category" class="lg:col-span-2">
+                <select id="sub_category" name="sub_category" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All sub categories</option>
+                    @foreach($subcategories as $subcategory)
+                    <option value="{{ $subcategory }}" @selected(request('sub_category') === $subcategory)>{{ $subcategory }}</option>
+                    @endforeach
+                </select>
+            </x-admin.filter-field>
+            <x-admin.filter-field label="Category" for="category_id" class="lg:col-span-2">
+                <select id="category_id" name="category_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All categories</option>
+                    @foreach($categories as $category)
+                    <option value="{{ $category->id }}" @selected((string) request('category_id') === (string) $category->id)>{{ $category->name }}</option>
+                    @endforeach
+                </select>
+            </x-admin.filter-field>
+            <x-admin.status-multiselect
+                class="lg:col-span-2"
+                name="status[]"
+                :options="$statuses"
+                :selected="$selectedStatuses"
+            />
+        </x-admin.filter-bar>
         </x-slot:filters>
 
             <table class="min-w-full divide-y divide-gray-200">
@@ -295,19 +274,6 @@
     .appliance-status-chip.appliance-status-black { background: #111827 !important; color: #ffffff !important; }
     .appliance-status-chip.appliance-status-green { background: #16a34a !important; color: #052e16 !important; }
     .appliance-status-chip.appliance-status-sold { background: #059669 !important; color: #ffffff !important; }
-
-    .inventory-filter-card {
-        position: relative;
-        z-index: 100000;
-        overflow: visible !important;
-    }
-
-    .status-filter-menu {
-        position: absolute;
-        top: calc(100% + 0.5rem);
-        right: 0;
-        z-index: 100001;
-    }
 </style>
 @endpush
 
@@ -315,23 +281,6 @@
 <script>
     $('[data-toggle-value]').on('click', function () {
         $('#inventory-value-panel').toggleClass('hidden');
-    });
-
-    $('[data-status-filter] > button').on('click', function (event) {
-        event.stopPropagation();
-        const $filter = $(this).closest('[data-status-filter]');
-        const $menu = $filter.children('.status-filter-menu');
-
-        $('.status-filter-menu').not($menu).addClass('hidden');
-        $menu.toggleClass('hidden');
-    });
-
-    $('[data-status-filter]').on('click', function (event) {
-        event.stopPropagation();
-    });
-
-    $(document).on('click', function () {
-        $('.status-filter-menu').addClass('hidden');
     });
 
     $('[data-select-all]').on('change', function () {

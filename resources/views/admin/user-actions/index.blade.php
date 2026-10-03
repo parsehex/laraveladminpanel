@@ -5,31 +5,24 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="bg-white rounded-lg shadow p-6">
-        <form method="GET" action="{{ route('admin.user-actions.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="md:col-span-2">
-                <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-                <input type="text" id="search" name="search" value="{{ $search }}" placeholder="Search by user or action…"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div>
-                <label for="per_page" class="block text-sm font-medium text-gray-700 mb-1">Per page</label>
-                <select id="per_page" name="per_page" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    @foreach([25, 50, 100] as $size)
-                        <option value="{{ $size }}" @selected($perPage === $size)>{{ $size }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="flex items-end gap-2">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
-                    <i class="fas fa-search mr-1"></i> Search
-                </button>
-                <a href="{{ route('admin.user-actions.index') }}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md">
-                    <i class="fas fa-undo mr-1"></i> Reset
-                </a>
-            </div>
-        </form>
-    </div>
+    <x-admin.filter-bar
+        :action="route('admin.user-actions.index')"
+        :preserve="[]"
+        form-class="grid grid-cols-1 md:grid-cols-4 gap-4"
+        actions-class="flex items-end gap-2"
+    >
+        <x-admin.filter-field label="Search" for="search" class="md:col-span-2">
+            <input type="text" id="search" name="search" value="{{ $search }}" placeholder="Search by user or action…"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </x-admin.filter-field>
+        <x-admin.filter-field label="Per page" for="per_page">
+            <select id="per_page" name="per_page" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                @foreach([25, 50, 100] as $size)
+                    <option value="{{ $size }}" @selected($perPage === $size)>{{ $size }}</option>
+                @endforeach
+            </select>
+        </x-admin.filter-field>
+    </x-admin.filter-bar>
 
     <div class="bg-white rounded-lg shadow overflow-hidden">
         <div class="overflow-x-auto">

@@ -13,43 +13,34 @@
 
 @section('content')
 <div class="space-y-6">
-    <div class="bg-white rounded-lg shadow p-6">
-        <form method="GET" action="{{ route('admin.users.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="md:col-span-2">
-                <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
-                <input type="text" id="search" name="search" value="{{ request('search') }}" placeholder="Search by name or email..."
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            
-            <div>
-                <label for="role" class="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                <select id="role" name="role" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">All Roles</option>
-                    @foreach($filterRoles as $roleName)
-                        <option value="{{ $roleName }}" {{ request('role') === $roleName ? 'selected' : '' }}>{{ $roleName }}</option>
-                    @endforeach
-                </select>
-            </div>
-            
-            <div>
-                <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select id="status" name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">All Status</option>
-                    <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
-                    <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                </select>
-            </div>
-            
-            <div class="md:col-span-4 flex gap-2">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
-                    <i class="fas fa-search mr-1"></i> Search
-                </button>
-                <a href="{{ route('admin.users.index') }}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md">
-                    <i class="fas fa-undo mr-1"></i> Reset
-                </a>
-            </div>
-        </form>
-    </div>
+    <x-admin.filter-bar
+        :action="route('admin.users.index')"
+        :preserve="[]"
+        form-class="grid grid-cols-1 md:grid-cols-4 gap-4"
+        actions-class="md:col-span-4 flex gap-2"
+    >
+        <x-admin.filter-field label="Search" for="search" class="md:col-span-2">
+            <input type="text" id="search" name="search" value="{{ request('search') }}" placeholder="Search by name or email..."
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </x-admin.filter-field>
+
+        <x-admin.filter-field label="Role" for="role">
+            <select id="role" name="role" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Roles</option>
+                @foreach($filterRoles as $roleName)
+                    <option value="{{ $roleName }}" @selected(request('role') === $roleName)>{{ $roleName }}</option>
+                @endforeach
+            </select>
+        </x-admin.filter-field>
+
+        <x-admin.filter-field label="Status" for="status">
+            <select id="status" name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Status</option>
+                <option value="active" @selected(request('status') === 'active')>Active</option>
+                <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
+            </select>
+        </x-admin.filter-field>
+    </x-admin.filter-bar>
     
     <div class="bg-white rounded-lg shadow overflow-hidden">
         <div class="overflow-x-auto">

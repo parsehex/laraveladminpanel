@@ -122,14 +122,14 @@
             <h2 class="text-xl font-semibold text-white">{{ $view === 'normal' ? 'Ready / Showroom / Sold' : 'Sold Items' }}</h2>
         </div>
         <div class="p-4">
-            <form method="GET" action="{{ route('admin.sales.index') }}" class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4">
-                <input type="hidden" name="view" value="{{ $view }}">
-                @if($view === 'normal' && request('sort'))
-                    <input type="hidden" name="sort" value="{{ request('sort') }}">
-                @endif
-                @if($view === 'normal' && request('direction'))
-                    <input type="hidden" name="direction" value="{{ request('direction') }}">
-                @endif
+            <x-admin.filter-bar
+                bare
+                :action="route('admin.sales.index')"
+                :reset-url="route('admin.sales.index', ['view' => $view])"
+                :preserve="$view === 'normal' ? ['sort', 'direction'] : []"
+                :hidden="['view' => $view]"
+                form-class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-4"
+            >
                 <input type="text" name="search" value="{{ request('search') }}" class="md:col-span-4 px-3 py-2 border border-gray-300 rounded-md" placeholder="{{ $view === 'normal' ? 'Search model, serial, location...' : 'Search model or serial' }}">
                 @if($view === 'normal')
                 <select name="item_type" class="md:col-span-2 px-3 py-2 border border-gray-300 rounded-md">
@@ -152,11 +152,13 @@
                     @endforeach
                 </div>
                 @endif
-                <div class="md:col-span-2 flex gap-2">
-                    <button class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md">Filter</button>
-                    <a href="{{ route('admin.sales.index', ['view' => $view]) }}" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-md text-center">Reset</a>
-                </div>
-            </form>
+                <x-slot:actions>
+                    <div class="md:col-span-2 flex gap-2">
+                        <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md">Filter</button>
+                        <a href="{{ route('admin.sales.index', ['view' => $view]) }}" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded-md text-center">Reset</a>
+                    </div>
+                </x-slot:actions>
+            </x-admin.filter-bar>
 
             @if($view === 'normal')
             <x-admin.data-table bare :table="$dataTable">

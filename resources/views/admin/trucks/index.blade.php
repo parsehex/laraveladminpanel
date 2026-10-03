@@ -130,52 +130,32 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6 inventory-filter-card">
-        <form method="GET" action="{{ route('admin.trucks.index') }}" class="grid grid-cols-1 md:grid-cols-6 gap-4">
-            @if(request('sort'))
-                <input type="hidden" name="sort" value="{{ request('sort') }}">
-            @endif
-            @if(request('direction'))
-                <input type="hidden" name="direction" value="{{ request('direction') }}">
-            @endif
-            <div class="md:col-span-2">
-                <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search by name</label>
-                <input type="text" id="search" name="search" value="{{ request('search') }}"
-                       placeholder="Truck name..."
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div>
-                <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Truck status</label>
-                <select id="status" name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">All</option>
-                    <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
-                    <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                    <option value="breakdown" {{ request('status') === 'breakdown' ? 'selected' : '' }}>Breakdown</option>
-                </select>
-            </div>
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Item status</label>
-                <div class="relative" data-status-filter>
-                    <button type="button" class="w-full min-h-[42px] px-3 py-2 border border-gray-300 rounded-md text-left bg-white text-gray-800 shadow-sm flex items-center justify-between gap-2 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <span class="truncate">{{ count($selectedItemStatuses) ? count($selectedItemStatuses).' selected' : 'Select status' }}</span>
-                        <i class="fas fa-chevron-down text-xs text-blue-600"></i>
-                    </button>
-                    <div class="status-filter-menu hidden w-72 max-w-[calc(100vw-2rem)] rounded-lg border border-gray-200 bg-white p-2 shadow-2xl ring-1 ring-black/5 max-h-72 overflow-y-auto">
-                        @foreach($statuses as $status)
-                        <label class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700">
-                            <input type="checkbox" name="item_status[]" value="{{ $status }}" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" @checked(in_array($status, $selectedItemStatuses, true))>
-                            <span>{{ $status }}</span>
-                        </label>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-            <div class="flex items-end gap-2">
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">Filter</button>
-                <a href="{{ route('admin.trucks.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">Reset</a>
-            </div>
-        </form>
-    </div>
+    <x-admin.filter-bar
+        :action="route('admin.trucks.index')"
+        form-class="grid grid-cols-1 md:grid-cols-6 gap-4"
+        actions-class="flex items-end gap-2"
+    >
+        <x-admin.filter-field label="Search by name" for="search" class="md:col-span-2">
+            <input type="text" id="search" name="search" value="{{ request('search') }}"
+                   placeholder="Truck name..."
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </x-admin.filter-field>
+        <x-admin.filter-field label="Truck status" for="status">
+            <select id="status" name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All</option>
+                <option value="active" @selected(request('status') === 'active')>Active</option>
+                <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
+                <option value="breakdown" @selected(request('status') === 'breakdown')>Breakdown</option>
+            </select>
+        </x-admin.filter-field>
+        <x-admin.status-multiselect
+            class="md:col-span-2"
+            label="Item status"
+            name="item_status[]"
+            :options="$statuses"
+            :selected="$selectedItemStatuses"
+        />
+    </x-admin.filter-bar>
 
     <x-admin.data-table id="truck-results" density="sheet" :table="$dataTable">
             <table class="min-w-full divide-y divide-gray-200">
@@ -367,19 +347,6 @@
         z-index: 1;
         box-shadow: inset -1px 0 0 #e5e7eb;
     }
-
-    .inventory-filter-card {
-        position: relative;
-        z-index: 100000;
-        overflow: visible !important;
-    }
-
-    .status-filter-menu {
-        position: absolute;
-        top: calc(100% + 0.5rem);
-        right: 0;
-        z-index: 100001;
-    }
 </style>
 @endpush
 
@@ -395,23 +362,6 @@
 
     $('[data-toggle-breakdown]').on('click', function () {
         $('#truck-breakdown-panel').toggleClass('hidden');
-    });
-
-    $('[data-status-filter] > button').on('click', function (event) {
-        event.stopPropagation();
-        const $filter = $(this).closest('[data-status-filter]');
-        const $menu = $filter.children('.status-filter-menu');
-
-        $('.status-filter-menu').not($menu).addClass('hidden');
-        $menu.toggleClass('hidden');
-    });
-
-    $('[data-status-filter]').on('click', function (event) {
-        event.stopPropagation();
-    });
-
-    $(document).on('click', function () {
-        $('.status-filter-menu').addClass('hidden');
     });
 
     $('[data-cost-toggle]').on('click', function (event) {

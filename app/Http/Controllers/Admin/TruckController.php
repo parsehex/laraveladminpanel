@@ -13,6 +13,7 @@ use App\Models\Model as ApplianceModel;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\UserAction;
+use App\Support\ApplianceStatusFilter;
 use App\Support\DataTable;
 use App\Support\InventoryCostRange;
 use App\Support\PageSize;
@@ -195,30 +196,14 @@ class TruckController extends Controller
 
     private function applyItemStatusFilter(Builder $query, Request $request): void
     {
-        $statuses = collect($request->input('item_status', []))
-            ->map(fn ($status) => trim((string) $status))
-            ->filter()
-            ->values();
+        $statuses = ApplianceStatusFilter::normalize($request->input('item_status', []));
 
         if ($statuses->isEmpty()) {
             return;
         }
 
         $query->whereHas('appliances', function (Builder $applianceQuery) use ($statuses) {
-            $applianceQuery->where(function (Builder $statusQuery) use ($statuses) {
-                $explicitStatuses = $statuses->reject(fn ($status) => $status === 'Triage')->values();
-
-                if ($explicitStatuses->isNotEmpty()) {
-                    $statusQuery->whereIn('status', $explicitStatuses->all());
-                }
-
-                if ($statuses->contains('Triage')) {
-                    $method = $explicitStatuses->isNotEmpty() ? 'orWhere' : 'where';
-                    $statusQuery->{$method}(function (Builder $triageQuery) {
-                        $triageQuery->whereNull('status')->orWhere('status', '')->orWhere('status', 'Triage');
-                    });
-                }
-            });
+            ApplianceStatusFilter::apply($applianceQuery, $statuses);
         });
     }
 
