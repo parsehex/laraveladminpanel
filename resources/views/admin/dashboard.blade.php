@@ -73,7 +73,7 @@
                         <table class="min-w-full divide-y divide-gray-200 text-sm">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-4 py-3 text-left font-semibold text-gray-600">User</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-gray-600 whitespace-nowrap">User</th>
                                     <th class="px-4 py-3 text-right font-semibold text-gray-600">Trucks Added</th>
                                     <th class="px-4 py-3 text-right font-semibold text-gray-600">Trucks Deleted</th>
                                     <th class="px-4 py-3 text-right font-semibold text-gray-600">Units Added</th>
@@ -89,7 +89,7 @@
                             <tbody class="divide-y divide-gray-100">
                                 @forelse($activityRows as $row)
                                     <tr class="hover:bg-gray-50">
-                                        <td class="px-4 py-3 font-semibold text-gray-900">{{ $row['username'] }}</td>
+                                        <td class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">{{ $row['username'] }}</td>
                                         <td class="px-4 py-3 text-right">{{ $row['trucks_added'] }}</td>
                                         <td class="px-4 py-3 text-right">{{ $row['trucks_deleted'] }}</td>
                                         <td class="px-4 py-3 text-right">{{ $row['units_added'] }}</td>
