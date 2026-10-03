@@ -121,6 +121,7 @@ class ApplianceTotalCostTest extends TestCase
 
         $this->actingAs($user)->post(route('admin.inventory.parts.store', $appliance), [
             'description' => 'Control board',
+            'part_number' => 'CTRL-BOARD-1',
             'cost' => 75,
         ])->assertRedirect();
 

@@ -1,6 +1,7 @@
 ---
 paths:
   - app/Http/Controllers/Admin/DashboardController.php
+  - app/Http/Controllers/Admin/InventoryController.php
 ---
 
 # Admin
@@ -10,3 +11,6 @@ User Activity Statistics must aggregate from user_actions with the same action_t
 
 ## Operations KPIs follow the period filter
 Operations cards under the period filter must use the same date range: Units Added = truck_appliances.created_at in range; Inventory Value = SUM(price + parts) for those added units still not Sold/Show Room; Sold Units / Sales Total = Sold appliances with COALESCE(sold_at, updated_at) in range plus custom_sales.created_at in range.
+
+## Appliance add-part requires real part numbers
+When adding a part on the appliance detail page, selecting an existing catalog part (part_id) is enough. Freeform adds must supply part_number; do not auto-generate fake part numbers. New numbers must be unique among active parts (soft-deleted may be restored).

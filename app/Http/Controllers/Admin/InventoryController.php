@@ -21,7 +21,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class InventoryController extends Controller
@@ -524,6 +523,16 @@ class InventoryController extends Controller
 
         $data = $request->validate([
             'part_id' => ['nullable', 'exists:parts,id'],
+            'part_number' => [
+                'required_without:part_id',
+                'nullable',
+                'string',
+                'max:255',
+                Rule::when(
+                    blank($request->input('part_id')),
+                    [Rule::unique('parts', 'part_number')->whereNull('deleted_at')],
+                ),
+            ],
             'description' => ['required', 'string', 'max:255'],
             'cost' => ['required', 'numeric', 'min:0'],
         ]);
@@ -533,17 +542,35 @@ class InventoryController extends Controller
             : null;
 
         DB::transaction(function () use ($appliance, $data, $request, $selectedPart) {
-            $part = $selectedPart ?: Part::query()->create([
-                'part_number' => $this->generatePartNumber(),
-                'product_name' => $data['description'],
-                'model_compatibility' => $appliance->model?->model_number,
-                'total_stock' => 0,
-                'retail_price' => $data['cost'],
-                'your_price' => $data['cost'],
-                'cross_reference' => null,
-                'created_by' => $request->user()->id,
-                'updated_by' => $request->user()->id,
-            ]);
+            if ($selectedPart) {
+                $part = $selectedPart;
+            } else {
+                $partNumber = trim((string) $data['part_number']);
+                $part = Part::withTrashed()->where('part_number', $partNumber)->first();
+
+                if ($part?->trashed()) {
+                    $part->restore();
+                    $part->update([
+                        'product_name' => $data['description'],
+                        'model_compatibility' => $appliance->model?->model_number,
+                        'retail_price' => $data['cost'],
+                        'your_price' => $data['cost'],
+                        'updated_by' => $request->user()->id,
+                    ]);
+                } elseif (! $part) {
+                    $part = Part::query()->create([
+                        'part_number' => $partNumber,
+                        'product_name' => $data['description'],
+                        'model_compatibility' => $appliance->model?->model_number,
+                        'total_stock' => 0,
+                        'retail_price' => $data['cost'],
+                        'your_price' => $data['cost'],
+                        'cross_reference' => null,
+                        'created_by' => $request->user()->id,
+                        'updated_by' => $request->user()->id,
+                    ]);
+                }
+            }
 
             $partCost = (float) ($part->your_price ?: $part->retail_price ?: $data['cost']);
 
@@ -657,20 +684,6 @@ class InventoryController extends Controller
         ]);
 
         return back()->with('success', __('Part removed successfully.'));
-    }
-
-    private function generatePartNumber(): string
-    {
-        do {
-            $number = (string) random_int(1000000000, 9999999999);
-            $letters = Str::upper(Str::random(2));
-            $partNumber = $number.$letters;
-        } while (
-            Part::query()->where('part_number', $partNumber)->exists()
-            || AppliancePart::query()->where('part_number', $partNumber)->exists()
-        );
-
-        return $partNumber;
     }
 
     private function applyFilters(Builder $query, Request $request): void

@@ -10,7 +10,7 @@
     const $partResults = $('#part-search-results');
     const $partId = $('#selected-part-id');
     const $partCost = $('#part-cost-input');
-    const $partNumberPreview = $('#part-number-preview');
+    const $partNumber = $('#part-number-input');
 
     if (! $partDescription.length) {
         return;
@@ -22,7 +22,7 @@
 
     function clearSelectedPart() {
         $partId.val('');
-        $partNumberPreview.val('Auto-generated after save');
+        $partNumber.prop('readonly', false);
     }
 
     $partDescription.on('input', function () {
@@ -48,7 +48,7 @@
                             $partId.val(part.id);
                             $partDescription.val(part.description);
                             $partCost.val(Number(part.cost).toFixed(2));
-                            $partNumberPreview.val(part.part_number);
+                            $partNumber.val(part.part_number).prop('readonly', true);
                             hidePartResults();
                         });
                         $partResults.append($row);
@@ -57,6 +57,11 @@
                     $partResults.removeClass('hidden');
                 });
         }, 250);
+    });
+
+    $partNumber.on('input', function () {
+        $partId.val('');
+        $partNumber.prop('readonly', false);
     });
 
     $(document).on('click', function (event) {
