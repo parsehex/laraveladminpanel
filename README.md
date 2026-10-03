@@ -56,10 +56,11 @@ php artisan migrate --seed
 php artisan serve
 ```
 
-## Demo Credentials
+## Local Demo Credentials
+
+Seeded only when `APP_ENV=local` (never on production):
 
 -   **Admin**: admin@yopmail.com / admin@123
--   **User**: user@example.com / password
 
 ## Project Structure
 

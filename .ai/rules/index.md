@@ -9,5 +9,6 @@ Before planning or editing, find the row whose globs match the file's path and r
 | resources/views/{layouts,components}/** | .ai/rules/interface.md |
 | app/Models/InventoryStatus.php, app/Models/TruckAppliance.php | .ai/rules/models.md |
 | scripts/** | .ai/rules/scripts.md |
+| database/seeders/** | .ai/rules/seeders.md |
 | app/Support/InventoryCostRange.php | .ai/rules/support.md |
 | tests/** | .ai/rules/tests.md |

@@ -2,15 +2,23 @@
 
 namespace Database\Seeders;
 
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
 {
+    /**
+     * Create the local development admin only.
+     *
+     * Production (and any non-local env) must never recreate this account —
+     * operators may have changed the email/password after go-live.
+     */
     public function run(): void
     {
+        if (! app()->environment('local')) {
+            return;
+        }
+
         $admin = User::firstOrCreate(
             ['email' => 'admin@yopmail.com'],
             [
@@ -20,43 +28,8 @@ class UserSeeder extends Seeder
                 'status' => 'active',
             ]
         );
-        $admin->forceFill(['role' => 'admin', 'name' => 'Admin User', 'status' => 'active'])->save();
+
         $admin->syncRoles(['admin']);
         $admin->syncPermissions([]);
-
-        // User::factory(20)->create()->each(function (User $user) {
-        //     $roleName = match ($user->role) {
-        //         'admin', 'Admin' => 'admin',
-        //         'technician' => 'technician',
-        //         'kit_assigner' => 'kit_assigner',
-        //         default => 'user',
-        //     };
-        //     if (Role::where('name', $roleName)->exists()) {
-        //         $user->syncRoles([$roleName]);
-        //     }
-        // });
-
-        // $testUser = User::firstOrCreate(
-        //     ['email' => 'user@example.com'],
-        //     [
-        //         'name' => 'Test User',
-        //         'password' => 'password',
-        //         'role' => 'user',
-        //         'status' => 'active',
-        //     ]
-        // );
-        // $testUser->forceFill(['role' => 'user', 'name' => 'Test User', 'status' => 'active'])->save();
-        // $testUser->syncRoles(['user']);
-
-        // $super = User::firstOrCreate(
-        //     ['email' => 'superadmin@example.com'],
-        //     [
-        //         'name' => 'Super Admin',
-        //         'password' => Hash::make('password'),
-        //         'role' => 'Super Admin',
-        //         'status' => 'active',
-        //     ]
-        // );
-        // $super->syncRoles(['Super Admin']);
     }
 }
