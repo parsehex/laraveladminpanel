@@ -11,6 +11,7 @@ use App\Models\Model;
 use App\Models\Part;
 use App\Support\DataTable;
 use App\Support\PageSize;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -33,6 +34,13 @@ class PartController extends Controller
     public function index(Request $request)
     {
         $dataTable = $this->partsIndexDataTable();
+
+        $resolved = $dataTable->resolveSortRequest($request, $request->user());
+        if ($resolved instanceof RedirectResponse) {
+            return $resolved;
+        }
+        $request = $resolved;
+
         $query = Part::query()->with(['models' => fn ($query) => $query->orderBy('model_number')]);
 
         if ($request->filled('search')) {

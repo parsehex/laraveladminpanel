@@ -11,6 +11,7 @@ use App\Models\UserAction;
 use App\Support\DataTable;
 use App\Support\PageSize;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -37,6 +38,12 @@ class SalesController extends Controller
         $selectedStatuses = $this->selectedTrackingStatuses($request);
         $itemType = $this->selectedItemType($request);
         $normalDataTable = $this->normalSalesDataTable($itemType === null);
+
+        $resolved = $normalDataTable->resolveSortRequest($request, $request->user());
+        if ($resolved instanceof RedirectResponse) {
+            return $resolved;
+        }
+        $request = $resolved;
 
         $normalQuery = TruckAppliance::query()
             ->with(['model', 'category'])

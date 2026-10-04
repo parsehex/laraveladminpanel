@@ -19,6 +19,7 @@ use App\Support\InventoryCostRange;
 use App\Support\PageSize;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -43,6 +44,12 @@ class TruckController extends Controller
     public function index(Request $request)
     {
         $dataTable = $this->trucksIndexDataTable();
+
+        $resolved = $dataTable->resolveSortRequest($request, $request->user());
+        if ($resolved instanceof RedirectResponse) {
+            return $resolved;
+        }
+        $request = $resolved;
 
         $query = Truck::query()
             ->with('creator', 'appliances')
@@ -329,6 +336,12 @@ class TruckController extends Controller
         ]);
 
         $dataTable = $this->truckAppliancesDataTable();
+
+        $resolved = $dataTable->resolveSortRequest($request, $request->user());
+        if ($resolved instanceof RedirectResponse) {
+            return $resolved;
+        }
+        $request = $resolved;
 
         $appliancesQuery = $truck->appliances()
             ->with(['category', 'model'])

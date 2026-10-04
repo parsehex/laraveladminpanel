@@ -13,7 +13,7 @@
 
     if ($activeSort === $column && $activeDirection === 'desc') {
         $sortUrl = request()->fullUrlWithQuery([
-            'sort' => null,
+            'sort' => '',
             'direction' => null,
             'page' => null,
         ]);

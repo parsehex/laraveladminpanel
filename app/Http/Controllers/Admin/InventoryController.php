@@ -18,6 +18,7 @@ use App\Support\PageSize;
 use App\Testing\RepairResultRepository;
 use App\Testing\TestingFlowRepository;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -43,6 +44,12 @@ class InventoryController extends Controller
     private function renderInventory(Request $request, ItemType $type)
     {
         $dataTable = $this->inventoryDataTable();
+
+        $resolved = $dataTable->resolveSortRequest($request, $request->user());
+        if ($resolved instanceof RedirectResponse) {
+            return $resolved;
+        }
+        $request = $resolved;
 
         $query = TruckAppliance::query()
             ->ofType($type)

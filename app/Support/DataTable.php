@@ -2,9 +2,12 @@
 
 namespace App\Support;
 
+use App\Models\User;
 use Closure;
+use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class DataTable
@@ -22,6 +25,11 @@ class DataTable
     public function storageKey(): string
     {
         return $this->storageKey;
+    }
+
+    public function sortPreferenceKey(): string
+    {
+        return 'data_table.sort.'.$this->storageKey;
     }
 
     /**
@@ -43,12 +51,66 @@ class DataTable
     }
 
     /**
+     * Persist, clear, or restore the user's remembered sort for this table.
+     */
+    public function resolveSortRequest(Request $request, ?User $user): Request|RedirectResponse
+    {
+        if ($user === null) {
+            return $request;
+        }
+
+        $preferenceKey = $this->sortPreferenceKey();
+
+        if ($request->has('sort')) {
+            if ($request->filled('sort')) {
+                $sort = (string) $request->get('sort');
+                $direction = $request->get('direction') === 'asc' ? 'asc' : 'desc';
+
+                if ($this->isValidSortColumn($sort)) {
+                    UserPreferences::put($user, $preferenceKey, [
+                        'sort' => $sort,
+                        'direction' => $direction,
+                    ]);
+                }
+
+                return $request;
+            }
+
+            UserPreferences::forget($user, $preferenceKey);
+
+            return $request;
+        }
+
+        $preferred = UserPreferences::get($user, $preferenceKey);
+
+        if (! is_array($preferred)) {
+            return $request;
+        }
+
+        $sort = $preferred['sort'] ?? null;
+        $direction = ($preferred['direction'] ?? null) === 'asc' ? 'asc' : 'desc';
+
+        if (! is_string($sort) || ! $this->isValidSortColumn($sort)) {
+            UserPreferences::forget($user, $preferenceKey);
+
+            return $request;
+        }
+
+        return redirect()->to($request->fullUrlWithQuery([
+            'sort' => $sort,
+            'direction' => $direction,
+        ]));
+    }
+
+    /**
      * @return array{sort: ?string, direction: 'asc'|'desc'}
      */
     public function sortState(Request $request): array
     {
+        $sort = $request->get('sort');
+
         return [
-            'sort' => $request->get('sort'),
+            'sort' => filled($sort) ? (string) $sort : null,
             'direction' => $request->get('direction') === 'asc' ? 'asc' : 'desc',
         ];
     }
@@ -79,6 +141,15 @@ class DataTable
         }
     }
 
+    private function isValidSortColumn(string $sort): bool
+    {
+        $column = collect($this->columns)->firstWhere('key', $sort);
+
+        return is_array($column)
+            && ($column['sortable'] ?? true)
+            && isset($column['sort']);
+    }
+
     /**
      * @return array<int, array{0: string, 1: 'asc'|'desc'}>
      */
@@ -94,7 +165,7 @@ class DataTable
     private function applyDefaultSort(Builder|Relation $query): void
     {
         foreach ($this->defaultSorts() as [$columnName, $defaultDirection]) {
-            if ($columnName instanceof \Illuminate\Contracts\Database\Query\Expression) {
+            if ($columnName instanceof Expression) {
                 $grammar = $query->getQuery()->getGrammar();
                 $query->orderByRaw($columnName->getValue($grammar).' '.$defaultDirection);
 
