@@ -55,6 +55,7 @@
             "@php artisan key:generate --ansi"
         ],
         "test:db:setup": "bash scripts/setup-test-database.sh",
+        "pull:prod": "bash scripts/pull-prod-db.sh",
         "restore:dev": "bash scripts/restore-dev-db.sh"
     },
     "extra": {
