@@ -2,6 +2,7 @@
 paths:
   - app/Support/InventoryCostRange.php
   - 'app/Support/{DataTable,UserPreferences}.php'
+  - app/Support/PageSize.php
 ---
 
 # Support
@@ -11,3 +12,6 @@ The Inventory cost structure and Trucks breakdown panels share App\Support\Inven
 
 ## Per-user prefs live in user_preferences; DataTable sorts use them
 UI preferences that must follow the user across browsers go in `user_preferences` via `App\Support\UserPreferences` (key/value JSON), not localStorage. DataTable sorts use key `data_table.sort.{storageKey}` and are resolved through `DataTable::resolveSortRequest()` before `applySorting()`. Clearing sort uses `?sort=` (empty) so the preference is forgotten. Column visibility and sidebar state remain browser localStorage for now.
+
+## Page size prefs are global under page_size
+Rows-per-page is one shared preference (`user_preferences` key `page_size`) via `PageSize::resolve()`. A valid `?limit=` on any list saves it; when absent, that same value is used everywhere. No per-table page-size keys. URL `limit` still wins when present.

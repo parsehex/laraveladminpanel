@@ -348,12 +348,7 @@ class TruckController extends Controller
             ->withSum('parts as parts_sum_cost', 'cost');
         $dataTable->applySorting($appliancesQuery, $request);
 
-        $appliances = PageSize::paginate(
-            $appliancesQuery,
-            $request,
-            name: 'appliances_per_page',
-            pageName: 'appliances_page',
-        );
+        $appliances = PageSize::paginate($appliancesQuery, $request);
 
         $allAppliances = $truck->appliances()
             ->with(['category', 'model'])

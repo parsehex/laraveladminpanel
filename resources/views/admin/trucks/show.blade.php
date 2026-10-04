@@ -264,7 +264,7 @@
             </table>
 
         <x-slot:footer>
-        <x-admin.table-pagination :paginator="$appliances" name="appliances_per_page" page-name="appliances_page">
+        <x-admin.table-pagination :paginator="$appliances">
             @if($appliances->total() > 0)
                 <button type="button" class="rounded-md bg-gray-600 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700" data-truck-select-all-button>Select All</button>
                 <button type="button" class="rounded-md bg-gray-500 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-600" data-truck-reset-selection>Reset</button>
