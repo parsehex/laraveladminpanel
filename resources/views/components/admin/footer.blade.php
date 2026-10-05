@@ -44,8 +44,7 @@
     >
         <div class="flex items-start justify-between border-b border-gray-200 px-5 py-4">
             <div>
-                <h2 id="suggestion-fab-title" class="text-base font-semibold text-gray-900">Website feedback</h2>
-                <p class="mt-1 text-xs text-gray-500">Your current page will be included automatically.</p>
+                <h2 id="suggestion-fab-title" class="text-base font-semibold text-gray-900">Website Feedback</h2>
             </div>
             <button
                 type="button"
@@ -62,23 +61,22 @@
             <input type="hidden" name="page_url" value="{{ url()->full() }}">
 
             <div>
-                <label for="suggestion-fab-message" class="mb-1 block text-sm font-medium text-gray-700">Suggestion</label>
                 <textarea
                     id="suggestion-fab-message"
                     name="suggestion"
                     rows="4"
                     required
-                    class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"
                     placeholder="Share a workflow issue, improvement, or dashboard request..."
                 >{{ old('suggestion') }}</textarea>
             </div>
 
-            <div>
+            <div class="flex items-center gap-2">
                 <label for="suggestion-fab-urgency" class="mb-1 block text-sm font-medium text-gray-700">Urgency</label>
                 <select
                     id="suggestion-fab-urgency"
                     name="urgency"
-                    class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 p-1"
                 >
                     <option value="normal" @selected(old('urgency', 'normal') === 'normal')>Normal</option>
                     <option value="high" @selected(old('urgency') === 'high')>High</option>

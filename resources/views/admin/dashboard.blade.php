@@ -218,7 +218,7 @@
     @endphp
     <div id="suggestions" class="bg-white border border-gray-200 rounded-lg shadow-sm">
         <div class="px-5 py-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
-            <h3 class="text-base font-semibold text-gray-900">Website Suggestion Box</h3>
+            <h3 class="text-base font-semibold text-gray-900">Website Feedback</h3>
             <div class="flex gap-2">
                 <a href="{{ route('admin.dashboard', array_merge($suggestionFilterQuery, ['suggestion_status' => 'pending'])) }}"
                    class="px-3 py-1.5 rounded-md text-sm font-semibold border {{ $suggestionStatus === 'pending' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }}">
@@ -235,13 +235,12 @@
             </div>
         </div>
         <div class="p-5 space-y-5">
-            <p class="text-sm text-gray-600">Use Submit Feedback in the footer on any page to include the current URL automatically.</p>
             <form method="POST" action="{{ route('admin.dashboard.suggestions.store') }}" class="space-y-3">
                 @csrf
                 <input type="hidden" name="page_url" value="{{ url()->full() }}">
-                <textarea name="suggestion" rows="3" required class="w-full rounded-md border-gray-300 shadow-sm" placeholder="Share a workflow issue, improvement, or dashboard request...">{{ old('suggestion') }}</textarea>
+                <textarea name="suggestion" rows="3" required class="w-full rounded-md border-gray-300 shadow-md p-2" placeholder="Share a workflow issue, improvement, or dashboard request...">{{ old('suggestion') }}</textarea>
                 <div class="flex flex-wrap items-center gap-3">
-                    <select name="urgency" class="rounded-md border-gray-300 text-sm shadow-sm">
+                    <select name="urgency" class="rounded-md border-gray-300 text-sm shadow-sm p-1">
                         <option value="normal">Normal</option>
                         <option value="high">High</option>
                         <option value="low">Low</option>
