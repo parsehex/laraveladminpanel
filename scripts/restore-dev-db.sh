@@ -147,5 +147,5 @@ php artisan db:seed --class=FlowSeeder --no-interaction
 php artisan db:seed --class=UserSeeder --no-interaction
 
 echo "Restore complete on [$TARGET_DB]."
-echo "Local admin (if APP_ENV=local): admin@yopmail.com / admin@123"
+echo "Local developer (if APP_ENV=local): admin@yopmail.com / admin@123"
 echo "Restart php artisan serve if it is running."

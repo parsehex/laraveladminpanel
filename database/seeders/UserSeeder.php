@@ -8,10 +8,11 @@ use Illuminate\Database\Seeder;
 class UserSeeder extends Seeder
 {
     /**
-     * Create the local development admin only.
+     * Create the local development account only.
      *
      * Production (and any non-local env) must never recreate this account —
-     * operators may have changed the email/password after go-live.
+     * operators may have changed the email/password after go-live. After a
+     * prod dump restore this re-establishes admin@yopmail.com as developer.
      */
     public function run(): void
     {
@@ -19,17 +20,22 @@ class UserSeeder extends Seeder
             return;
         }
 
-        $admin = User::firstOrCreate(
+        $developer = User::firstOrCreate(
             ['email' => 'admin@yopmail.com'],
             [
                 'name' => 'Admin User',
                 'password' => 'admin@123',
-                'role' => 'admin',
+                'role' => 'developer',
                 'status' => 'active',
             ]
         );
 
-        $admin->syncRoles(['admin']);
-        $admin->syncPermissions([]);
+        $developer->forceFill([
+            'role' => 'developer',
+            'status' => 'active',
+        ])->save();
+
+        $developer->syncRoles(['developer']);
+        $developer->syncPermissions([]);
     }
 }

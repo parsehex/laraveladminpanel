@@ -10,7 +10,7 @@ Before planning or editing, find the row whose globs match the file's path and r
 | resources/views/{layouts,components}/** | .ai/rules/interface.md |
 | app/Models/InventoryStatus.php, app/Models/TruckAppliance.php | .ai/rules/models.md |
 | scripts/** | .ai/rules/scripts.md |
-| database/seeders/** | .ai/rules/seeders.md |
+| database/seeders/**, database/seeders/RolePermissionSeeder.php | .ai/rules/seeders.md |
 | app/Support/InventoryCostRange.php, app/Support/{DataTable,UserPreferences}.php, app/Support/PageSize.php | .ai/rules/support.md |
 | tests/** | .ai/rules/tests.md |
 | resources/views/admin/**/*.blade.php | .ai/rules/views-admin.md |

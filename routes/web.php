@@ -77,7 +77,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->middleware('permission:admin.dashboard')
         ->name('dashboard.suggestions.responses.store');
     Route::patch('/dashboard/suggestions/{suggestion}/complete', [AdminDashboardController::class, 'completeSuggestion'])
-        ->middleware('permission:admin.dashboard')
+        ->middleware('permission:suggestions.complete')
         ->name('dashboard.suggestions.complete');
 
     Route::get('dropdowns/categories', [DropdownController::class, 'categories'])

@@ -21,6 +21,7 @@ return [
     'staff_roles' => [
         'Super Admin',
         'admin',
+        'developer',
         'technician',
         'sales',
         'kit_assigner',
@@ -40,6 +41,7 @@ return [
         'admin',
         'Admin',
         'Super Admin',
+        'developer',
         'technician',
         'sales',
         'kit_assigner',
@@ -55,6 +57,7 @@ return [
     'protected_role_names' => [
         'Super Admin',
         'admin',
+        'developer',
         'technician',
         'kit_assigner',
         'kit_maker',

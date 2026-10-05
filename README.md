@@ -60,7 +60,7 @@ php artisan serve
 
 Seeded only when `APP_ENV=local` (never on production):
 
--   **Admin**: admin@yopmail.com / admin@123
+-   **Developer**: admin@yopmail.com / admin@123
 
 ## Project Structure
 

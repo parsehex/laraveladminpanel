@@ -124,8 +124,7 @@ class DashboardController extends Controller
 
     public function completeSuggestion(Request $request, Suggestion $suggestion)
     {
-
-        abort_unless($request->user()?->isStaff(), 403);
+        abort_unless($request->user()?->can('suggestions.complete'), 403);
 
         $suggestion->update([
             'status' => 'completed',

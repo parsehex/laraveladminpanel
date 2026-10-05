@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class UserFactory extends Factory
@@ -17,7 +18,7 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'password' => static::$password ??= \Illuminate\Support\Facades\Hash::make('password'),
+            'password' => static::$password ??= Hash::make('password'),
             'role' => fake()->randomElement(['user', 'admin', 'technician', 'kit_assigner']),
             'status' => fake()->randomElement(['active', 'inactive']),
             'remember_token' => Str::random(10),
@@ -32,6 +33,7 @@ class UserFactory extends Factory
             }
             $roleName = match ($user->role) {
                 'admin', 'Admin' => 'admin',
+                'developer' => 'developer',
                 'technician' => 'technician',
                 'kit_assigner' => 'kit_assigner',
                 default => 'user',
@@ -46,6 +48,13 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => 'admin',
+        ]);
+    }
+
+    public function developer()
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'developer',
         ]);
     }
 

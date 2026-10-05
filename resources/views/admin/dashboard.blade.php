@@ -268,18 +268,20 @@
                                 @endif
                                 <p class="mt-1 text-xs text-gray-500">{{ $suggestion->created_at->format('M d, Y h:i A') }}</p>
                             </div>
-                            @if($suggestion->status !== 'completed')
-                                <form method="POST" action="{{ route('admin.dashboard.suggestions.complete', $suggestion) }}">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit"
-                                            class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                                            title="Mark complete"
-                                            aria-label="Mark complete">
-                                        <i class="fas fa-check"></i>
-                                    </button>
-                                </form>
-                            @endif
+                            @can('suggestions.complete')
+                                @if($suggestion->status !== 'completed')
+                                    <form method="POST" action="{{ route('admin.dashboard.suggestions.complete', $suggestion) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit"
+                                                class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                                                title="Mark complete"
+                                                aria-label="Mark complete">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </form>
+                                @endif
+                            @endcan
                         </div>
                         @if(! empty($suggestion->responses))
                             <div class="mt-3 space-y-2">

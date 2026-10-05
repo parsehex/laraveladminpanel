@@ -67,6 +67,7 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'trucks.edit', 'module_name' => 'trucks', 'description' => 'Edit trucks'],
             ['name' => 'trucks.delete', 'module_name' => 'trucks', 'description' => 'Delete trucks'],
             ['name' => 'notification-settings.manage', 'module_name' => 'notification settings', 'description' => 'Manage module notification subscribers'],
+            ['name' => 'suggestions.complete', 'module_name' => 'suggestions', 'description' => 'Mark website feedback/suggestions as complete'],
         ];
 
         foreach ($definitions as $def) {
@@ -101,8 +102,15 @@ class RolePermissionSeeder extends Seeder
         | Ben's Appliances–style roles (lowercase, as in legacy Manage UI).
         | Adjust permission lists when you add Trucks, Parts, Kits, etc.
         */
+        $allPermissions = Permission::pluck('name')->all();
+        $adminPermissions = array_values(array_filter(
+            $allPermissions,
+            fn (string $name): bool => $name !== 'suggestions.complete',
+        ));
+
         $roles = [
-            'admin' => Permission::pluck('name')->all(),
+            'admin' => $adminPermissions,
+            'developer' => $allPermissions,
             'technician' => [
                 'admin.dashboard',
                 'users.view',

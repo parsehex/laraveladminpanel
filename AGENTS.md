@@ -165,6 +165,6 @@ Local TCP auth on `127.0.0.1` and `::1` is `trust`. Copy `.env.example` to `.env
 
 `npm` comes from nvm and is often missing from a non-login `PATH`. Add `$HOME/.nvm/versions/node/<version>/bin` before `npm ci` or `npm run build`. Most pages load Tailwind from a CDN. `npm run build` is still required for the Vite entrypoints on the inventory testing and testing-flow editor pages.
 
-`UserSeeder` creates `admin@yopmail.com` / `admin@123` only when `APP_ENV=local`. It is a no-op on production so a renamed admin is not recreated.
+`UserSeeder` creates/reasserts `admin@yopmail.com` / `admin@123` as the `developer` role only when `APP_ENV=local`. It is a no-op on production so a renamed admin is not recreated.
 
 Dev server: `php artisan serve --host=0.0.0.0 --port=8000`.
