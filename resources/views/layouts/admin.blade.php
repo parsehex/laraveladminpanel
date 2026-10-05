@@ -260,7 +260,39 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script>
-        window.adminDataTable = function (storageKey, columnConfig) {
+        window.adminUserPreferences = {
+            updateUrl: @js(route('admin.preferences.update')),
+            destroyUrl: @js(route('admin.preferences.destroy')),
+            csrfToken: document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            put(key, value) {
+                return fetch(this.updateUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': this.csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ key, value }),
+                    credentials: 'same-origin',
+                });
+            },
+            forget(key) {
+                return fetch(this.destroyUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': this.csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ key }),
+                    credentials: 'same-origin',
+                });
+            },
+        };
+
+        window.adminDataTable = function (storageKey, columnConfig, serverStored = null) {
             if (!storageKey || !columnConfig.length) {
                 return {
                     init() {},
@@ -273,18 +305,39 @@
                 };
             }
 
+            const preferenceKey = 'data_table.columns.' + storageKey;
             const buildDefaults = () => Object.fromEntries(
                 columnConfig.map(({ key, default: isOn }) => [key, isOn !== false])
             );
 
             return {
                 visible: {},
+                _persistTimer: null,
+                _suppressPersist: true,
                 init() {
-                    this.applyStoredColumns(localStorage.getItem(storageKey));
+                    if (serverStored && typeof serverStored === 'object') {
+                        this.applyStoredColumns(serverStored);
+                        localStorage.setItem(storageKey, JSON.stringify(this.visible));
+                    } else {
+                        const localValue = localStorage.getItem(storageKey);
+                        this.applyStoredColumns(localValue);
+
+                        if (localValue !== null) {
+                            this.persistColumns(this.visible, false);
+                        }
+                    }
+
+                    this.$nextTick(() => {
+                        this._suppressPersist = false;
+                    });
 
                     this.$watch('visible', (value) => {
                         localStorage.setItem(storageKey, JSON.stringify(value));
                         window.dispatchEvent(new CustomEvent('wide-table-resync'));
+
+                        if (! this._suppressPersist) {
+                            this.persistColumns(value, true);
+                        }
                     }, { deep: true });
 
                     window.addEventListener('storage', (event) => {
@@ -292,15 +345,25 @@
                             return;
                         }
 
+                        this._suppressPersist = true;
                         this.applyStoredColumns(event.newValue);
+                        this.$nextTick(() => {
+                            this._suppressPersist = false;
+                        });
                         window.dispatchEvent(new CustomEvent('wide-table-resync'));
                     });
                 },
                 applyStoredColumns(storedValue) {
                     const defaults = buildDefaults();
 
-                    if (storedValue === null) {
+                    if (storedValue === null || storedValue === undefined) {
                         this.visible = defaults;
+
+                        return;
+                    }
+
+                    if (typeof storedValue === 'object' && ! Array.isArray(storedValue)) {
+                        this.visible = { ...defaults, ...storedValue };
 
                         return;
                     }
@@ -310,6 +373,20 @@
                     } catch (error) {
                         this.visible = defaults;
                     }
+                },
+                persistColumns(value, debounce) {
+                    const save = () => {
+                        window.adminUserPreferences?.put(preferenceKey, value);
+                    };
+
+                    if (! debounce) {
+                        save();
+
+                        return;
+                    }
+
+                    clearTimeout(this._persistTimer);
+                    this._persistTimer = setTimeout(save, 300);
                 },
                 isColumnVisible(key) {
                     return this.visible[key] !== false;
@@ -325,8 +402,14 @@
                     );
                 },
                 resetColumns() {
+                    this._suppressPersist = true;
+                    clearTimeout(this._persistTimer);
                     localStorage.removeItem(storageKey);
+                    window.adminUserPreferences?.forget(preferenceKey);
                     this.visible = buildDefaults();
+                    this.$nextTick(() => {
+                        this._suppressPersist = false;
+                    });
                 },
             };
         };

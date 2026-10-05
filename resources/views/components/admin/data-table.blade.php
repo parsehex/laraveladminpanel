@@ -8,9 +8,12 @@
 ])
 
 @php
+    $initialColumnVisibility = null;
+
     if ($table instanceof \App\Support\DataTable) {
         $columnStorageKey = $table->storageKey();
         $sourceColumns = $table->columnsForView();
+        $initialColumnVisibility = $table->columnVisibilityFor(auth()->user());
     } else {
         $sourceColumns = $columns;
     }
@@ -47,7 +50,7 @@
         {{ $filters }}
     @endisset
 
-    <div x-data="adminDataTable(@js($columnStorageKey), @js($toggleableColumns))" x-init="init()">
+    <div x-data="adminDataTable(@js($columnStorageKey), @js($toggleableColumns), @js($initialColumnVisibility))" x-init="init()">
         @if((! $title && isset($header)) || ($columnStorageKey && count($toggleableColumns)))
             <div class="flex flex-wrap items-center justify-end gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2">
                 @if(! $title)

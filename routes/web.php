@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\TruckApplianceController;
 use App\Http\Controllers\Admin\TruckController;
 use App\Http\Controllers\Admin\UserActionController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\UserPreferenceController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -154,6 +155,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->name('notifications.read-all');
     Route::post('notifications/{notification}/read', [NotificationController::class, 'markRead'])
         ->name('notifications.read');
+
+    Route::put('preferences', [UserPreferenceController::class, 'update'])
+        ->name('preferences.update');
+    Route::delete('preferences', [UserPreferenceController::class, 'destroy'])
+        ->name('preferences.destroy');
 
     Route::get('kits', [KitController::class, 'index'])
         ->middleware('permission:kits.view')

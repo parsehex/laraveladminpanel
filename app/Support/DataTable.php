@@ -32,6 +32,11 @@ class DataTable
         return 'data_table.sort.'.$this->storageKey;
     }
 
+    public function columnsPreferenceKey(): string
+    {
+        return 'data_table.columns.'.$this->storageKey;
+    }
+
     /**
      * @return array<int, array<string, mixed>>
      */
@@ -48,6 +53,37 @@ class DataTable
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Stored column visibility for this table, keyed by column key.
+     *
+     * @return array<string, bool>|null
+     */
+    public function columnVisibilityFor(?User $user): ?array
+    {
+        if ($user === null) {
+            return null;
+        }
+
+        $stored = UserPreferences::get($user, $this->columnsPreferenceKey());
+
+        if (! is_array($stored)) {
+            return null;
+        }
+
+        $allowedKeys = collect($this->columns)->pluck('key')->all();
+        $visibility = [];
+
+        foreach ($stored as $key => $visible) {
+            if (! is_string($key) || ! in_array($key, $allowedKeys, true)) {
+                continue;
+            }
+
+            $visibility[$key] = (bool) $visible;
+        }
+
+        return $visibility === [] ? null : $visibility;
     }
 
     /**
