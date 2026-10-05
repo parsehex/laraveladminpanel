@@ -14,3 +14,6 @@ Operations cards under the period filter must use the same date range: Units Add
 
 ## Appliance add-part requires real part numbers
 When adding a part on the appliance detail page, selecting an existing catalog part (part_id) is enough. Freeform adds must supply part_number; do not auto-generate fake part numbers. New numbers must be unique among active parts (soft-deleted may be restored).
+
+## Input Requests are a feedback tab
+Input requests are `suggestions.kind = input_request`, shown as the Input Requests tab inside Website Feedback (`feedback_kind` query). Create/complete with `suggestions.complete`; staff can reply with dashboard access. No notifications — show pending count as a colored badge on the tab. Staff FAB/forms always create `kind = suggestion`.

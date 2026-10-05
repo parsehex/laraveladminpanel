@@ -73,6 +73,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/dashboard/suggestions', [SuggestionController::class, 'store'])
         ->middleware('permission:admin.dashboard')
         ->name('dashboard.suggestions.store');
+    Route::post('/dashboard/input-requests', [AdminDashboardController::class, 'storeInputRequest'])
+        ->middleware('permission:suggestions.complete')
+        ->name('dashboard.input-requests.store');
     Route::post('/dashboard/suggestions/{suggestion}/responses', [AdminDashboardController::class, 'storeSuggestionResponse'])
         ->middleware('permission:admin.dashboard')
         ->name('dashboard.suggestions.responses.store');

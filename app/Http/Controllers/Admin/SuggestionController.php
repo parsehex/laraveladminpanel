@@ -21,6 +21,7 @@ class SuggestionController extends Controller
         ]);
 
         $suggestion = Suggestion::create([
+            'kind' => Suggestion::KIND_SUGGESTION,
             'user_id' => $request->user()->id,
             'username' => $request->user()->name,
             'suggestion' => $data['suggestion'],

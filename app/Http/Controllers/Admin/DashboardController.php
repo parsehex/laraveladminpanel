@@ -59,6 +59,11 @@ class DashboardController extends Controller
             ->take(25)
             ->get();
 
+        $feedbackKind = $request->get('feedback_kind', Suggestion::KIND_SUGGESTION);
+        if (! in_array($feedbackKind, [Suggestion::KIND_SUGGESTION, Suggestion::KIND_INPUT_REQUEST], true)) {
+            $feedbackKind = Suggestion::KIND_SUGGESTION;
+        }
+
         $suggestionStatus = $request->get('suggestion_status', 'pending');
         if (! in_array($suggestionStatus, ['pending', 'completed', 'all'], true)) {
             $suggestionStatus = 'pending';
@@ -66,10 +71,16 @@ class DashboardController extends Controller
 
         $suggestions = Suggestion::query()
             ->with(['user', 'completedBy'])
+            ->where('kind', $feedbackKind)
             ->when($suggestionStatus !== 'all', fn ($query) => $query->where('status', $suggestionStatus))
             ->latest()
             ->paginate(10, ['*'], 'suggestions_page')
             ->withQueryString();
+
+        $pendingInputRequestCount = Suggestion::query()
+            ->inputRequests()
+            ->where('status', 'pending')
+            ->count();
 
         return view('admin.dashboard', [
             'stats' => $stats,
@@ -77,12 +88,42 @@ class DashboardController extends Controller
             'holdingForParts' => $holdingForParts,
             'holding' => $holding,
             'suggestions' => $suggestions,
+            'feedbackKind' => $feedbackKind,
             'suggestionStatus' => $suggestionStatus,
+            'pendingInputRequestCount' => $pendingInputRequestCount,
             'period' => $request->get('period', 'weekly'),
             'periodLabel' => $periodLabel,
             'from' => $from,
             'to' => $to,
         ]);
+    }
+
+    public function storeInputRequest(Request $request)
+    {
+        abort_unless($request->user()?->can('suggestions.complete'), 403);
+
+        $data = $request->validate([
+            'suggestion' => ['required', 'string', 'max:2000'],
+            'page_url' => ['nullable', 'string', 'max:2048'],
+        ]);
+
+        Suggestion::query()->create([
+            'kind' => Suggestion::KIND_INPUT_REQUEST,
+            'user_id' => $request->user()->id,
+            'username' => $request->user()->name,
+            'suggestion' => $data['suggestion'],
+            'page_url' => filled($data['page_url'] ?? null) ? $data['page_url'] : null,
+            'urgency' => 'normal',
+            'status' => 'pending',
+            'responses' => [],
+        ]);
+
+        return redirect()
+            ->route('admin.dashboard', [
+                'feedback_kind' => Suggestion::KIND_INPUT_REQUEST,
+                'suggestion_status' => 'pending',
+            ])
+            ->with('success', __('Input request posted.'));
     }
 
     public function executive(Request $request)

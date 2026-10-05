@@ -210,44 +210,90 @@
     </div>
 
     @php
+        $isInputRequestTab = $feedbackKind === \App\Models\Suggestion::KIND_INPUT_REQUEST;
         $suggestionFilterQuery = array_filter([
             'period' => request('period'),
             'from' => request('from'),
             'to' => request('to'),
+            'feedback_kind' => $feedbackKind,
+        ]);
+        $kindTabQuery = array_filter([
+            'period' => request('period'),
+            'from' => request('from'),
+            'to' => request('to'),
+            'suggestion_status' => $suggestionStatus,
         ]);
     @endphp
     <div id="suggestions" class="bg-white border border-gray-200 rounded-lg shadow-sm">
-        <div class="px-5 py-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
-            <h3 class="text-base font-semibold text-gray-900">Website Feedback</h3>
+        <div class="px-5 py-4 border-b border-gray-200 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h3 class="text-base font-semibold text-gray-900">Website Feedback</h3>
+                <div class="flex gap-2">
+                    <a href="{{ route('admin.dashboard', array_merge($suggestionFilterQuery, ['suggestion_status' => 'pending'])) }}"
+                       class="px-3 py-1.5 rounded-md text-sm font-semibold border {{ $suggestionStatus === 'pending' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }}">
+                        Pending
+                    </a>
+                    <a href="{{ route('admin.dashboard', array_merge($suggestionFilterQuery, ['suggestion_status' => 'completed'])) }}"
+                       class="px-3 py-1.5 rounded-md text-sm font-semibold border {{ $suggestionStatus === 'completed' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }}">
+                        Completed
+                    </a>
+                    <a href="{{ route('admin.dashboard', array_merge($suggestionFilterQuery, ['suggestion_status' => 'all'])) }}"
+                       class="px-3 py-1.5 rounded-md text-sm font-semibold border {{ $suggestionStatus === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }}">
+                        All
+                    </a>
+                </div>
+            </div>
             <div class="flex gap-2">
-                <a href="{{ route('admin.dashboard', array_merge($suggestionFilterQuery, ['suggestion_status' => 'pending'])) }}"
-                   class="px-3 py-1.5 rounded-md text-sm font-semibold border {{ $suggestionStatus === 'pending' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }}">
-                    Pending
+                <a href="{{ route('admin.dashboard', array_merge($kindTabQuery, ['feedback_kind' => \App\Models\Suggestion::KIND_SUGGESTION])) }}"
+                   class="px-3 py-1.5 rounded-md text-sm font-semibold border {{ ! $isInputRequestTab ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }}">
+                    Feedback
                 </a>
-                <a href="{{ route('admin.dashboard', array_merge($suggestionFilterQuery, ['suggestion_status' => 'completed'])) }}"
-                   class="px-3 py-1.5 rounded-md text-sm font-semibold border {{ $suggestionStatus === 'completed' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }}">
-                    Completed
-                </a>
-                <a href="{{ route('admin.dashboard', array_merge($suggestionFilterQuery, ['suggestion_status' => 'all'])) }}"
-                   class="px-3 py-1.5 rounded-md text-sm font-semibold border {{ $suggestionStatus === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }}">
-                    All
+                <a href="{{ route('admin.dashboard', array_merge($kindTabQuery, ['feedback_kind' => \App\Models\Suggestion::KIND_INPUT_REQUEST])) }}"
+                   class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-semibold border {{ $isInputRequestTab ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }}">
+                    Input Requests
+                    @if($pendingInputRequestCount > 0)
+                        <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-xs font-bold leading-none text-white">
+                            {{ $pendingInputRequestCount }}
+                        </span>
+                    @endif
                 </a>
             </div>
         </div>
         <div class="p-5 space-y-5">
-            <form method="POST" action="{{ route('admin.dashboard.suggestions.store') }}" class="space-y-3">
-                @csrf
-                <input type="hidden" name="page_url" value="{{ url()->full() }}">
-                <textarea name="suggestion" rows="3" required class="w-full rounded-md border-gray-300 shadow-md p-2" placeholder="Share a workflow issue, improvement, or dashboard request...">{{ old('suggestion') }}</textarea>
-                <div class="flex flex-wrap items-center gap-3">
-                    <select name="urgency" class="rounded-md border-gray-300 text-sm shadow-sm p-1">
-                        <option value="normal">Normal</option>
-                        <option value="high">High</option>
-                        <option value="low">Low</option>
-                    </select>
-                    <button class="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold">Submit Suggestion</button>
-                </div>
-            </form>
+            @if($isInputRequestTab)
+                @can('suggestions.complete')
+                    <form method="POST" action="{{ route('admin.dashboard.input-requests.store') }}" class="space-y-3">
+                        @csrf
+                        <textarea name="suggestion" rows="3" required class="w-full rounded-md border-gray-300 shadow-md p-2" placeholder="Ask staff for input on a workflow, design choice, or open question...">{{ old('suggestion') }}</textarea>
+                        <div>
+                            <label for="input-request-page-url" class="mb-1 block text-sm font-medium text-gray-700">Related page URL</label>
+                            <input
+                                id="input-request-page-url"
+                                type="url"
+                                name="page_url"
+                                value="{{ old('page_url', url()->full()) }}"
+                                class="w-full rounded-md border-gray-300 text-sm shadow-sm"
+                                placeholder="https://..."
+                            >
+                        </div>
+                        <button class="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold">Post input request</button>
+                    </form>
+                @endcan
+            @else
+                <form method="POST" action="{{ route('admin.dashboard.suggestions.store') }}" class="space-y-3">
+                    @csrf
+                    <input type="hidden" name="page_url" value="{{ url()->full() }}">
+                    <textarea name="suggestion" rows="3" required class="w-full rounded-md border-gray-300 shadow-md p-2" placeholder="Share a workflow issue, improvement, or dashboard request...">{{ old('suggestion') }}</textarea>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <select name="urgency" class="rounded-md border-gray-300 text-sm shadow-sm p-1">
+                            <option value="normal">Normal</option>
+                            <option value="high">High</option>
+                            <option value="low">Low</option>
+                        </select>
+                        <button class="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-semibold">Submit Suggestion</button>
+                    </div>
+                </form>
+            @endif
 
             <div class="space-y-3">
                 @forelse($suggestions as $suggestion)
@@ -256,7 +302,9 @@
                             <div>
                                 <div class="flex flex-wrap items-center gap-2">
                                     <span class="font-semibold text-gray-900">{{ $suggestion->username ?: $suggestion->user?->name ?: 'Staff' }}</span>
-                                    <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $suggestion->urgency === 'high' ? 'bg-red-100 text-red-700' : ($suggestion->urgency === 'low' ? 'bg-gray-100 text-gray-700' : 'bg-amber-100 text-amber-700') }}">{{ ucfirst($suggestion->urgency) }}</span>
+                                    @unless($suggestion->isInputRequest())
+                                        <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $suggestion->urgency === 'high' ? 'bg-red-100 text-red-700' : ($suggestion->urgency === 'low' ? 'bg-gray-100 text-gray-700' : 'bg-amber-100 text-amber-700') }}">{{ ucfirst($suggestion->urgency) }}</span>
+                                    @endunless
                                     <span class="px-2 py-1 rounded-full text-xs font-semibold {{ $suggestion->status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700' }}">{{ ucfirst($suggestion->status) }}</span>
                                 </div>
                                 <p class="mt-2 text-sm text-gray-700">{{ $suggestion->suggestion }}</p>
@@ -300,7 +348,15 @@
                     </div>
                 @empty
                     <div class="rounded-lg border border-dashed border-gray-300 p-6 text-center text-gray-500">
-                        @if($suggestionStatus === 'completed')
+                        @if($isInputRequestTab)
+                            @if($suggestionStatus === 'completed')
+                                No completed input requests yet.
+                            @elseif($suggestionStatus === 'all')
+                                No input requests have been posted yet.
+                            @else
+                                No open input requests.
+                            @endif
+                        @elseif($suggestionStatus === 'completed')
                             No completed suggestions yet.
                         @elseif($suggestionStatus === 'all')
                             No suggestions have been submitted yet.
