@@ -5,6 +5,11 @@
 @section('page-subtitle', $truck->name)
 
 @section('page-actions')
+    @role('developer')
+    <button type="button" class="inline-flex items-center justify-center rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-700" data-open-unit-labels>
+        <i class="fas fa-tags mr-1"></i>Fix unit labels
+    </button>
+    @endrole
     @canAccess('trucks.edit')
     <a href="{{ route('admin.trucks.edit', $truck) }}" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">
         <i class="fas fa-edit mr-1"></i>Edit
@@ -279,6 +284,67 @@
 </div>
 
 @include('admin.shared.ajax-dropdowns')
+
+@role('developer')
+<div
+    id="fix-unit-labels-modal"
+    class="hidden fixed inset-0 z-50 bg-black/50 items-center justify-center p-6"
+    data-preview-url="{{ route('admin.trucks.unit-labels.preview', $truck) }}"
+    aria-hidden="true"
+>
+    <div class="bg-white rounded-lg shadow max-w-2xl w-full max-h-[85vh] flex flex-col" role="dialog" aria-modal="true" aria-labelledby="fix-unit-labels-title">
+        <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+            <h3 id="fix-unit-labels-title" class="text-lg font-semibold text-gray-900">Fix unit labels</h3>
+            <button type="button" class="text-gray-500 hover:text-gray-700" data-close-unit-labels aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ route('admin.trucks.unit-labels.fix', $truck) }}" class="flex flex-col min-h-0">
+            @csrf
+            <div class="space-y-4 px-6 py-5 overflow-y-auto">
+                <p class="text-sm text-gray-600">
+                    Labels will be rewritten as <span class="font-semibold text-gray-900">{{ $truck->name }}-001</span>, <span class="font-semibold text-gray-900">{{ $truck->name }}-002</span>, and so on.
+                </p>
+
+                <div>
+                    <label for="unit-label-sort" class="block text-sm font-medium text-gray-700 mb-1">Order items by</label>
+                    <select id="unit-label-sort" name="sort" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        @foreach(\App\Support\TruckUnitLabels::SORTS as $sortKey => $sortLabel)
+                            <option value="{{ $sortKey }}" @selected($sortKey === \App\Support\TruckUnitLabels::SORT_UNIT_LABEL)>{{ $sortLabel }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-2 text-sm text-gray-500" data-unit-label-sort-help>
+                        Unit Label keeps each item's current number when that number is unique. An item already named in this format wins if two items share a number.
+                    </p>
+                </div>
+
+                <p class="text-sm text-gray-700" data-unit-label-summary>Loading changes…</p>
+
+                <div class="border border-gray-200 rounded-md overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200 text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left font-medium text-gray-500">Current</th>
+                                <th class="px-3 py-2 text-left font-medium text-gray-500">New</th>
+                                <th class="px-3 py-2 text-left font-medium text-gray-500">Serial #</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" data-unit-label-changes></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 border-t border-gray-200 px-6 py-4">
+                <button type="button" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600" data-close-unit-labels>Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50" data-unit-label-confirm disabled>
+                    Update labels
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endrole
 @endsection
 
 @push('styles')
@@ -391,6 +457,102 @@
 @endpush
 
 @push('scripts')
+@role('developer')
+<script>
+    (function () {
+        const $modal = $('#fix-unit-labels-modal');
+
+        if (! $modal.length) {
+            return;
+        }
+
+        const previewUrl = $modal.data('preview-url');
+        const $sort = $('#unit-label-sort');
+        const $summary = $modal.find('[data-unit-label-summary]');
+        const $changes = $modal.find('[data-unit-label-changes]');
+        const $confirm = $modal.find('[data-unit-label-confirm]');
+        const $help = $modal.find('[data-unit-label-sort-help]');
+        const keepNumbersHelp = "Unit Label keeps each item's current number when that number is unique. An item already named in this format wins if two items share a number.";
+        const renumberHelp = 'Items are numbered 001, 002, 003 in this order. Existing numbers are replaced.';
+
+        function escapeHtml(value) {
+            return $('<div>').text(value || '').html();
+        }
+
+        function closeModal() {
+            $modal.addClass('hidden').removeClass('flex').attr('aria-hidden', 'true');
+        }
+
+        function renderPreview(payload) {
+            const changes = payload.changes || [];
+            const unchanged = payload.unchanged || 0;
+
+            $help.text(payload.keeps_numbers ? keepNumbersHelp : renumberHelp);
+            $changes.empty();
+
+            if (! changes.length) {
+                $summary.text(unchanged
+                    ? 'Every unit label already matches this format.'
+                    : 'This truck has no items to rename.');
+                $changes.append('<tr><td colspan="3" class="px-3 py-4 text-center text-gray-500">Nothing to update.</td></tr>');
+                $confirm.prop('disabled', true).text('Update labels');
+
+                return;
+            }
+
+            const noun = changes.length === 1 ? 'label' : 'labels';
+            const skipped = unchanged ? ' ' + unchanged + ' already match and will be left alone.' : '';
+            $summary.text('This will update ' + changes.length + ' ' + noun + '.' + skipped);
+            $confirm.prop('disabled', false).text('Update ' + changes.length + ' ' + noun);
+
+            changes.forEach(function (change) {
+                $changes.append(
+                    '<tr>'
+                    + '<td class="px-3 py-2 text-gray-700">' + escapeHtml(change.from || '—') + '</td>'
+                    + '<td class="px-3 py-2 font-semibold text-gray-900">' + escapeHtml(change.to) + '</td>'
+                    + '<td class="px-3 py-2 text-gray-700">' + escapeHtml(change.serial_number || '—') + '</td>'
+                    + '</tr>'
+                );
+            });
+        }
+
+        function loadPreview() {
+            $summary.text('Loading changes…');
+            $changes.html('<tr><td colspan="3" class="px-3 py-4 text-center text-gray-500">Loading…</td></tr>');
+            $confirm.prop('disabled', true);
+
+            const url = previewUrl + '?sort=' + encodeURIComponent($sort.val());
+
+            fetch(url, {
+                headers: { 'Accept': 'application/json' },
+            }).then(function (response) {
+                if (! response.ok) {
+                    throw new Error('Unable to preview unit labels.');
+                }
+
+                return response.json();
+            }).then(renderPreview).catch(function (error) {
+                $summary.text(error.message || 'Unable to preview unit labels.');
+                $changes.html('<tr><td colspan="3" class="px-3 py-4 text-center text-gray-500">Preview unavailable.</td></tr>');
+                $confirm.prop('disabled', true);
+            });
+        }
+
+        $('[data-open-unit-labels]').on('click', function () {
+            $modal.removeClass('hidden').addClass('flex').attr('aria-hidden', 'false');
+            loadPreview();
+        });
+
+        $sort.on('change', loadPreview);
+        $modal.on('click', '[data-close-unit-labels]', closeModal);
+        $modal.on('click', function (event) {
+            if (event.target === $modal[0]) {
+                closeModal();
+            }
+        });
+    })();
+</script>
+@endrole
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     const allTruckApplianceIds = @json($truck->appliances->pluck('id')->values());

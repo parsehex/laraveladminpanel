@@ -446,6 +446,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         ->middleware('permission:models.delete')
         ->name('models.destroy');
 
+    Route::get('trucks/{truck}/unit-labels', [TruckController::class, 'previewUnitLabels'])
+        ->middleware('permission:trucks.view')
+        ->name('trucks.unit-labels.preview');
+    Route::post('trucks/{truck}/unit-labels', [TruckController::class, 'fixUnitLabels'])
+        ->middleware('permission:trucks.view')
+        ->name('trucks.unit-labels.fix');
     Route::post('trucks/import', [TruckController::class, 'importPreview'])
         ->middleware('permission:trucks.create')
         ->name('trucks.import');

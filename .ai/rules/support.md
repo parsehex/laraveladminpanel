@@ -3,6 +3,7 @@ paths:
   - app/Support/InventoryCostRange.php
   - 'app/Support/{DataTable,UserPreferences}.php'
   - app/Support/PageSize.php
+  - app/Support/TruckUnitLabels.php
 ---
 
 # Support
@@ -15,3 +16,6 @@ UI preferences that must follow the user across browsers go in `user_preferences
 
 ## Page size prefs are global under page_size
 Rows-per-page is one shared preference (`user_preferences` key `page_size`) via `PageSize::resolve()`. A valid `?limit=` on any list saves it; when absent, that same value is used everywhere. No per-table page-size keys. URL `limit` still wins when present.
+
+## Unit labels are {truck name}-{###}
+Unit labels use the truck name plus a trailing number padded to at least 3 digits (Gamma-001). The developer-only fix on the truck page rewrites them. Sort Unit Label keeps each item's trailing number when it is unique; an item already in {name}-{###} wins a collision, and leftovers take the lowest free numbers. Any other sort renumbers 001…n in that order.

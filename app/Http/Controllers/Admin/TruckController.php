@@ -17,11 +17,14 @@ use App\Support\ApplianceStatusFilter;
 use App\Support\DataTable;
 use App\Support\InventoryCostRange;
 use App\Support\PageSize;
+use App\Support\TruckUnitLabels;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class TruckController extends Controller
@@ -323,6 +326,29 @@ class TruckController extends Controller
         return redirect()->route('admin.trucks.index')->with('success', __('Import cancelled.'));
     }
 
+    private function ensureDeveloper(Request $request): void
+    {
+        abort_unless($request->user()?->hasRole('developer'), 403);
+    }
+
+    private function ensureTruckHasName(Truck $truck): void
+    {
+        if (trim((string) $truck->name) === '') {
+            throw ValidationException::withMessages([
+                'truck' => 'This truck needs a name before unit labels can be fixed.',
+            ]);
+        }
+    }
+
+    private function unitLabelSort(Request $request): string
+    {
+        $data = $request->validate([
+            'sort' => ['required', Rule::in(array_keys(TruckUnitLabels::SORTS))],
+        ]);
+
+        return $data['sort'];
+    }
+
     private function stagedCsvImport(): StagedCsvImport
     {
         return new StagedCsvImport('truck_csv_import');
@@ -371,6 +397,47 @@ class TruckController extends Controller
             'dataTable' => $dataTable,
             ...$dataTable->sortState($request),
         ]);
+    }
+
+    public function previewUnitLabels(Request $request, Truck $truck, TruckUnitLabels $labels): JsonResponse
+    {
+        $this->ensureDeveloper($request);
+        $this->ensureTruckHasName($truck);
+
+        $sort = $this->unitLabelSort($request);
+        $plan = $labels->plan($truck, $sort);
+
+        return response()->json([
+            'sort' => $sort,
+            'keeps_numbers' => $sort === TruckUnitLabels::SORT_UNIT_LABEL,
+            'changes' => $plan['changes'],
+            'unchanged' => $plan['unchanged'],
+        ]);
+    }
+
+    public function fixUnitLabels(Request $request, Truck $truck, TruckUnitLabels $labels): RedirectResponse
+    {
+        $this->ensureDeveloper($request);
+        $this->ensureTruckHasName($truck);
+
+        $sort = $this->unitLabelSort($request);
+        $count = $labels->apply($truck, $sort, $request->user()->id);
+
+        if ($count > 0) {
+            UserAction::log('fix_unit_labels', null, [
+                'truck_id' => $truck->id,
+                'sort' => $sort,
+                'updated' => $count,
+            ]);
+        }
+
+        $message = $count === 0
+            ? 'Unit labels already match '.$truck->name.'-###.'
+            : 'Updated '.$count.' unit '.($count === 1 ? 'label' : 'labels').'.';
+
+        return redirect()
+            ->route('admin.trucks.show', $truck)
+            ->with('success', $message);
     }
 
     public function edit(Truck $truck)
