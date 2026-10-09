@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Enums\ItemType;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\InventoryStatus;
@@ -152,16 +153,19 @@ class TruckApplianceCsvImport
         );
     }
 
-    public function commit(Truck $truck, string $path, User $user): CsvImportResult
+    /**
+     * @param  array<string, string>  $categoryTypes  new category name => ItemType value
+     */
+    public function commit(Truck $truck, string $path, User $user, array $categoryTypes = []): CsvImportResult
     {
         $imported = 0;
         $updated = 0;
 
-        DB::transaction(function () use ($truck, $path, $user, &$imported, &$updated) {
+        DB::transaction(function () use ($truck, $path, $user, $categoryTypes, &$imported, &$updated) {
             $existingAppliances = $truck->appliances()->orderBy('id')->get();
             $nextUnitNumber = $this->maxUnitNumber($truck) + 1;
 
-            foreach ($this->parseRows($truck, $path, $user, writeCatalog: true, existingAppliances: $existingAppliances, nextUnitNumber: $nextUnitNumber) as $parsed) {
+            foreach ($this->parseRows($truck, $path, $user, writeCatalog: true, existingAppliances: $existingAppliances, nextUnitNumber: $nextUnitNumber, categoryTypes: $categoryTypes) as $parsed) {
                 if ($parsed['action'] === 'error') {
                     throw ValidationException::withMessages([
                         'csv_file' => ["Row {$parsed['row_number']}: ".implode(' ', $parsed['errors'])],
@@ -190,6 +194,7 @@ class TruckApplianceCsvImport
 
     /**
      * @param  Collection<int, TruckAppliance>|null  $existingAppliances
+     * @param  array<string, string>  $categoryTypes
      * @return \Generator<int, array{
      *     row_number: int,
      *     action: 'create'|'update'|'unchanged'|'error',
@@ -208,6 +213,7 @@ class TruckApplianceCsvImport
         bool $writeCatalog,
         ?Collection $existingAppliances = null,
         ?int $nextUnitNumber = null,
+        array $categoryTypes = [],
     ): \Generator {
         $handle = fopen($path, 'r');
         if ($handle === false) {
@@ -239,6 +245,7 @@ class TruckApplianceCsvImport
                     $writeCatalog,
                     $existingAppliances,
                     $nextUnitNumber,
+                    $categoryTypes,
                 );
 
                 if ($parsed['action'] === 'create' && ! $writeCatalog) {
@@ -256,6 +263,7 @@ class TruckApplianceCsvImport
      * @param  array<int, mixed>  $row
      * @param  array<string, int>  $columns
      * @param  Collection<int, TruckAppliance>  $existingAppliances
+     * @param  array<string, string>  $categoryTypes
      * @return array{
      *     row_number: int,
      *     action: 'create'|'update'|'unchanged'|'error',
@@ -276,6 +284,7 @@ class TruckApplianceCsvImport
         bool $writeCatalog,
         Collection $existingAppliances,
         int &$nextUnitNumber,
+        array $categoryTypes = [],
     ): array {
         $unitLabel = trim((string) $this->csvValue($row, $columns, ['unit_label'], 0));
         if ($unitLabel === '') {
@@ -363,7 +372,12 @@ class TruckApplianceCsvImport
             $category = $categoryName !== ''
                 ? Category::firstOrCreate(
                     ['name' => $categoryName],
-                    ['status' => 1, 'created_by' => $user->id, 'updated_by' => $user->id]
+                    [
+                        'status' => 1,
+                        'type' => $this->categoryType($categoryName, $categoryTypes),
+                        'created_by' => $user->id,
+                        'updated_by' => $user->id,
+                    ]
                 )
                 : null;
 
@@ -601,6 +615,14 @@ class TruckApplianceCsvImport
         }
 
         return (string) $value;
+    }
+
+    /**
+     * @param  array<string, string>  $categoryTypes
+     */
+    private function categoryType(string $categoryName, array $categoryTypes): ItemType
+    {
+        return ItemType::tryFrom($categoryTypes[$categoryName] ?? '') ?? ItemType::Appliance;
     }
 
     private function syncBrand(?string $brand, int $userId): void

@@ -43,7 +43,7 @@
                 </button>
             </form>
             @if($preview->canConfirm())
-                <form method="POST" action="{{ $confirmRoute }}">
+                <form id="appliance-import-confirm" method="POST" action="{{ $confirmRoute }}">
                     @csrf
                     <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
                         <i class="fas fa-check mr-1"></i>Confirm import
@@ -211,11 +211,36 @@
                     @if($items !== [])
                         <div>
                             <h3 class="text-sm font-semibold text-gray-800">{{ $sectionTitle }}</h3>
-                            <ul class="mt-2 list-disc pl-4 text-sm text-gray-700">
-                                @foreach($items as $item)
-                                    <li>{{ $item }}</li>
-                                @endforeach
-                            </ul>
+                            @if(($chooseCategoryTypes ?? false) && $sectionTitle === 'Categories')
+                                <p class="mt-1 text-sm text-gray-500">Choose a type for each new category.</p>
+                                @error('new_categories')
+                                    <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                                <ul class="mt-3 space-y-3">
+                                    @foreach($items as $index => $item)
+                                        <li class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                            <span class="text-sm text-gray-700">{{ $item }}</span>
+                                            <input type="hidden" name="new_categories[{{ $index }}][name]" value="{{ $item }}" form="appliance-import-confirm">
+                                            <select id="new-category-type-{{ $index }}" name="new_categories[{{ $index }}][type]" form="appliance-import-confirm"
+                                                    aria-label="Type for {{ $item }}"
+                                                    class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm sm:w-40">
+                                                @foreach(\App\Enums\ItemType::cases() as $type)
+                                                    <option value="{{ $type->value }}" @selected(old('new_categories.'.$index.'.type', 'appliance') === $type->value)>{{ $type->label() }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('new_categories.'.$index.'.type')
+                                                <p class="text-sm text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <ul class="mt-2 list-disc pl-4 text-sm text-gray-700">
+                                    @foreach($items as $item)
+                                        <li>{{ $item }}</li>
+                                    @endforeach
+                                </ul>
+                            @endif
                         </div>
                     @endif
                 @endforeach

@@ -15,6 +15,7 @@ use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\UserAction;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class TruckApplianceController extends Controller
@@ -216,6 +217,7 @@ class TruckApplianceController extends Controller
             'backRoute' => route('admin.trucks.show', $truck),
             'backLabel' => 'Back to truck',
             'matchHelp' => 'Review the changes below. Matching uses unit label first, then serial number. Confirm only when there are no errors.',
+            'chooseCategoryTypes' => true,
         ]);
     }
 
@@ -244,10 +246,16 @@ class TruckApplianceController extends Controller
                     ->with('error', __('Fix the CSV errors before confirming the import.'));
             }
 
-            $result = $importer->commit($truck, $absolutePath, $request->user());
+            $categoryTypes = $this->categoryTypesForNewCategories(
+                $request,
+                $preview->sideEffects['Categories'] ?? [],
+            );
+
+            $result = $importer->commit($truck, $absolutePath, $request->user(), $categoryTypes);
         } catch (ValidationException $exception) {
             return redirect()
                 ->route('admin.trucks.appliances.import.review', $truck)
+                ->withInput()
                 ->withErrors($exception->errors());
         }
 
@@ -442,5 +450,36 @@ class TruckApplianceController extends Controller
     private function formatUnitLabel(Truck $truck, int $number): string
     {
         return trim((string) $truck->name).'-'.sprintf('%03d', $number);
+    }
+
+    /**
+     * @param  list<string>  $newCategories
+     * @return array<string, string>
+     */
+    private function categoryTypesForNewCategories(Request $request, array $newCategories): array
+    {
+        if ($newCategories === []) {
+            return [];
+        }
+
+        $validated = $request->validate([
+            'new_categories' => ['sometimes', 'array'],
+            'new_categories.*.name' => ['required', 'string', 'max:255'],
+            'new_categories.*.type' => ['required', Rule::enum(ItemType::class)],
+        ], [
+            'new_categories.*.type.enum' => 'Choose Appliance or Furniture for each new category.',
+        ]);
+
+        $types = [];
+
+        foreach ($validated['new_categories'] ?? [] as $category) {
+            if (! in_array($category['name'], $newCategories, true)) {
+                continue;
+            }
+
+            $types[$category['name']] = $category['type'];
+        }
+
+        return $types;
     }
 }

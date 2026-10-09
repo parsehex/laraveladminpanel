@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Enums\ItemType;
+use App\Models\Category;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\User;
@@ -67,6 +69,118 @@ CSV;
             ->assertSee('Unit 1')
             ->assertSee('CX1234567')
             ->assertSee('Confirm import');
+    }
+
+    public function test_review_asks_for_a_type_on_each_new_category(): void
+    {
+        [$user, $truck] = $this->adminAndTruck('Category Type Truck');
+
+        Category::query()->create([
+            'name' => 'Washer',
+            'status' => 1,
+            'type' => ItemType::Appliance,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $csv = <<<'CSV'
+Unit Label,Category,Sub Category,Brand,Model #,Product Name,Quantity,Our Cost,Serial #,Receiving Condition,MSRP,Fuel Type,Status,Total Parts Cost
+Unit 1,Washer,Top Load,Whirlpool,WTW5000DW1,Top Load Washer,1,175.00,CX1234567,A-Grade,399.00,Electric,Testing,15.00
+Unit 2,Sofa,Sectional,Ashley,A123,Sectional Sofa,1,200.00,SF100,A-Grade,499.00,Electric,Ready,0.00
+CSV;
+
+        $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
+            'csv_file' => UploadedFile::fake()->createWithContent('appliances.csv', $csv),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.trucks.appliances.import.review', $truck))
+            ->assertOk()
+            ->assertSee('Choose a type for each new category.')
+            ->assertSee('aria-label="Type for Sofa"', false)
+            ->assertSee('Furniture')
+            ->assertDontSee('aria-label="Type for Washer"', false);
+    }
+
+    public function test_confirm_creates_new_categories_with_the_chosen_type(): void
+    {
+        [$user, $truck] = $this->adminAndTruck('Typed Categories Truck');
+
+        Category::query()->create([
+            'name' => 'Washer',
+            'status' => 1,
+            'type' => ItemType::Appliance,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $csv = <<<'CSV'
+Unit Label,Category,Sub Category,Brand,Model #,Product Name,Quantity,Our Cost,Serial #,Receiving Condition,MSRP,Fuel Type,Status,Total Parts Cost
+Unit 1,Washer,Top Load,Whirlpool,WTW5000DW1,Top Load Washer,1,175.00,CX1234567,A-Grade,399.00,Electric,Testing,15.00
+Unit 2,Sofa,Sectional,Ashley,A123,Sectional Sofa,1,200.00,SF100,A-Grade,499.00,Electric,Ready,0.00
+Unit 3,Dryer,Electric Dryer,Whirlpool,WED4815EW1,Electric Dryer,1,150.00,MX7654321,B-Grade,349.00,Electric,Ready,0.00
+Unit 4,Chair,Dining,IKEA,C100,Dining Chair,1,40.00,CH100,A-Grade,99.00,Electric,Ready,0.00
+CSV;
+
+        $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
+            'csv_file' => UploadedFile::fake()->createWithContent('appliances.csv', $csv),
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('admin.trucks.appliances.import.confirm', $truck), [
+                'new_categories' => [
+                    ['name' => 'Sofa', 'type' => ItemType::Furniture->value],
+                    ['name' => 'Dryer', 'type' => ItemType::Appliance->value],
+                    ['name' => 'Washer', 'type' => ItemType::Furniture->value],
+                ],
+            ])
+            ->assertRedirect(route('admin.trucks.show', $truck));
+
+        $this->assertDatabaseHas('categories', [
+            'name' => 'Sofa',
+            'type' => ItemType::Furniture->value,
+        ]);
+        $this->assertDatabaseHas('categories', [
+            'name' => 'Dryer',
+            'type' => ItemType::Appliance->value,
+        ]);
+        $this->assertDatabaseHas('categories', [
+            'name' => 'Washer',
+            'type' => ItemType::Appliance->value,
+        ]);
+        $this->assertDatabaseHas('categories', [
+            'name' => 'Chair',
+            'type' => ItemType::Appliance->value,
+        ]);
+    }
+
+    public function test_confirm_rejects_an_invalid_category_type(): void
+    {
+        [$user, $truck] = $this->adminAndTruck('Invalid Type Truck');
+
+        $csv = <<<'CSV'
+Unit Label,Category,Sub Category,Brand,Model #,Product Name,Quantity,Our Cost,Serial #,Receiving Condition,MSRP,Fuel Type,Status,Total Parts Cost
+Unit 1,Sofa,Sectional,Ashley,A123,Sectional Sofa,1,200.00,SF100,A-Grade,499.00,Electric,Ready,0.00
+CSV;
+
+        $this->actingAs($user)->post(route('admin.trucks.appliances.import', $truck), [
+            'csv_file' => UploadedFile::fake()->createWithContent('appliances.csv', $csv),
+        ]);
+
+        $this->actingAs($user)
+            ->from(route('admin.trucks.appliances.import.review', $truck))
+            ->post(route('admin.trucks.appliances.import.confirm', $truck), [
+                'new_categories' => [
+                    ['name' => 'Sofa', 'type' => 'vehicle'],
+                ],
+            ])
+            ->assertRedirect(route('admin.trucks.appliances.import.review', $truck))
+            ->assertSessionHasErrors([
+                'new_categories.0.type' => 'Choose Appliance or Furniture for each new category.',
+            ]);
+
+        $this->assertDatabaseMissing('categories', ['name' => 'Sofa']);
+        $this->assertDatabaseCount('truck_appliances', 0);
     }
 
     public function test_review_shows_updates_and_errors(): void
