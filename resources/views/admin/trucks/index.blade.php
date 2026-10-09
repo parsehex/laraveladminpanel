@@ -170,7 +170,9 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($trucks as $truck)
                     <tr class="hover:bg-gray-50">
-                        <x-admin.data-table.cell column="name" class="font-medium text-gray-900" title="{{ $truck->name }}">{{ $truck->name }}</x-admin.data-table.cell>
+                        <x-admin.data-table.cell column="name" class="font-medium" title="{{ $truck->name }}">
+                            <a href="{{ route('admin.trucks.show', $truck) }}" class="text-blue-600 hover:text-blue-900">{{ $truck->name }}</a>
+                        </x-admin.data-table.cell>
                         <x-admin.data-table.cell column="units">{{ $truck->units_on_truck }} (item:{{ $truck->appliances->count() }})</x-admin.data-table.cell>
                         @php
                             $totalCost = (float) $truck->cost_of_truck + (float) $truck->shipping_cost;

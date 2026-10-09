@@ -15,6 +15,20 @@ class TruckIndexTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_truck_name_links_to_the_truck_page(): void
+    {
+        $user = $this->adminUser();
+        $truck = $this->createTruck($user, ['name' => 'Linked Truck']);
+
+        $response = $this->actingAs($user)->get(route('admin.trucks.index'));
+
+        $response->assertSee(
+            'href="'.route('admin.trucks.show', $truck).'"',
+            false
+        );
+        $response->assertSee('Linked Truck');
+    }
+
     public function test_total_cost_includes_shipping_and_highlights_when_shipping_is_set(): void
     {
         $user = $this->adminUser();
