@@ -172,15 +172,15 @@
                     <tr class="hover:bg-gray-50">
                         <x-admin.data-table.cell column="name" class="font-medium text-gray-900" title="{{ $truck->name }}">{{ $truck->name }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="units">{{ $truck->units_on_truck }} (item:{{ $truck->appliances->count() }})</x-admin.data-table.cell>
+                        @php
+                            $totalCost = (float) $truck->cost_of_truck + (float) $truck->shipping_cost;
+                            $includesShipping = (float) $truck->shipping_cost > 0;
+                        @endphp
                         <x-admin.data-table.cell column="cost" align="right">
-                            ${{ number_format((float) $truck->cost_of_truck + (float) $truck->shipping_cost, 2) }}
-                            @if((float) $truck->shipping_cost > 0)
-                            <button type="button" class="ml-1 text-blue-600" data-cost-toggle>?</button>
-                            <div class="hidden mt-1 border-t border-dashed border-gray-300 pt-1 text-xs text-gray-600" data-cost-details>
-                                <strong>Cost of truck:</strong> ${{ number_format((float) $truck->cost_of_truck, 2) }}<br>
-                                <strong>Shipping:</strong> ${{ number_format((float) $truck->shipping_cost, 2) }}
-                            </div>
-                            @endif
+                            <span class="{{ $includesShipping ? 'rounded bg-amber-100 px-1 font-semibold text-amber-900' : '' }}"
+                                  @if($includesShipping) title="Includes ${{ number_format((float) $truck->shipping_cost, 2) }} shipping" @endif>
+                                ${{ number_format($totalCost, 2) }}
+                            </span>
                         </x-admin.data-table.cell>
                         <x-admin.data-table.cell column="total_msrp" align="right">${{ number_format($truck->total_appliance_msrp ?? 0, 2) }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="arrival">{{ $truck->arrival_date ? $truck->arrival_date->format('m/d/y') : '-' }}</x-admin.data-table.cell>
@@ -435,11 +435,6 @@
         window.addEventListener('resize', schedulePin);
         schedulePin();
     })();
-
-    $('[data-cost-toggle]').on('click', function (event) {
-        event.stopPropagation();
-        $(this).siblings('[data-cost-details]').toggleClass('hidden');
-    });
 
     @if($costRange->isSelected())
         setTimeout(function () {

@@ -15,7 +15,7 @@ class TruckIndexTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_shipping_cost_is_included_in_the_cost_breakdown_when_it_is_set(): void
+    public function test_total_cost_includes_shipping_and_highlights_when_shipping_is_set(): void
     {
         $user = $this->adminUser();
         $this->createTruck($user, [
@@ -31,14 +31,14 @@ class TruckIndexTest extends TestCase
 
         $response = $this->actingAs($user)->get(route('admin.trucks.index'));
 
+        $response->assertSee('Total Cost');
         $response->assertSee('No Shipping Truck');
         $response->assertSee('$1,500.00');
         $response->assertSee('Shipped Truck');
         $response->assertSee('$1,050.00');
-        $response->assertSee('Cost of truck:</strong> $800.00', false);
-        $response->assertSee('Shipping:</strong> $250.00', false);
-        $response->assertDontSee('>Shipping</span>', false);
-        $response->assertDontSee('Shipping:</strong> $0.00', false);
+        $response->assertSee('Includes $250.00 shipping', false);
+        $response->assertDontSee('data-cost-toggle', false);
+        $response->assertDontSee('Cost of truck:</strong>', false);
     }
 
     public function test_item_status_filter_returns_trucks_with_matching_appliance_statuses(): void
