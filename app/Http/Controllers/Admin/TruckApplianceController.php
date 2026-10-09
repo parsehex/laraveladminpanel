@@ -14,7 +14,9 @@ use App\Models\Model as ApplianceModel;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\UserAction;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -32,6 +34,7 @@ class TruckApplianceController extends Controller
             'importCancel',
         ]);
         $this->middleware('permission:trucks.view')->only('export');
+        $this->middleware('permission:appliance.move-units')->only('moveSelected');
     }
 
     public function store(StoreTruckApplianceRequest $request, Truck $truck)
@@ -91,6 +94,56 @@ class TruckApplianceController extends Controller
         $this->recalculatePrices($truck);
 
         return redirect()->route('admin.trucks.show', $truck)->with('success', __('Appliance removed successfully.'));
+    }
+
+    public function moveSelected(Request $request, Truck $truck): RedirectResponse
+    {
+        abort_unless($request->user()?->can('appliance.move-units'), 403);
+
+        $data = $request->validate([
+            'truck_id' => ['required', 'integer', 'exists:trucks,id', Rule::notIn([$truck->id])],
+            'appliance_ids' => ['required', 'array', 'min:1'],
+            'appliance_ids.*' => ['integer', 'distinct'],
+        ]);
+
+        $destination = Truck::query()->findOrFail($data['truck_id']);
+        $ids = array_values(array_unique(array_map(intval(...), $data['appliance_ids'])));
+        $appliances = $truck->appliances()->whereIn('id', $ids)->get();
+
+        if ($appliances->count() !== count($ids)) {
+            throw ValidationException::withMessages([
+                'appliance_ids' => 'Select units that are still on this truck.',
+            ]);
+        }
+
+        DB::transaction(function () use ($appliances, $destination, $truck, $request): void {
+            foreach ($appliances as $appliance) {
+                $appliance->update([
+                    'truck_id' => $destination->id,
+                    'updated_by' => $request->user()->id,
+                ]);
+
+                $appliance->statusHistories()->create([
+                    'status' => $appliance->status ?: 'Triage',
+                    'notes' => 'Moved from '.$truck->name.' to '.$destination->name.'.',
+                    'parts_ordered' => false,
+                    'user_id' => $request->user()->id,
+                ]);
+            }
+        });
+
+        UserAction::log('move_truck_items', null, [
+            'from_truck_id' => $truck->id,
+            'to_truck_id' => $destination->id,
+            'to_truck_name' => $destination->name,
+            'appliance_ids' => $ids,
+        ]);
+
+        $count = count($ids);
+
+        return redirect()
+            ->route('admin.trucks.show', $truck)
+            ->with('success', 'Moved '.$count.' '.($count === 1 ? 'unit' : 'units').' to '.$destination->name.'.');
     }
 
     public function setCostPercent(Request $request, Truck $truck)

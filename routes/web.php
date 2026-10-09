@@ -464,6 +464,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('trucks/import/cancel', [TruckController::class, 'importCancel'])
         ->middleware('permission:trucks.create')
         ->name('trucks.import.cancel');
+    Route::post('trucks/{truck}/appliances/move', [TruckApplianceController::class, 'moveSelected'])
+        ->middleware('permission:appliance.move-units')
+        ->name('trucks.appliances.move');
     Route::post('trucks/{truck}/appliances', [TruckApplianceController::class, 'store'])
         ->middleware('permission:appliance.create')
         ->name('trucks.appliances.store');

@@ -62,6 +62,7 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'appliance.edit', 'module_name' => 'appliances', 'description' => 'Edit truck appliances'],
             ['name' => 'appliance.delete', 'module_name' => 'appliances', 'description' => 'Delete truck appliances'],
             ['name' => 'appliance.cost-override', 'module_name' => 'appliances', 'description' => 'Apply cost % override to all trucks at once'],
+            ['name' => 'appliance.move-units', 'module_name' => 'appliances', 'description' => 'Move units from one truck to another'],
             ['name' => 'trucks.view', 'module_name' => 'trucks', 'description' => 'List trucks'],
             ['name' => 'trucks.create', 'module_name' => 'trucks', 'description' => 'Create trucks'],
             ['name' => 'trucks.edit', 'module_name' => 'trucks', 'description' => 'Edit trucks'],

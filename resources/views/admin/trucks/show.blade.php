@@ -166,7 +166,11 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50 sticky-table-head">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><input type="checkbox" data-truck-select-all></th>
+                        <th class="truck-check-cell p-0 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <label class="flex h-full cursor-pointer items-center px-4 py-3">
+                                <input type="checkbox" data-truck-select-all>
+                            </label>
+                        </th>
                         <x-admin.data-table.header-cells :data-table="$dataTable" :sort="$sort" :direction="$direction" />
                         <th class="sticky-action px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -175,8 +179,10 @@
                     @forelse($appliances as $appliance)
                     @php($rowClass = $rowStatusClasses[strtolower($appliance->status ?: 'triage')] ?? 'bg-white')
                     <tr class="appliance-status-row {{ $rowClass }}">
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                            <input type="checkbox" name="truck_print_ids[]" value="{{ $appliance->id }}" data-truck-appliance-checkbox>
+                        <td class="truck-check-cell p-0 whitespace-nowrap text-sm text-gray-700">
+                            <label class="flex h-full cursor-pointer items-center px-4 py-3">
+                                <input type="checkbox" name="truck_print_ids[]" value="{{ $appliance->id }}" data-truck-appliance-checkbox>
+                            </label>
                         </td>
                         <x-admin.data-table.cell column="category" truncate title="{{ $appliance->category?->name ?? '-' }}">{{ $appliance->category?->name ?? '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="status">
@@ -271,6 +277,11 @@
         <x-slot:footer>
         <x-admin.table-pagination :paginator="$appliances">
             @if($appliances->total() > 0)
+                @canAccess('appliance.move-units')
+                <button type="button" class="hidden rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700" data-open-move-units>
+                    <i class="fas fa-truck mr-2"></i>Move selected (<span data-move-count>0</span>)
+                </button>
+                @endcanAccess
                 <button type="button" class="rounded-md bg-gray-600 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700" data-truck-select-all-button>Select All</button>
                 <button type="button" class="rounded-md bg-gray-500 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-600" data-truck-reset-selection>Reset</button>
                 <button type="button" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700" data-truck-print-selected-sheets><i class="fas fa-print mr-2"></i>Print Selected Sheet(s)</button>
@@ -345,11 +356,65 @@
     </div>
 </div>
 @endrole
+
+@canAccess('appliance.move-units')
+<div
+    id="move-units-modal"
+    class="hidden fixed inset-0 z-50 bg-black/50 items-center justify-center p-6"
+    aria-hidden="true"
+>
+    <div class="bg-white rounded-lg shadow max-w-lg w-full" role="dialog" aria-modal="true" aria-labelledby="move-units-title">
+        <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+            <h3 id="move-units-title" class="text-lg font-semibold text-gray-900">Move units</h3>
+            <button type="button" class="text-gray-500 hover:text-gray-700" data-close-move-units aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="{{ route('admin.trucks.appliances.move', $truck) }}" class="space-y-4 px-6 py-5">
+            @csrf
+            <div data-move-unit-ids></div>
+            <p class="text-sm text-gray-700" data-move-summary>Select a truck to confirm the move.</p>
+
+            @if($destinationTrucks->isEmpty())
+                <p class="text-sm text-gray-500">There is no other truck to move these units to.</p>
+            @else
+                <div>
+                    <label for="move-units-truck" class="block text-sm font-medium text-gray-700 mb-1">Destination truck</label>
+                    <select id="move-units-truck" name="truck_id" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Choose a truck...</option>
+                        @foreach($destinationTrucks as $destinationTruck)
+                            <option value="{{ $destinationTruck->id }}">{{ $destinationTruck->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600" data-close-move-units>Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 disabled:opacity-50" data-move-confirm disabled>
+                    Move units
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endcanAccess
 @endsection
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <style>
+    .truck-check-cell {
+        height: 1px;
+        width: 1%;
+    }
+
+    .truck-check-cell label {
+        height: 100%;
+        min-height: 2.75rem;
+    }
+
     .appliance-status-row > td {
         color: #111827 !important;
         font-weight: 600;
@@ -692,15 +757,88 @@
 
     $('[data-truck-select-all]').on('change', function () {
         $('[data-truck-appliance-checkbox]').prop('checked', $(this).is(':checked'));
+        syncMoveSelection();
     });
 
     $('[data-truck-select-all-button]').on('click', function () {
         $('[data-truck-appliance-checkbox]').prop('checked', true);
         $('[data-truck-select-all]').prop('checked', true);
+        syncMoveSelection();
     });
 
     $('[data-truck-reset-selection]').on('click', function () {
         $('[data-truck-appliance-checkbox], [data-truck-select-all]').prop('checked', false);
+        syncMoveSelection();
+    });
+
+    $('[data-truck-appliance-checkbox]').on('change', syncMoveSelection);
+
+    function selectedMoveIds() {
+        return $('[data-truck-appliance-checkbox]:checked').map(function () {
+            return $(this).val();
+        }).get();
+    }
+
+    function syncMoveSelection() {
+        const count = selectedMoveIds().length;
+        const $button = $('[data-open-move-units]');
+
+        $button.toggleClass('hidden', count === 0);
+        $button.find('[data-move-count]').text(count);
+    }
+
+    function refreshMoveConfirm() {
+        const count = selectedMoveIds().length;
+        const noun = count === 1 ? 'unit' : 'units';
+        const $select = $('#move-units-truck');
+        const truckName = $select.find('option:selected').text();
+        const hasTruck = Boolean($select.val());
+        const $summary = $('[data-move-summary]');
+        const $confirm = $('[data-move-confirm]');
+
+        if (! count) {
+            $summary.text('Select at least one unit.');
+            $confirm.prop('disabled', true).text('Move units');
+
+            return;
+        }
+
+        if (! $select.length) {
+            $summary.text('There is no other truck to move ' + count + ' ' + noun + ' to.');
+            $confirm.prop('disabled', true).text('Move units');
+
+            return;
+        }
+
+        $summary.text(hasTruck
+            ? 'Move ' + count + ' ' + noun + ' to ' + truckName + '.'
+            : 'Choose a truck to move ' + count + ' ' + noun + '.');
+        $confirm.prop('disabled', ! hasTruck).text(hasTruck ? 'Move ' + count + ' ' + noun : 'Move units');
+    }
+
+    $('[data-open-move-units]').on('click', function () {
+        const ids = selectedMoveIds();
+        const $holder = $('[data-move-unit-ids]');
+
+        $holder.empty();
+        ids.forEach(function (id) {
+            $holder.append($('<input>', { type: 'hidden', name: 'appliance_ids[]', value: id }));
+        });
+        $('#move-units-truck').val('');
+        refreshMoveConfirm();
+        $('#move-units-modal').removeClass('hidden').addClass('flex').attr('aria-hidden', 'false');
+    });
+
+    $('#move-units-truck').on('change', refreshMoveConfirm);
+
+    $('[data-close-move-units]').on('click', function () {
+        $('#move-units-modal').addClass('hidden').removeClass('flex').attr('aria-hidden', 'true');
+    });
+
+    $('#move-units-modal').on('click', function (event) {
+        if (event.target === this) {
+            $(this).addClass('hidden').removeClass('flex').attr('aria-hidden', 'true');
+        }
     });
 
     $('[data-truck-print-selected-sheets]').on('click', function () {

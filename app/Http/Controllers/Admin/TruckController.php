@@ -389,11 +389,16 @@ class TruckController extends Controller
         $categories = Category::query()->whereIn('id', $categoryIds)->orderBy('name')->get();
         $models = ApplianceModel::query()->whereIn('id', $modelIds)->orderBy('model_number')->get();
 
+        $destinationTrucks = $request->user()?->can('appliance.move-units')
+            ? Truck::query()->whereKeyNot($truck->id)->orderBy('name')->get(['id', 'name'])
+            : collect();
+
         return view('admin.trucks.show', [
             'truck' => $truck,
             'categories' => $categories,
             'models' => $models,
             'appliances' => $appliances,
+            'destinationTrucks' => $destinationTrucks,
             'dataTable' => $dataTable,
             ...$dataTable->sortState($request),
         ]);
