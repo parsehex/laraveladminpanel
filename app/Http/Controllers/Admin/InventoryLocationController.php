@@ -18,6 +18,7 @@ class InventoryLocationController extends Controller
     public function index(): View
     {
         $locations = TruckAppliance::query()
+            ->onLiveTruck()
             ->whereNotNull('location')
             ->where('location', '<>', '')
             ->select('location')

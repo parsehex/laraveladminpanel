@@ -51,8 +51,7 @@ class InventoryController extends Controller
         }
         $request = $resolved;
 
-        $query = TruckAppliance::query()
-            ->ofType($type)
+        $query = $this->listedItems($type)
             ->with(['truck', 'category', 'model', 'statusHistories'])
             ->withSum('parts as parts_sum_cost', 'cost');
 
@@ -62,8 +61,7 @@ class InventoryController extends Controller
         $limit = PageSize::resolve($request);
 
         if ($request->boolean('print')) {
-            $printQuery = TruckAppliance::query()
-                ->ofType($type)
+            $printQuery = $this->listedItems($type)
                 ->with(['truck', 'category', 'model', 'updater', 'parts.part', 'parts.user', 'statusHistories.user'])
                 ->withSum('parts as parts_sum_cost', 'cost')
                 ->latest('id');
@@ -92,8 +90,7 @@ class InventoryController extends Controller
 
         $items = PageSize::paginate($query, $request);
 
-        $brands = TruckAppliance::query()
-            ->ofType($type)
+        $brands = $this->listedItems($type)
             ->whereNotNull('brand')
             ->where('brand', '<>', '')
             ->selectRaw('MIN(brand) as brand')
@@ -101,8 +98,7 @@ class InventoryController extends Controller
             ->orderBy('brand')
             ->pluck('brand');
 
-        $subcategories = TruckAppliance::query()
-            ->ofType($type)
+        $subcategories = $this->listedItems($type)
             ->whereNotNull('subcategory')
             ->where('subcategory', '<>', '')
             ->selectRaw('MIN(subcategory) as subcategory')
@@ -110,8 +106,7 @@ class InventoryController extends Controller
             ->orderBy('subcategory')
             ->pluck('subcategory');
 
-        $locations = TruckAppliance::query()
-            ->ofType($type)
+        $locations = $this->listedItems($type)
             ->whereNotNull('location')
             ->where('location', '<>', '')
             ->selectRaw('MIN(location) as location')
@@ -119,8 +114,7 @@ class InventoryController extends Controller
             ->orderBy('location')
             ->pluck('location');
 
-        $categories = TruckAppliance::query()
-            ->ofType($type)
+        $categories = $this->listedItems($type)
             ->with('category:id,name')
             ->whereNotNull('category_id')
             ->get()
@@ -139,7 +133,7 @@ class InventoryController extends Controller
         if ($showAdminValue) {
             $baseInventoryRows = $costRange->rowsQuery(fn ($query) => $query->whereIn(
                 'truck_appliances.id',
-                TruckAppliance::query()->ofType($type)->select('id'),
+                $this->listedItems($type)->select('id'),
             ));
 
             $inventoryData = DB::query()
@@ -185,6 +179,7 @@ class InventoryController extends Controller
         abort_if($ids->isEmpty(), 404);
 
         $items = TruckAppliance::query()
+            ->onLiveTruck()
             ->with(['truck', 'model'])
             ->whereIn('id', $ids->all())
             ->get()
@@ -213,6 +208,7 @@ class InventoryController extends Controller
 
         if ($applianceId) {
             $byId = TruckAppliance::query()
+                ->onLiveTruck()
                 ->with(['truck', 'model', 'category'])
                 ->whereKey($applianceId)
                 ->first();
@@ -230,6 +226,7 @@ class InventoryController extends Controller
 
         if ($modelNumber !== null) {
             $matches = TruckAppliance::query()
+                ->onLiveTruck()
                 ->with(['truck', 'model', 'category'])
                 ->whereHas('model', function (Builder $query) use ($modelNumber) {
                     $query->whereRaw('LOWER(TRIM(model_number)) = ?', [strtolower($modelNumber)]);
@@ -691,6 +688,11 @@ class InventoryController extends Controller
         ]);
 
         return back()->with('success', __('Part removed successfully.'));
+    }
+
+    private function listedItems(ItemType $type): Builder
+    {
+        return TruckAppliance::query()->ofType($type)->onLiveTruck();
     }
 
     private function applyFilters(Builder $query, Request $request): void

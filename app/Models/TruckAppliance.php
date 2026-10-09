@@ -127,6 +127,12 @@ class TruckAppliance extends EloquentModel
         $query->ofType(ItemType::Furniture);
     }
 
+    #[Scope]
+    protected function onLiveTruck(Builder $query): void
+    {
+        $query->whereHas('truck');
+    }
+
     public function itemType(): ItemType
     {
         return $this->category?->type ?? ItemType::Appliance;

@@ -19,9 +19,10 @@ class DashboardController extends Controller
     {
         [$from, $to, $periodLabel] = $this->resolvePeriod($request);
 
-        $unitsAdded = TruckAppliance::query()->whereBetween('created_at', [$from, $to]);
+        $unitsAdded = TruckAppliance::query()->onLiveTruck()->whereBetween('created_at', [$from, $to]);
 
         $soldInPeriod = TruckAppliance::query()
+            ->onLiveTruck()
             ->where('status', 'Sold')
             ->whereRaw('COALESCE(sold_at, updated_at) BETWEEN ? AND ?', [$from, $to]);
 
@@ -45,6 +46,7 @@ class DashboardController extends Controller
         $activityRows = $this->activityRows($from, $to);
 
         $holdingForParts = TruckAppliance::query()
+            ->onLiveTruck()
             ->with(['truck', 'model', 'category', 'statusHistories.user'])
             ->where('status', 'Holding for parts')
             ->latest('updated_at')
@@ -52,6 +54,7 @@ class DashboardController extends Controller
             ->get();
 
         $holding = TruckAppliance::query()
+            ->onLiveTruck()
             ->appliances()
             ->with(['truck', 'model', 'category', 'statusHistories.user'])
             ->where('status', 'Holding')

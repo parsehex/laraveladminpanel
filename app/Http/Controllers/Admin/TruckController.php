@@ -395,12 +395,16 @@ class TruckController extends Controller
 
     public function destroy(Truck $truck)
     {
-        UserAction::log('delete_truck', null, [
-            'truck_id' => $truck->id,
-            'name' => $truck->name,
-        ]);
+        DB::transaction(function () use ($truck): void {
+            $truck->appliances()->delete();
 
-        $truck->delete();
+            UserAction::log('delete_truck', null, [
+                'truck_id' => $truck->id,
+                'name' => $truck->name,
+            ]);
+
+            $truck->delete();
+        });
 
         return redirect()->route('admin.trucks.index')->with('success', __('Truck deleted successfully.'));
     }

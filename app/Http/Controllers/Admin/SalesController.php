@@ -46,6 +46,7 @@ class SalesController extends Controller
         $request = $resolved;
 
         $normalQuery = TruckAppliance::query()
+            ->onLiveTruck()
             ->with(['model', 'category'])
             ->whereIn('truck_appliances.status', self::TRACKING_STATUSES)
             ->when($itemType, fn (Builder $query) => $query->ofType($itemType));

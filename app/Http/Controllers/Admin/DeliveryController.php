@@ -61,6 +61,7 @@ class DeliveryController extends Controller
 
         if ($oldApplianceIds !== []) {
             $selectedAppliances = TruckAppliance::query()
+                ->onLiveTruck()
                 ->with('model:id,model_number')
                 ->whereIn('id', $oldApplianceIds)
                 ->get()
@@ -80,6 +81,7 @@ class DeliveryController extends Controller
         $search = $request->string('q')->trim()->toString();
 
         $query = TruckAppliance::query()
+            ->onLiveTruck()
             ->with('model:id,model_number')
             ->whereIn('status', Delivery::PICKER_STATUSES)
             ->orderByDesc('id');
@@ -126,6 +128,7 @@ class DeliveryController extends Controller
         ]);
 
         $appliances = TruckAppliance::query()
+            ->onLiveTruck()
             ->with('model:id,model_number')
             ->whereIn('id', $data['appliance_ids'])
             ->whereIn('status', Delivery::PICKER_STATUSES)

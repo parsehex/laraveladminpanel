@@ -23,6 +23,7 @@ class InventoryStatusController extends Controller
     public function index(): View
     {
         $itemCounts = TruckAppliance::query()
+            ->onLiveTruck()
             ->select('status')
             ->selectRaw('COUNT(*) as aggregate')
             ->whereNotNull('status')
@@ -38,6 +39,12 @@ class InventoryStatusController extends Controller
                 $query->whereNull('appliances.location')
                     ->orWhere('appliances.location', '')
                     ->orWhereRaw('LOWER(TRIM(appliances.location)) <> LOWER(TRIM(statuses.auto_location))');
+            })
+            ->whereExists(function ($query) {
+                $query->selectRaw('1')
+                    ->from('trucks')
+                    ->whereColumn('trucks.id', 'appliances.truck_id')
+                    ->whereNull('trucks.deleted_at');
             })
             ->groupBy('statuses.name')
             ->selectRaw('statuses.name as status_name, COUNT(*) as aggregate')
@@ -105,6 +112,7 @@ class InventoryStatusController extends Controller
 
         DB::transaction(function () use ($inventoryStatus, $location, $request, &$updated): void {
             $updated = TruckAppliance::query()
+                ->onLiveTruck()
                 ->where('status', $inventoryStatus->name)
                 ->where(function ($query) use ($location) {
                     $query->whereNull('location')
