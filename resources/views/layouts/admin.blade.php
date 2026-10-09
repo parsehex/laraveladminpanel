@@ -35,6 +35,24 @@
     <!-- Toastr CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
     <style>
+        .sticky-lead {
+            position: sticky;
+            left: 0;
+            z-index: 15;
+            background-color: #fff;
+            background-clip: padding-box;
+            box-shadow: inset -1px 0 0 #e5e7eb;
+        }
+
+        .sticky-table-head th.sticky-lead {
+            z-index: 31;
+            background-color: #f9fafb !important;
+        }
+
+        tr:hover > td.sticky-lead {
+            background-color: #f9fafb;
+        }
+
         .sticky-action {
             position: sticky;
             right: 0;

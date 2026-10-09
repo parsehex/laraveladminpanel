@@ -69,8 +69,9 @@
             <span class="font-semibold"><i class="fas fa-th mr-2"></i>Truck Inventory Breakdown</span>
             <i class="fas fa-chevron-down"></i>
         </button>
-        <div id="truck-breakdown-panel" class="{{ $costRange->isSelected() ? '' : 'hidden' }} overflow-x-auto">
+        <div id="truck-breakdown-panel" class="{{ $costRange->isSelected() ? '' : 'hidden' }}">
             <x-admin.cost-range-filter :action="route('admin.trucks.index')" :range="$costRange" />
+            <div class="truck-breakdown-scroll">
             <table class="min-w-full divide-y divide-gray-200 truck-breakdown-table">
                 <thead class="bg-gray-50">
                     <tr>
@@ -127,6 +128,7 @@
                 </tfoot>
                 @endif
             </table>
+            </div>
         </div>
     </div>
 
@@ -341,11 +343,34 @@
     .status-green { background: #dcfce7 !important; color: #111827 !important; }
     .status-sold { background: #cffafe !important; color: #111827 !important; }
 
+    .truck-breakdown-scroll {
+        max-height: 72vh;
+        overflow: auto;
+    }
+
+    .truck-breakdown-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .truck-breakdown-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background-color: #f9fafb;
+        box-shadow: inset 0 -1px 0 #e5e7eb;
+    }
+
     .truck-breakdown-sticky {
         position: sticky;
         left: 0;
         z-index: 1;
         box-shadow: inset -1px 0 0 #e5e7eb;
+    }
+
+    .truck-breakdown-table thead th.truck-breakdown-sticky {
+        z-index: 3;
+        box-shadow: inset -1px 0 0 #e5e7eb, inset 0 -1px 0 #e5e7eb;
     }
 </style>
 @endpush
@@ -362,7 +387,54 @@
 
     $('[data-toggle-breakdown]').on('click', function () {
         $('#truck-breakdown-panel').toggleClass('hidden');
+        window.pinTruckBreakdownHeader?.();
     });
+
+    (function () {
+        const main = document.querySelector('main');
+        const scroller = document.querySelector('.truck-breakdown-scroll');
+
+        if (! main || ! scroller) {
+            return;
+        }
+
+        let frame = null;
+
+        window.pinTruckBreakdownHeader = function () {
+            frame = null;
+            const headerCells = scroller.querySelectorAll('thead th');
+            const header = headerCells[0];
+
+            if (! header) {
+                return;
+            }
+
+            const mainTop = main.getBoundingClientRect().top;
+            const box = scroller.getBoundingClientRect();
+            const headerHeight = header.offsetHeight;
+            let shift = 0;
+
+            if (box.top < mainTop && box.height > headerHeight) {
+                shift = Math.min(mainTop - box.top, box.height - headerHeight);
+            }
+
+            headerCells.forEach((cell) => {
+                cell.style.top = shift > 0 ? shift + 'px' : '';
+            });
+        };
+
+        function schedulePin() {
+            if (frame) {
+                return;
+            }
+
+            frame = requestAnimationFrame(window.pinTruckBreakdownHeader);
+        }
+
+        main.addEventListener('scroll', schedulePin, { passive: true });
+        window.addEventListener('resize', schedulePin);
+        schedulePin();
+    })();
 
     $('[data-cost-toggle]').on('click', function (event) {
         event.stopPropagation();
