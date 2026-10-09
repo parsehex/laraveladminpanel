@@ -13,6 +13,14 @@
 
 @push('styles')
 <style>
+    #roles-results tr[class*="bg-blue-50"] > td.sticky-lead {
+        background-color: #eff6ff;
+    }
+
+    #roles-results tr[class*="bg-red-50"] > td.sticky-lead {
+        background-color: #fef2f2;
+    }
+
     th.role-module-th {
         height: 8rem;
         width: 2.35rem;
@@ -70,7 +78,7 @@
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50 sticky-table-head">
                 <tr>
-                    <x-admin.data-table.th column="name" label="Role" />
+                    <x-admin.data-table.th column="name" label="Role" class="sticky-lead" />
                     <x-admin.data-table.th column="description" label="Description" />
                     <x-admin.data-table.th column="all" label="All" align="center" />
                     @foreach($permissionModules as $module => $items)
@@ -94,7 +102,7 @@
                 <tr id="create-role-row"
                     data-role-permissions
                     class="{{ $showCreateRow ? 'bg-blue-50/60' : 'hidden bg-blue-50/60' }}">
-                    <x-admin.data-table.cell column="name">
+                    <x-admin.data-table.cell column="name" class="sticky-lead">
                         <form id="role-form-create" method="POST" action="{{ route('admin.roles.store') }}">
                             @csrf
                             <input type="hidden" name="_form" value="create">
@@ -150,7 +158,7 @@
                             : $role->permissions->pluck('name')->all();
                     @endphp
                     <tr data-role-permissions class="hover:bg-gray-50 {{ old('_form') === 'edit-'.$role->id && $errors->any() ? 'bg-red-50/40' : '' }}">
-                        <x-admin.data-table.cell column="name" class="font-medium text-gray-900">
+                        <x-admin.data-table.cell column="name" class="sticky-lead font-medium text-gray-900">
                             @if($canEditRoles)
                                 <form id="{{ $formId }}" method="POST" action="{{ route('admin.roles.update', $role) }}">
                                     @csrf
