@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TruckAppliance extends EloquentModel
@@ -98,6 +99,11 @@ class TruckAppliance extends EloquentModel
     public function furnitureDetails(): HasOne
     {
         return $this->hasOne(FurnitureDetail::class);
+    }
+
+    public function timeEntries(): MorphMany
+    {
+        return $this->morphMany(TimeEntry::class, 'trackable');
     }
 
     #[Scope]

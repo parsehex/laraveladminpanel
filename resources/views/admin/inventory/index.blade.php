@@ -5,6 +5,7 @@
 
 @section('content')
 @php
+    $showAssembledColumn = collect($dataTable->columns)->contains(fn (array $column) => $column['key'] === 'assembled');
     $selectedStatuses = collect(request('status', []))->filter()->values()->all();
     $statusClasses = [
         'Triage' => 'appliance-status-white',
@@ -65,6 +66,36 @@
                 </tfoot>
             </table>
         </div>
+    </div>
+    @endif
+
+    @if($assemblyAverages !== null)
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-emerald-700 text-white px-6 py-4">
+            <span class="font-semibold"><i class="fas fa-clock mr-2"></i>Average assembly time</span>
+        </div>
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Pieces</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Average person-time</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                @forelse($assemblyAverages as $average)
+                <tr>
+                    <td class="px-6 py-3 text-sm text-gray-700">{{ $average['category'] }}</td>
+                    <td class="px-6 py-3 text-sm text-gray-700 text-right">{{ $average['item_count'] }}</td>
+                    <td class="px-6 py-3 text-sm font-semibold text-gray-900 text-right">{{ \App\Models\TimeEntry::formatSeconds($average['average_seconds']) }}</td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="3" class="px-6 py-6 text-center text-gray-500">No completed assembly time yet.</td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
     @endif
 
@@ -166,6 +197,9 @@
                         <x-admin.data-table.cell column="status">
                             <span class="appliance-status-chip {{ $statusClass }}">{{ $status }}</span>
                         </x-admin.data-table.cell>
+                        @if($showAssembledColumn)
+                        <x-admin.data-table.cell column="assembled">{{ $item->furnitureDetails?->isAssembled() ? 'Yes' : 'No' }}</x-admin.data-table.cell>
+                        @endif
                         <x-admin.data-table.cell column="unit_label" truncate title="{{ $item->unit_label ?: 'N/A' }}">{{ $item->unit_label ?: 'N/A' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="model" title="{{ $item->model?->model_number ?? '-' }}">{{ $item->model?->model_number ?? '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="serial_number" title="{{ $item->serial_number ?: '-' }}">{{ $item->serial_number ?: '-' }}</x-admin.data-table.cell>

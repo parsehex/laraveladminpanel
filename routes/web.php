@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DeliveryController;
 use App\Http\Controllers\Admin\DemanFlowController;
 use App\Http\Controllers\Admin\DropdownController;
+use App\Http\Controllers\Admin\FurnitureAssemblyController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\InventoryLocationController;
 use App\Http\Controllers\Admin\InventoryStatusController;
@@ -334,6 +335,18 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('inventory/{appliance}/floor', [InventoryController::class, 'floor'])
         ->middleware('permission:inventory.view')
         ->name('inventory.floor');
+    Route::post('inventory/{appliance}/assembly/clock-in', [FurnitureAssemblyController::class, 'clockIn'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.assembly.clock-in');
+    Route::post('inventory/{appliance}/assembly/clock-out', [FurnitureAssemblyController::class, 'clockOut'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.assembly.clock-out');
+    Route::post('inventory/{appliance}/assembly/assembled', [FurnitureAssemblyController::class, 'markAssembled'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.assembly.assembled.store');
+    Route::delete('inventory/{appliance}/assembly/assembled', [FurnitureAssemblyController::class, 'clearAssembled'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.assembly.assembled.destroy');
     Route::get('inventory/{appliance}', [InventoryController::class, 'show'])
         ->middleware('permission:inventory.view')
         ->name('inventory.show');

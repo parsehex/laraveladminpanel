@@ -146,6 +146,10 @@
         </div>
     </section>
 
+    @if($appliance->isFurniture())
+        @include('admin.inventory.partials.assembly-panel')
+    @endif
+
     @canAccess('appliance.edit')
     <section class="legacy-panel">
         <div class="legacy-panel-heading bg-blue-600">Update Location</div>

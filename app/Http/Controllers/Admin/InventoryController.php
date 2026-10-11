@@ -12,6 +12,7 @@ use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\UserAction;
 use App\Support\ApplianceStatusFilter;
+use App\Support\AssemblyTimeAverages;
 use App\Support\DataTable;
 use App\Support\InventoryCostRange;
 use App\Support\PageSize;
@@ -43,7 +44,7 @@ class InventoryController extends Controller
 
     private function renderInventory(Request $request, ItemType $type)
     {
-        $dataTable = $this->inventoryDataTable();
+        $dataTable = $this->inventoryDataTable($type);
 
         $resolved = $dataTable->resolveSortRequest($request, $request->user());
         if ($resolved instanceof RedirectResponse) {
@@ -54,6 +55,10 @@ class InventoryController extends Controller
         $query = $this->listedItems($type)
             ->with(['truck', 'category', 'model', 'statusHistories'])
             ->withSum('parts as parts_sum_cost', 'cost');
+
+        if ($type === ItemType::Furniture) {
+            $query->with('furnitureDetails');
+        }
 
         $this->applyFilters($query, $request);
         $dataTable->applySorting($query, $request);
@@ -164,6 +169,7 @@ class InventoryController extends Controller
             'totalInventoryValue' => $totalInventoryValue,
             'showAdminValue' => $showAdminValue,
             'costRange' => $costRange,
+            'assemblyAverages' => $type === ItemType::Furniture ? (new AssemblyTimeAverages)->byCategory() : null,
             'dataTable' => $dataTable,
             ...$dataTable->sortState($request),
         ]);
@@ -308,6 +314,10 @@ class InventoryController extends Controller
                 $statuses,
                 fn (string $name): bool => ! in_array($name, TruckAppliance::APPLIANCE_ONLY_STATUSES, true),
             ));
+            $appliance->load([
+                'furnitureDetails',
+                'timeEntries' => fn ($entries) => $entries->assembly()->latest('started_at'),
+            ]);
         }
 
         return view('admin.inventory.show', [
@@ -727,100 +737,116 @@ class InventoryController extends Controller
         }
     }
 
-    private function inventoryDataTable(): DataTable
+    private function inventoryDataTable(ItemType $type): DataTable
     {
-        return new DataTable(
-            storageKey: 'inventoryTableColumns',
-            defaultSort: ['truck_appliances.id', 'desc'],
-            columns: [
-                [
-                    'key' => 'truck',
-                    'label' => 'Truck',
-                    'sort' => fn (Builder $query, string $direction) => $query
-                        ->leftJoin('trucks', 'trucks.id', '=', 'truck_appliances.truck_id')
-                        ->orderBy('trucks.name', $direction)
-                        ->select('truck_appliances.*'),
-                ],
-                [
-                    'key' => 'status',
-                    'label' => 'Status',
-                    'sort' => fn (Builder $query, string $direction) => $query->orderByRaw(
-                        "COALESCE(NULLIF(truck_appliances.status, ''), 'Triage') ".$direction
-                    ),
-                ],
-                [
-                    'key' => 'unit_label',
-                    'label' => 'Unit Label',
-                    'truncate' => true,
-                    'sort' => 'truck_appliances.unit_label',
-                ],
-                [
-                    'key' => 'model',
-                    'label' => 'Model #',
-                    'sort' => fn (Builder $query, string $direction) => $query
-                        ->leftJoin('models', 'models.id', '=', 'truck_appliances.model_id')
-                        ->orderBy('models.model_number', $direction)
-                        ->select('truck_appliances.*'),
-                ],
-                [
-                    'key' => 'serial_number',
-                    'label' => 'Serial #',
-                    'sort' => 'truck_appliances.serial_number',
-                ],
-                [
-                    'key' => 'brand',
-                    'label' => 'Brand',
-                    'truncate' => true,
-                    'sort' => 'truck_appliances.brand',
-                ],
-                [
-                    'key' => 'category',
-                    'label' => 'Category',
-                    'truncate' => true,
-                    'sort' => fn (Builder $query, string $direction) => $query
-                        ->leftJoin('categories', 'categories.id', '=', 'truck_appliances.category_id')
-                        ->orderBy('categories.name', $direction)
-                        ->select('truck_appliances.*'),
-                ],
-                [
-                    'key' => 'subcategory',
-                    'label' => 'SubCategory',
-                    'truncate' => true,
-                    'sort' => 'truck_appliances.subcategory',
-                ],
-                [
-                    'key' => 'location',
-                    'label' => 'Location',
-                    'truncate' => true,
-                    'sort' => 'truck_appliances.location',
-                ],
-                [
-                    'key' => 'status_date',
-                    'label' => 'Status Date/Time',
-                    'sort' => fn (Builder $query, string $direction) => $query->orderBy(
-                        InventoryStatusHistory::query()
-                            ->select('created_at')
-                            ->whereColumn('truck_appliance_id', 'truck_appliances.id')
-                            ->latest('created_at')
-                            ->limit(1),
-                        $direction
-                    ),
-                ],
-                [
-                    'key' => 'total_cost',
-                    'label' => 'Total Cost',
-                    'align' => 'right',
-                    'sort' => fn (Builder $query, string $direction) => $query->orderByRaw(
-                        TruckAppliance::totalCostSql().' '.$direction
-                    ),
-                ],
-                [
-                    'key' => 'sold_price',
-                    'label' => 'Sold Price',
-                    'align' => 'right',
-                    'sort' => 'truck_appliances.sold_price',
-                ],
+        $columns = [
+            [
+                'key' => 'truck',
+                'label' => 'Truck',
+                'sort' => fn (Builder $query, string $direction) => $query
+                    ->leftJoin('trucks', 'trucks.id', '=', 'truck_appliances.truck_id')
+                    ->orderBy('trucks.name', $direction)
+                    ->select('truck_appliances.*'),
             ],
+            [
+                'key' => 'status',
+                'label' => 'Status',
+                'sort' => fn (Builder $query, string $direction) => $query->orderByRaw(
+                    "COALESCE(NULLIF(truck_appliances.status, ''), 'Triage') ".$direction
+                ),
+            ],
+            [
+                'key' => 'unit_label',
+                'label' => 'Unit Label',
+                'truncate' => true,
+                'sort' => 'truck_appliances.unit_label',
+            ],
+            [
+                'key' => 'model',
+                'label' => 'Model #',
+                'sort' => fn (Builder $query, string $direction) => $query
+                    ->leftJoin('models', 'models.id', '=', 'truck_appliances.model_id')
+                    ->orderBy('models.model_number', $direction)
+                    ->select('truck_appliances.*'),
+            ],
+            [
+                'key' => 'serial_number',
+                'label' => 'Serial #',
+                'sort' => 'truck_appliances.serial_number',
+            ],
+            [
+                'key' => 'brand',
+                'label' => 'Brand',
+                'truncate' => true,
+                'sort' => 'truck_appliances.brand',
+            ],
+            [
+                'key' => 'category',
+                'label' => 'Category',
+                'truncate' => true,
+                'sort' => fn (Builder $query, string $direction) => $query
+                    ->leftJoin('categories', 'categories.id', '=', 'truck_appliances.category_id')
+                    ->orderBy('categories.name', $direction)
+                    ->select('truck_appliances.*'),
+            ],
+            [
+                'key' => 'subcategory',
+                'label' => 'SubCategory',
+                'truncate' => true,
+                'sort' => 'truck_appliances.subcategory',
+            ],
+            [
+                'key' => 'location',
+                'label' => 'Location',
+                'truncate' => true,
+                'sort' => 'truck_appliances.location',
+            ],
+            [
+                'key' => 'status_date',
+                'label' => 'Status Date/Time',
+                'sort' => fn (Builder $query, string $direction) => $query->orderBy(
+                    InventoryStatusHistory::query()
+                        ->select('created_at')
+                        ->whereColumn('truck_appliance_id', 'truck_appliances.id')
+                        ->latest('created_at')
+                        ->limit(1),
+                    $direction
+                ),
+            ],
+            [
+                'key' => 'total_cost',
+                'label' => 'Total Cost',
+                'align' => 'right',
+                'sort' => fn (Builder $query, string $direction) => $query->orderByRaw(
+                    TruckAppliance::totalCostSql().' '.$direction
+                ),
+            ],
+            [
+                'key' => 'sold_price',
+                'label' => 'Sold Price',
+                'align' => 'right',
+                'sort' => 'truck_appliances.sold_price',
+            ],
+        ];
+
+        $storageKey = 'inventoryTableColumns';
+
+        if ($type === ItemType::Furniture) {
+            $storageKey = 'furnitureInventoryTableColumns';
+            array_splice($columns, 2, 0, [[
+                'key' => 'assembled',
+                'label' => 'Assembled',
+                'sort' => fn (Builder $query, string $direction) => $query
+                    ->leftJoin('furniture_details', 'furniture_details.truck_appliance_id', '=', 'truck_appliances.id')
+                    ->orderByRaw('furniture_details.assembled_at '.$direction.' NULLS LAST')
+                    ->select('truck_appliances.*'),
+            ]]);
+        }
+
+        return new DataTable(
+            storageKey: $storageKey,
+            defaultSort: ['truck_appliances.id', 'desc'],
+            columns: $columns,
         );
     }
 
