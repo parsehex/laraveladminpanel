@@ -134,8 +134,18 @@ class FurnitureInventoryTest extends TestCase
         $response = $this->actingAs($user)->get(route('admin.inventory.show', $item));
 
         $response->assertOk();
+        $response->assertSee('Furniture Detail');
+        $response->assertDontSee('Appliance Detail');
         $response->assertDontSee('Start Testing');
         $response->assertDontSee('Parts Used');
+        $this->assertMatchesRegularExpression(
+            '/href="'.preg_quote(route('admin.inventory.furniture'), '/').'"[^>]*\bis-active\b/',
+            $response->getContent(),
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/href="'.preg_quote(route('admin.inventory.index'), '/').'"[^>]*\bis-active\b/',
+            $response->getContent(),
+        );
     }
 
     #[DataProvider('applianceWorkflowRoutes')]

@@ -34,10 +34,12 @@
         'Sold' => ['label' => 'Sold', 'class' => 'status-sold'],
     ];
     $statusClass = $statusStyles[$status]['class'] ?? 'status-white';
+$isFurniture = $appliance->isFurniture();
+$inventoryListRoute = $isFurniture ? 'admin.inventory.furniture' : 'admin.inventory.index';
 @endphp
 
 @section('title', $productName ?: $heading)
-@section('page-title', 'Appliance Detail')
+@section('page-title', $isFurniture ? 'Furniture Detail' : 'Appliance Detail')
 @section('page-subtitle', $heading)
 
 @section('page-actions')
@@ -57,14 +59,14 @@
                class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
                 <i class="fas fa-qrcode w-4 mr-2 text-emerald-600"></i>Sticker
             </a>
-            <a href="{{ route('admin.inventory.index', ['print' => 1, 'ids' => $appliance->id]) }}"
+            <a href="{{ route($inventoryListRoute, ['print' => 1, 'ids' => $appliance->id]) }}"
                target="_blank"
                class="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
                 <i class="fas fa-file-alt w-4 mr-2 text-blue-600"></i>Sheet
             </a>
         </div>
     </div>
-    <a href="{{ route('admin.inventory.index') }}" class="inline-flex items-center justify-center rounded-md bg-gray-500 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-600">
+    <a href="{{ route($inventoryListRoute) }}" class="inline-flex items-center justify-center rounded-md bg-gray-500 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-600">
         Back to inventory
     </a>
 @endsection

@@ -50,7 +50,7 @@
                 <span>Appliances</span>
             </a>
             <a href="{{ route('admin.inventory.furniture') }}" @click="sidebarOpen = false"
-               class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.inventory.furniture') ? 'is-active' : '' }}">
+               class="ui-nav-link flex items-center px-4 py-2.5 text-sm font-semibold {{ request()->routeIs('admin.inventory.furniture') || currentInventoryItemIsFurniture() ? 'is-active' : '' }}">
                 <i class="fas fa-couch mr-3 w-5 text-center"></i>
                 <span>Furniture</span>
             </a>

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\TruckAppliance;
 use Illuminate\Contracts\Auth\Authenticatable;
 
 if (! function_exists('canAccess')) {
@@ -54,13 +55,23 @@ if (! function_exists('sidebarFolderIds')) {
     }
 }
 
+if (! function_exists('currentInventoryItemIsFurniture')) {
+    function currentInventoryItemIsFurniture(): bool
+    {
+        $item = request()->route('appliance');
+
+        return $item instanceof TruckAppliance && $item->isFurniture();
+    }
+}
+
 if (! function_exists('isApplianceInventoryNavActive')) {
     function isApplianceInventoryNavActive(): bool
     {
         return request()->routeIs('admin.inventory.*')
             && ! request()->routeIs('admin.inventory.scan*')
             && ! request()->routeIs('admin.inventory.testing*')
-            && ! request()->routeIs('admin.inventory.furniture');
+            && ! request()->routeIs('admin.inventory.furniture')
+            && ! currentInventoryItemIsFurniture();
     }
 }
 
@@ -69,7 +80,8 @@ if (! function_exists('isInventoryNavFolderActive')) {
     {
         return isApplianceInventoryNavActive()
             || request()->routeIs('admin.inventory.scan*')
-            || request()->routeIs('admin.inventory.furniture');
+            || request()->routeIs('admin.inventory.furniture')
+            || currentInventoryItemIsFurniture();
     }
 }
 
