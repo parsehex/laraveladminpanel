@@ -78,7 +78,9 @@ class PageSize
         $limit = self::resolve($request, $name, $default, $options, $allowAll);
 
         if ($limit === 'all') {
-            return $query->paginate($query->count() ?: 1, ['*'], $pageName)->withQueryString();
+            $total = $query->toBase()->getCountForPagination();
+
+            return $query->paginate($total ?: 1, ['*'], $pageName)->withQueryString();
         }
 
         return $query->paginate($limit, ['*'], $pageName)->withQueryString();
