@@ -109,7 +109,7 @@ class FurnitureInventoryTest extends TestCase
         $appliances->assertSee('UNCAT-PAGE-1');
         $appliances->assertDontSee('FUR-PAGE-1');
 
-        $furniture = $this->actingAs($user)->get(route('admin.inventory.furniture'));
+        $furniture = $this->actingAs($user)->get(route('admin.inventory.furniture', ['view' => 'units']));
 
         $furniture->assertOk();
         $furniture->assertSee('FUR-PAGE-1');

@@ -64,14 +64,21 @@ if (! function_exists('currentInventoryItemIsFurniture')) {
     }
 }
 
+if (! function_exists('isFurnitureInventoryNavActive')) {
+    function isFurnitureInventoryNavActive(): bool
+    {
+        return request()->routeIs('admin.inventory.furniture', 'admin.inventory.furniture.*')
+            || currentInventoryItemIsFurniture();
+    }
+}
+
 if (! function_exists('isApplianceInventoryNavActive')) {
     function isApplianceInventoryNavActive(): bool
     {
         return request()->routeIs('admin.inventory.*')
             && ! request()->routeIs('admin.inventory.scan*')
             && ! request()->routeIs('admin.inventory.testing*')
-            && ! request()->routeIs('admin.inventory.furniture')
-            && ! currentInventoryItemIsFurniture();
+            && ! isFurnitureInventoryNavActive();
     }
 }
 
@@ -80,8 +87,7 @@ if (! function_exists('isInventoryNavFolderActive')) {
     {
         return isApplianceInventoryNavActive()
             || request()->routeIs('admin.inventory.scan*')
-            || request()->routeIs('admin.inventory.furniture')
-            || currentInventoryItemIsFurniture();
+            || isFurnitureInventoryNavActive();
     }
 }
 

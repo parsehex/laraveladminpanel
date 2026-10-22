@@ -37,7 +37,7 @@ class TruckDeletionInventoryTest extends TestCase
         $this->assertSoftDeleted(TruckAppliance::withTrashed()->where('serial_number', 'ORPHAN-WASHER')->first());
         $this->assertNotSoftDeleted(TruckAppliance::query()->where('serial_number', 'LIVE-SOFA')->first());
 
-        $furniture = $this->actingAs($user)->get(route('admin.inventory.furniture'));
+        $furniture = $this->actingAs($user)->get(route('admin.inventory.furniture', ['view' => 'units']));
         $furniture->assertOk();
         $furniture->assertSee('LIVE-SOFA');
         $furniture->assertDontSee('ORPHAN-SOFA');
@@ -59,7 +59,7 @@ class TruckDeletionInventoryTest extends TestCase
         $this->item($deletedTruck, $user, $washers, 'LEFT-WASHER');
         $deletedTruck->delete();
 
-        $furniture = $this->actingAs($user)->get(route('admin.inventory.furniture'));
+        $furniture = $this->actingAs($user)->get(route('admin.inventory.furniture', ['view' => 'units']));
         $furniture->assertOk();
         $furniture->assertDontSee('LEFT-SOFA');
 

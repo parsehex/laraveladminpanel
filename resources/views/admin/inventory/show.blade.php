@@ -77,6 +77,11 @@ $inventoryListRoute = $isFurniture ? 'admin.inventory.furniture' : 'admin.invent
         @if($productName)
         <p class="identity-product-name">{{ $productName }}</p>
         @endif
+        @if($modelUnitCount !== null)
+        <a href="{{ route('admin.inventory.furniture.show', $appliance->model_id) }}" class="mb-1 inline-flex items-center text-sm font-medium text-blue-700 hover:underline">
+            <i class="fas fa-layer-group mr-1.5"></i>{{ $modelUnitCount === 1 ? 'Only unit of this model' : $modelUnitCount.' units of this model' }} · View all
+        </a>
+        @endif
         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span class="status-chip {{ $statusClass }}">{{ $status }}</span>
             @foreach($identityFields as $index => $field)

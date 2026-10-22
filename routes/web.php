@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\DeliveryController;
 use App\Http\Controllers\Admin\DemanFlowController;
 use App\Http\Controllers\Admin\DropdownController;
 use App\Http\Controllers\Admin\FurnitureAssemblyController;
+use App\Http\Controllers\Admin\FurnitureModelController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\InventoryLocationController;
 use App\Http\Controllers\Admin\InventoryStatusController;
@@ -287,6 +288,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('inventory/furniture', [InventoryController::class, 'furniture'])
         ->middleware('permission:inventory.view')
         ->name('inventory.furniture');
+    Route::get('inventory/furniture/{model}', [FurnitureModelController::class, 'show'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.furniture.show');
     Route::get('inventory/scan', [InventoryController::class, 'scan'])
         ->middleware('permission:inventory.view')
         ->name('inventory.scan');

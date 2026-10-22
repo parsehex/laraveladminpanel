@@ -14,8 +14,10 @@ use App\Models\UserAction;
 use App\Support\ApplianceStatusFilter;
 use App\Support\AssemblyTimeAverages;
 use App\Support\DataTable;
+use App\Support\FurnitureModelGroups;
 use App\Support\InventoryCostRange;
 use App\Support\PageSize;
+use App\Support\UserPreferences;
 use App\Testing\RepairResultRepository;
 use App\Testing\TestingFlowRepository;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,6 +29,12 @@ use Illuminate\Validation\Rule;
 
 class InventoryController extends Controller
 {
+    public const LIST_VIEW_MODELS = 'models';
+
+    public const LIST_VIEW_UNITS = 'units';
+
+    private const FURNITURE_LIST_VIEW_PREFERENCE_KEY = 'inventory.furniture.list_view';
+
     public function __construct()
     {
         $this->middleware('permission:inventory.view');
@@ -44,24 +52,16 @@ class InventoryController extends Controller
 
     private function renderInventory(Request $request, ItemType $type)
     {
-        $dataTable = $this->inventoryDataTable($type);
+        $listView = $type === ItemType::Furniture ? $this->furnitureListView($request) : null;
+        $dataTable = $listView === self::LIST_VIEW_MODELS
+            ? $this->furnitureModelsDataTable()
+            : $this->inventoryDataTable($type);
 
         $resolved = $dataTable->resolveSortRequest($request, $request->user());
         if ($resolved instanceof RedirectResponse) {
             return $resolved;
         }
         $request = $resolved;
-
-        $query = $this->listedItems($type)
-            ->with(['truck', 'category', 'model', 'statusHistories'])
-            ->withSum('parts as parts_sum_cost', 'cost');
-
-        if ($type === ItemType::Furniture) {
-            $query->with('furnitureDetails');
-        }
-
-        $this->applyFilters($query, $request);
-        $dataTable->applySorting($query, $request);
 
         $limit = PageSize::resolve($request);
 
@@ -93,7 +93,34 @@ class InventoryController extends Controller
             ]);
         }
 
-        $items = PageSize::paginate($query, $request);
+        $groupStatuses = collect();
+        $groupTrucks = collect();
+
+        if ($listView === self::LIST_VIEW_MODELS) {
+            $groups = new FurnitureModelGroups;
+            $matchingUnits = $this->listedItems($type);
+            $this->applyFilters($matchingUnits, $request);
+
+            $query = $groups->query($matchingUnits);
+            $dataTable->applySorting($query, $request);
+            $items = PageSize::paginate($query, $request);
+
+            $modelIds = collect($items->items())->pluck('model_id');
+            $groupStatuses = $groups->statusCounts($modelIds);
+            $groupTrucks = $groups->truckCounts($modelIds);
+        } else {
+            $query = $this->listedItems($type)
+                ->with(['truck', 'category', 'model', 'statusHistories'])
+                ->withSum('parts as parts_sum_cost', 'cost');
+
+            if ($type === ItemType::Furniture) {
+                $query->with('furnitureDetails');
+            }
+
+            $this->applyFilters($query, $request);
+            $dataTable->applySorting($query, $request);
+            $items = PageSize::paginate($query, $request);
+        }
 
         $brands = $this->listedItems($type)
             ->whereNotNull('brand')
@@ -159,7 +186,10 @@ class InventoryController extends Controller
         return view('admin.inventory.index', [
             'pageTitle' => $type === ItemType::Furniture ? 'Furniture' : 'Appliances',
             'listRoute' => $type === ItemType::Furniture ? 'admin.inventory.furniture' : 'admin.inventory.index',
+            'listView' => $listView,
             'items' => $items,
+            'groupStatuses' => $groupStatuses,
+            'groupTrucks' => $groupTrucks,
             'brands' => $brands,
             'categories' => $categories,
             'subcategories' => $subcategories,
@@ -308,8 +338,15 @@ class InventoryController extends Controller
         );
 
         $statuses = InventoryStatus::assignableNames($appliance->status);
+        $modelUnitCount = null;
 
         if ($appliance->isFurniture()) {
+            if ($appliance->model_id !== null) {
+                $modelUnitCount = FurnitureModelGroups::liveUnits()
+                    ->where('truck_appliances.model_id', $appliance->model_id)
+                    ->count();
+            }
+
             $statuses = array_values(array_filter(
                 $statuses,
                 fn (string $name): bool => ! in_array($name, TruckAppliance::APPLIANCE_ONLY_STATUSES, true),
@@ -323,6 +360,7 @@ class InventoryController extends Controller
         return view('admin.inventory.show', [
             'appliance' => $appliance,
             'statuses' => $statuses,
+            'modelUnitCount' => $modelUnitCount,
             'testingResultLinks' => $testingResultLinks,
             'repairResultLinks' => $repairResultLinks,
             'testingResultCount' => count($flows->listResultsForAppliance($appliance->id)),
@@ -735,6 +773,87 @@ class InventoryController extends Controller
         if ($request->filled('sub_category')) {
             $query->whereLike('subcategory', '%'.$request->string('sub_category')->trim().'%');
         }
+    }
+
+    /**
+     * Resolve and remember whether the furniture list is grouped by model or shows every unit.
+     *
+     * @return self::LIST_VIEW_MODELS|self::LIST_VIEW_UNITS
+     */
+    private function furnitureListView(Request $request): string
+    {
+        $views = [self::LIST_VIEW_MODELS, self::LIST_VIEW_UNITS];
+        $user = $request->user();
+        $requested = $request->query('view');
+
+        if (in_array($requested, $views, true)) {
+            if ($user !== null) {
+                UserPreferences::put($user, self::FURNITURE_LIST_VIEW_PREFERENCE_KEY, ['view' => $requested]);
+            }
+
+            return $requested;
+        }
+
+        $preferred = $user !== null ? UserPreferences::get($user, self::FURNITURE_LIST_VIEW_PREFERENCE_KEY) : null;
+
+        if (is_array($preferred) && in_array($preferred['view'] ?? null, $views, true)) {
+            return $preferred['view'];
+        }
+
+        return self::LIST_VIEW_MODELS;
+    }
+
+    private function furnitureModelsDataTable(): DataTable
+    {
+        return new DataTable(
+            storageKey: 'furnitureModelsTableColumns',
+            defaultSort: [['last_received_at', 'desc'], ['group_product_name', 'asc']],
+            columns: [
+                [
+                    'key' => 'product',
+                    'label' => 'Product',
+                    'sort' => 'group_product_name',
+                ],
+                [
+                    'key' => 'model',
+                    'label' => 'Model #',
+                    'sort' => 'group_model_number',
+                ],
+                [
+                    'key' => 'brand',
+                    'label' => 'Brand',
+                    'truncate' => true,
+                    'sort' => 'group_brand',
+                ],
+                [
+                    'key' => 'category',
+                    'label' => 'Category',
+                    'truncate' => true,
+                    'sort' => 'group_category',
+                ],
+                [
+                    'key' => 'units',
+                    'label' => 'Units',
+                    'align' => 'right',
+                    'sort' => 'unit_count',
+                ],
+                [
+                    'key' => 'statuses',
+                    'label' => 'Statuses',
+                    'sortable' => false,
+                ],
+                [
+                    'key' => 'trucks',
+                    'label' => 'Trucks',
+                    'sortable' => false,
+                ],
+                [
+                    'key' => 'last_received',
+                    'label' => 'Last Received',
+                    'sort' => 'last_received_at',
+                ],
+            ],
+        );
     }
 
     private function inventoryDataTable(ItemType $type): DataTable

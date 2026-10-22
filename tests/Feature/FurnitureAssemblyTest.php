@@ -240,7 +240,7 @@ class FurnitureAssemblyTest extends TestCase
             'ended_at' => null,
         ]);
 
-        $response = $this->actingAs($user)->get(route('admin.inventory.furniture'));
+        $response = $this->actingAs($user)->get(route('admin.inventory.furniture', ['view' => 'units']));
 
         $response->assertOk();
         $response->assertSee('Assembled');
