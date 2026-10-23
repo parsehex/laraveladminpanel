@@ -15,13 +15,6 @@ class TruckAppliance extends EloquentModel
 {
     use SoftDeletes;
 
-    public const APPLIANCE_ONLY_STATUSES = [
-        'Testing',
-        'Repair',
-        'Demanufacture',
-        'Holding for parts',
-    ];
-
     public const RECEIVING_CONDITIONS = [
         'A-Grade',
         'B-Grade',
@@ -152,6 +145,54 @@ class TruckAppliance extends EloquentModel
     public function abortIfFurniture(): void
     {
         abort_if($this->isFurniture(), 404);
+    }
+
+    /**
+     * Move the item to a status, recording status history and the matching user action.
+     */
+    public function applyStatus(
+        string $status,
+        User $user,
+        ?string $notes = null,
+        float|string|null $soldPrice = null,
+        bool $partsOrdered = false,
+    ): void {
+        $update = [
+            'status' => $status,
+            'updated_by' => $user->id,
+        ];
+
+        if ($status === 'Sold') {
+            $update['location'] = null;
+            $update['sold_price'] = $soldPrice;
+            $update['sold_by'] = $user->name;
+            $update['sold_at'] = now();
+        }
+
+        $this->update($update);
+        $this->statusHistories()->create([
+            'status' => $status,
+            'notes' => $notes,
+            'parts_ordered' => $partsOrdered,
+            'user_id' => $user->id,
+        ]);
+
+        $actionType = UserAction::actionTypeForStatus($status);
+        if ($actionType) {
+            $extra = $actionType === 'showroom_sold'
+                ? ['price' => $soldPrice]
+                : null;
+            UserAction::log($actionType, $this->id, $extra, $user);
+        }
+    }
+
+    public function markAssembled(User $user): void
+    {
+        $this->furnitureDetails()->updateOrCreate([], [
+            'assembled_at' => now(),
+            'assembled_by' => $user->id,
+            'assembled_by_name' => $user->name,
+        ]);
     }
 
     public function syncFurnitureDetails(): void

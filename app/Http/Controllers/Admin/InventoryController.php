@@ -347,10 +347,6 @@ class InventoryController extends Controller
                     ->count();
             }
 
-            $statuses = array_values(array_filter(
-                $statuses,
-                fn (string $name): bool => ! in_array($name, TruckAppliance::APPLIANCE_ONLY_STATUSES, true),
-            ));
             $appliance->load([
                 'furnitureDetails',
                 'timeEntries' => fn ($entries) => $entries->assembly()->latest('started_at'),
@@ -494,39 +490,13 @@ class InventoryController extends Controller
             'parts_ordered' => ['nullable', 'boolean'],
         ]);
 
-        if ($appliance->isFurniture() && in_array($data['status'], TruckAppliance::APPLIANCE_ONLY_STATUSES, true)) {
-            return back()->withErrors([
-                'status' => __('That status is only used for appliances.'),
-            ]);
-        }
-
-        $update = [
-            'status' => $data['status'],
-            'updated_by' => $request->user()->id,
-        ];
-
-        if ($data['status'] === 'Sold') {
-            $update['location'] = null;
-            $update['sold_price'] = $data['sold_price'] ?? null;
-            $update['sold_by'] = $request->user()->name;
-            $update['sold_at'] = now();
-        }
-
-        $appliance->update($update);
-        $appliance->statusHistories()->create([
-            'status' => $data['status'],
-            'notes' => $data['notes'] ?? null,
-            'parts_ordered' => (bool) ($data['parts_ordered'] ?? false),
-            'user_id' => $request->user()->id,
-        ]);
-
-        $actionType = UserAction::actionTypeForStatus($data['status']);
-        if ($actionType) {
-            $extra = $actionType === 'showroom_sold'
-                ? ['price' => $data['sold_price'] ?? null]
-                : null;
-            UserAction::log($actionType, $appliance->id, $extra);
-        }
+        $appliance->applyStatus(
+            $data['status'],
+            $request->user(),
+            $data['notes'] ?? null,
+            $data['sold_price'] ?? null,
+            (bool) ($data['parts_ordered'] ?? false),
+        );
 
         return back()->with('success', __('Status updated successfully.'));
     }

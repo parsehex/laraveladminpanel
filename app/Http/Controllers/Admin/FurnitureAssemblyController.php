@@ -50,11 +50,7 @@ class FurnitureAssemblyController extends Controller
     {
         $this->ensureFurniture($appliance);
 
-        $appliance->furnitureDetails()->updateOrCreate([], [
-            'assembled_at' => now(),
-            'assembled_by' => $request->user()->id,
-            'assembled_by_name' => $request->user()->name,
-        ]);
+        $appliance->markAssembled($request->user());
 
         return back()->with('success', __('Marked assembled.'));
     }

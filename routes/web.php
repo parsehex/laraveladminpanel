@@ -291,6 +291,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('inventory/furniture/{model}', [FurnitureModelController::class, 'show'])
         ->middleware('permission:inventory.view')
         ->name('inventory.furniture.show');
+    Route::post('inventory/furniture/{model}/actions', [FurnitureModelController::class, 'performAction'])
+        ->middleware('permission:appliance.edit')
+        ->name('inventory.furniture.actions');
     Route::get('inventory/scan', [InventoryController::class, 'scan'])
         ->middleware('permission:inventory.view')
         ->name('inventory.scan');

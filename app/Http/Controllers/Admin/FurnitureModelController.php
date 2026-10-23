@@ -3,11 +3,17 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\FurnitureQuickActionRequest;
 use App\Models\Model as CatalogModel;
+use App\Models\TruckAppliance;
 use App\Support\ApplianceStatusFilter;
 use App\Support\FurnitureModelGroups;
+use App\Support\FurnitureQuickActions;
 use App\Support\PageSize;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class FurnitureModelController extends Controller
 {
@@ -16,7 +22,7 @@ class FurnitureModelController extends Controller
         $this->middleware('permission:inventory.view');
     }
 
-    public function show(Request $request, CatalogModel $model, FurnitureModelGroups $groups)
+    public function show(Request $request, CatalogModel $model, FurnitureModelGroups $groups, FurnitureQuickActions $actions)
     {
         $allUnits = FurnitureModelGroups::liveUnits()->where('truck_appliances.model_id', $model->id);
 
@@ -52,6 +58,43 @@ class FurnitureModelController extends Controller
             'selectedStatuses' => $selectedStatuses->all(),
             'units' => $units,
             'shownUnitIds' => $shownUnitIds->all(),
+            'targetStatuses' => FurnitureQuickActionRequest::targetStatuses(),
+            'actionAvailability' => $actions->availability($model, FurnitureQuickActionRequest::targetStatuses()),
+            'locations' => TruckAppliance::query()
+                ->whereNotNull('location')
+                ->where('location', '<>', '')
+                ->selectRaw('MIN(location) as location')
+                ->groupBy(DB::raw('LOWER(TRIM(location))'))
+                ->orderBy('location')
+                ->pluck('location'),
         ]);
+    }
+
+    public function performAction(FurnitureQuickActionRequest $request, CatalogModel $model, FurnitureQuickActions $actions): RedirectResponse
+    {
+        $action = $request->quickAction();
+
+        $result = $actions->perform(
+            $model,
+            $action,
+            (int) $request->validated('count'),
+            $request->checkedUnitIds(),
+            $request->boolean('override'),
+            $request->safe()->only(['status', 'sold_price', 'location', 'notes']),
+            $request->user(),
+        );
+
+        $message = __(':action :count :units: :labels.', [
+            'action' => $action->pastTense(),
+            'count' => $result['units']->count(),
+            'units' => Str::plural('unit', $result['units']->count()),
+            'labels' => FurnitureQuickActions::labels($result['units']),
+        ]);
+
+        if ($result['overridden_ids'] !== []) {
+            $message .= ' '.__(':count used the status override.', ['count' => count($result['overridden_ids'])]);
+        }
+
+        return back()->with('success', $message);
     }
 }

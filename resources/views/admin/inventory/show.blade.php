@@ -234,7 +234,6 @@ $inventoryListRoute = $isFurniture ? 'admin.inventory.furniture' : 'admin.invent
         <div class="legacy-panel-heading bg-blue-600">Actions</div>
         <div class="legacy-panel-body flex flex-wrap gap-1">
             @foreach(['Testing', 'Cleaning', 'Ready', 'Repair', 'Holding', 'Holding for parts', 'Demanufacture', 'Show Room', 'Quality Control QC'] as $action)
-            @continue($appliance->isFurniture() && in_array($action, \App\Models\TruckAppliance::APPLIANCE_ONLY_STATUSES, true))
             <button type="button" class="legacy-btn status-action {{ $statusStyles[$action]['class'] ?? 'status-white' }}" data-status-shortcut="{{ $action }}">{{ $action }}</button>
             @endforeach
         </div>
