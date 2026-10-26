@@ -23,6 +23,7 @@ class UpdateTruckApplianceRequest extends FormRequest
             'truck_id' => ['required', 'exists:trucks,id'],
             'unit_label' => ['nullable', 'string', 'max:255'],
             'category' => ['required', 'string', 'max:255'],
+            'item_type' => ['nullable', Rule::enum(ItemType::class)],
             'subcategory' => ['nullable', 'string', 'max:255'],
             'model_number' => [Rule::requiredIf(fn (): bool => ! $this->selectedCategoryIsFurniture()), 'nullable', 'string', 'max:255'],
             'category_id' => ['nullable', 'exists:categories,id'],
@@ -62,14 +63,18 @@ class UpdateTruckApplianceRequest extends FormRequest
         ];
     }
 
+    /**
+     * The chosen category's type, or the form's item type toggle when the category doesn't exist yet.
+     */
     protected function selectedCategoryIsFurniture(): bool
     {
         $name = trim((string) $this->input('category'));
+        $category = $name === '' ? null : Category::query()->where('name', $name)->first();
 
-        if ($name === '') {
-            return false;
+        if ($category !== null) {
+            return $category->isFurniture();
         }
 
-        return Category::query()->where('name', $name)->first()?->isFurniture() ?? false;
+        return $this->input('item_type') === ItemType::Furniture->value;
     }
 }

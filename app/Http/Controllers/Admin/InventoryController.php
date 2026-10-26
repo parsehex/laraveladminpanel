@@ -105,9 +105,11 @@ class InventoryController extends Controller
             $dataTable->applySorting($query, $request);
             $items = PageSize::paginate($query, $request);
 
-            $modelIds = collect($items->items())->pluck('model_id');
-            $groupStatuses = $groups->statusCounts($modelIds);
-            $groupTrucks = $groups->truckCounts($modelIds);
+            $rows = collect($items->items());
+            $modelIds = $rows->pluck('model_id')->filter()->values()->all();
+            $unitIds = $rows->pluck('unit_id')->filter()->values()->all();
+            $groupStatuses = $groups->statusCounts($modelIds, $unitIds);
+            $groupTrucks = $groups->truckCounts($modelIds, $unitIds);
         } else {
             $query = $this->listedItems($type)
                 ->with(['truck', 'category', 'model', 'statusHistories'])

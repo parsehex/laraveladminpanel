@@ -659,14 +659,17 @@
     function updateLegacyFormState($form) {
         const $category = $form.find('[data-legacy-category]');
         const category = $category.val();
-        const isFurniture = categoryType($category) === 'furniture';
+        const isFurniture = $form.find('[data-item-type-input]').val() === 'furniture';
         const showSubcategory = category !== '';
         const showFuel = !isFurniture && ['Ranges', 'Dryers'].includes(category);
 
         $form.find('[data-subcategory-container]').toggleClass('hidden', !showSubcategory);
         $form.find('[data-fuel-type-container]').toggleClass('hidden', !showFuel);
         $form.find('[data-appliance-only]').toggleClass('hidden', isFurniture);
-        $form.find('[data-appliance-only]').find('[name="model_number"], [name="serial_number"]').prop('required', !isFurniture);
+        $form.find('[data-appliance-only]').find('[name="serial_number"]').prop('required', !isFurniture);
+        $form.find('[data-model-field] [name="model_number"]').prop('required', !isFurniture);
+        $form.find('[data-model-field] [data-required-marker]').toggleClass('hidden', isFurniture);
+        $form.find('[data-model-field] [data-optional-marker]').toggleClass('hidden', !isFurniture);
 
         if (!showSubcategory) {
             $form.find('select[name="subcategory"]').val(null).trigger('change');
@@ -679,6 +682,34 @@
 
     $('[data-appliance-form]').each(function () {
         updateLegacyFormState($(this));
+    });
+
+    // Switching the item type limits the category and model dropdowns (and quick-create) to that type.
+    $(document).on('click', '[data-item-type-option]', function () {
+        const $button = $(this);
+        const $form = $button.closest('[data-appliance-form]');
+        const type = $button.data('itemTypeOption');
+
+        if ($button.prop('disabled') || $form.find('[data-item-type-input]').val() === type) {
+            return;
+        }
+
+        $form.find('[data-item-type-input]').val(type);
+        $form.find('[data-item-type-option]').each(function () {
+            $(this).attr('aria-pressed', $(this).data('itemTypeOption') === type ? 'true' : 'false');
+        });
+
+        const $category = $form.find('[data-legacy-category]');
+        const $model = $form.find('[data-legacy-model-select]');
+        $category.data('itemType', type);
+        $model.data('itemType', type);
+
+        if ($category.val() && categoryType($category) !== type) {
+            $category.val(null).trigger('change');
+            $model.val(null).trigger('change');
+        }
+
+        updateLegacyFormState($form);
     });
 
     $('[data-legacy-category]').on('change', function () {

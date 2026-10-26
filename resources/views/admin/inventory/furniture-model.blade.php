@@ -242,6 +242,7 @@
                                    x-on:change="const pageIds = [...$root.querySelectorAll('[data-unit-checkbox]')].map((box) => box.value); selected = $event.target.checked ? [...new Set([...selected, ...pageIds])] : selected.filter((id) => ! pageIds.includes(id))">
                         </th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Unit Label</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Product Name</th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Truck</th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
                         <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Location</th>
@@ -260,6 +261,7 @@
                         <td class="whitespace-nowrap px-4 py-3 text-sm">
                             <a href="{{ route('admin.inventory.show', $unit) }}" class="font-semibold text-blue-700 hover:underline">{{ $unit->unit_label ?: 'Unit #'.$unit->id }}</a>
                         </td>
+                        <td class="min-w-64 max-w-md px-4 py-3 text-sm text-gray-900">{{ $unit->product_name ?: '-' }}</td>
                         <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ $unit->truck?->name ?? '-' }}</td>
                         <td class="whitespace-nowrap px-4 py-3"><x-admin.status-chip :status="$unit->status" /></td>
                         <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ $unit->location ?: '-' }}</td>
@@ -277,7 +279,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="px-6 py-8 text-center text-gray-500">No units match this filter.</td>
+                        <td colspan="10" class="px-6 py-8 text-center text-gray-500">No units match this filter.</td>
                     </tr>
                     @endforelse
                 </tbody>

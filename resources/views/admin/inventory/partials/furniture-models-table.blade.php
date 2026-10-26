@@ -27,16 +27,18 @@
         <tbody class="bg-white divide-y divide-gray-200">
             @forelse($items as $group)
             @php
-                $groupKey = \App\Support\FurnitureModelGroups::key($group->model_id);
-                $modelUrl = $group->model_id !== null ? route('admin.inventory.furniture.show', $group->model_id) : null;
+                $groupKey = \App\Support\FurnitureModelGroups::key($group->model_id, $group->unit_id);
             @endphp
             <tr class="hover:bg-gray-50">
                 <x-admin.data-table.cell column="product" class="min-w-[18rem] max-w-[28rem] whitespace-normal!">
-                    @if($modelUrl)
-                    <a href="{{ $modelUrl }}" class="font-semibold text-blue-700 hover:underline">{{ $group->group_product_name ?: 'Unnamed model' }}</a>
+                    @if($group->model_id !== null)
+                    <a href="{{ route('admin.inventory.furniture.show', $group->model_id) }}" class="font-semibold text-blue-700 hover:underline">{{ $group->group_product_name ?: 'Unnamed model' }}</a>
                     @else
-                    <span class="font-semibold text-gray-900">No model assigned</span>
-                    <span class="block text-xs text-gray-500">Switch to Units to see these items.</span>
+                    <a href="{{ route('admin.inventory.show', $group->unit_id) }}" class="font-semibold text-blue-700 hover:underline">{{ $group->group_product_name ?: 'Unnamed item' }}</a>
+                    <span class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-500">
+                        <span class="rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-900">No model #</span>
+                        {{ $group->unit_label ?: 'Unit #'.$group->unit_id }}
+                    </span>
                     @endif
                 </x-admin.data-table.cell>
                 <x-admin.data-table.cell column="model">{{ $group->group_model_number ?: '-' }}</x-admin.data-table.cell>

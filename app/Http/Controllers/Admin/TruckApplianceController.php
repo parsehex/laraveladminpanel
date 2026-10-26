@@ -369,7 +369,7 @@ class TruckApplianceController extends Controller
 
             $category = Category::create([
                 'name' => $categoryName,
-                'type' => ItemType::Appliance,
+                'type' => ItemType::tryFrom((string) ($data['item_type'] ?? '')) ?? ItemType::Appliance,
                 'status' => 1,
                 'created_by' => $request->user()->id,
                 'updated_by' => $request->user()->id,
@@ -377,9 +377,11 @@ class TruckApplianceController extends Controller
         }
 
         $isFurniture = $category->isFurniture();
-        $model = $isFurniture
-            ? null
-            : $this->resolveModel($modelNumber, $msrp, $productName, $brand, $category->id, $request->user()->id);
+        $model = match (true) {
+            ! $isFurniture => $this->resolveModel($modelNumber, $msrp, $productName, $brand, $category->id, $request->user()->id),
+            $modelNumber === '' => null,
+            default => $this->resolveFurnitureModel($modelNumber, $msrp, $productName, $brand, $category->id, $request->user()->id, $request->route('appliance')),
+        };
 
         $fuelType = ! $isFurniture && in_array($categoryName, ['Ranges', 'Dryers'], true)
             ? trim((string) ($data['fuel_type'] ?? 'N/A'))
@@ -426,6 +428,28 @@ class TruckApplianceController extends Controller
                 $item->update(['price' => $price]);
             }
         }
+    }
+
+    /**
+     * Furniture keeps its current model when the number is unchanged, so editing the MSRP doesn't split it
+     * from its group. Otherwise it reuses a furniture model with that number (same MSRP first), or creates one.
+     */
+    private function resolveFurnitureModel(string $modelNumber, float $msrp, ?string $productName, ?string $brand, int $categoryId, int $userId, mixed $appliance): ApplianceModel
+    {
+        if ($appliance instanceof TruckAppliance && $appliance->model?->model_number === $modelNumber) {
+            return $appliance->model;
+        }
+
+        $furnitureModels = ApplianceModel::query()
+            ->where('model_number', $modelNumber)
+            ->whereHas('category', fn ($category) => $category->where('type', ItemType::Furniture))
+            ->orderBy('id')
+            ->get();
+
+        $match = $furnitureModels->first(fn (ApplianceModel $model) => abs((float) $model->msrp - $msrp) < 0.005)
+            ?? $furnitureModels->first();
+
+        return $match ?? $this->resolveModel($modelNumber, $msrp, $productName, $brand, $categoryId, $userId);
     }
 
     private function resolveModel(string $modelNumber, float $msrp, ?string $productName, ?string $brand, ?int $categoryId, int $userId): ApplianceModel

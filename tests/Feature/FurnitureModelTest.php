@@ -72,14 +72,14 @@ class FurnitureModelTest extends TestCase
         ]);
     }
 
-    private function unit(Truck $truck, ?CatalogModel $model, string $unitLabel, string $status = 'Testing', ?Category $category = null): TruckAppliance
+    private function unit(Truck $truck, ?CatalogModel $model, string $unitLabel, string $status = 'Testing', ?Category $category = null, ?string $productName = null): TruckAppliance
     {
         return TruckAppliance::query()->create([
             'truck_id' => $truck->id,
             'category_id' => ($category ?? $this->tables)->id,
             'model_id' => $model?->id,
             'unit_label' => $unitLabel,
-            'product_name' => $model?->product_name ?? 'Loose item',
+            'product_name' => $productName ?? $model?->product_name ?? 'Loose item',
             'status' => $status,
             'created_by' => $this->user->id,
             'updated_by' => $this->user->id,
@@ -180,8 +180,8 @@ class FurnitureModelTest extends TestCase
         $response->assertOk();
         $response->assertSeeInOrder(match ($column) {
             'units' => ['Resin Deck Box', 'Oval Coffee Table'],
-            'product' => ['No model assigned', 'Oval Coffee Table', 'Resin Deck Box'],
-            'model' => ['Resin Deck Box', 'Oval Coffee Table', 'No model assigned'],
+            'product' => ['Loose item', 'Oval Coffee Table', 'Resin Deck Box'],
+            'model' => ['Resin Deck Box', 'Oval Coffee Table', 'Loose item'],
             default => ['Oval Coffee Table'],
         });
     }
@@ -202,18 +202,38 @@ class FurnitureModelTest extends TestCase
         $response->assertSee('Picture Rail');
     }
 
-    public function test_units_without_a_model_share_one_group(): void
+    public function test_each_unit_without_a_model_gets_its_own_row_linking_to_the_unit(): void
     {
         $truck = $this->truck('WF-012');
-        $this->unit($truck, null, 'WF-012-001');
-        $this->unit($truck, null, 'WF-012-002', 'Ready');
+        $recliner = $this->unit($truck, null, 'WF-012-001', productName: 'Chemika Manual Recliner');
+        $lamp = $this->unit($truck, null, 'WF-012-002', 'Ready', productName: 'Brass Floor Lamp');
 
         $response = $this->actingAs($this->user)->get(route('admin.inventory.furniture'));
 
         $response->assertOk();
-        $response->assertSee('No model assigned');
+        $response->assertDontSee('No model assigned');
+        $response->assertSee('Chemika Manual Recliner');
+        $response->assertSee('Brass Floor Lamp');
+        $response->assertSee(route('admin.inventory.show', $recliner));
+        $response->assertSee(route('admin.inventory.show', $lamp));
+        $response->assertSee('No model #');
+        $response->assertSee('WF-012-001');
         $response->assertSee('Testing (1)');
         $response->assertSee('Ready (1)');
+        $response->assertSee('WF-012 <span class="text-gray-500">(1)</span>', false);
+    }
+
+    public function test_filters_only_include_model_less_units_that_match(): void
+    {
+        $truck = $this->truck('WF-013');
+        $this->unit($truck, null, 'WF-013-001', productName: 'Chemika Manual Recliner');
+        $this->unit($truck, null, 'WF-013-002', 'Ready', productName: 'Brass Floor Lamp');
+
+        $response = $this->actingAs($this->user)->get(route('admin.inventory.furniture', ['status' => ['Ready']]));
+
+        $response->assertOk();
+        $response->assertSee('Brass Floor Lamp');
+        $response->assertDontSee('Chemika Manual Recliner');
     }
 
     public function test_furniture_list_remembers_the_chosen_view(): void
@@ -263,6 +283,21 @@ class FurnitureModelTest extends TestCase
         $response->assertSee('WF-014-002');
         $response->assertSee('WF-015-001');
         $response->assertDontSee('WF-015-002');
+    }
+
+    public function test_model_page_shows_each_units_product_name(): void
+    {
+        $truck = $this->truck('WF-023');
+        $cabinet = $this->catalogModel('DXAR1154', 'Storage Cabinet - Light Oak');
+        $this->unit($truck, $cabinet, 'WF-023-001', productName: 'Storage Cabinet - Light Oak (1 of 2 identical)');
+        $this->unit($truck, $cabinet, 'WF-023-002', productName: 'Storage Cabinet - Light Oak - Box A, carton 2 of 2 [count unverified]');
+
+        $response = $this->actingAs($this->user)->get(route('admin.inventory.furniture.show', $cabinet));
+
+        $response->assertOk();
+        $response->assertSee('Product Name');
+        $response->assertSee('Storage Cabinet - Light Oak (1 of 2 identical)');
+        $response->assertSee('Storage Cabinet - Light Oak - Box A, carton 2 of 2 [count unverified]');
     }
 
     public function test_model_page_status_filter_narrows_the_units_table(): void

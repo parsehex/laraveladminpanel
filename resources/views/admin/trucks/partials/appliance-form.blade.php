@@ -6,9 +6,25 @@
     $selectedSubcategory = old('subcategory', $appliance?->subcategory);
     $selectedModel = old('model_number', $appliance?->model?->model_number);
     $selectedCategoryType = $selectedCategory
-        ? (\App\Models\Category::query()->where('name', $selectedCategory)->value('type') ?: 'appliance')
-        : 'appliance';
-    $isFurniture = $selectedCategoryType === 'furniture';
+        ? (\App\Models\Category::query()->where('name', $selectedCategory)->first()?->type?->value ?? 'appliance')
+        : null;
+    /*
+     * An existing item keeps its type (it can't move between appliances and furniture). A new item starts
+     * from the resubmitted toggle, then the chosen category, then whatever most of this truck's items are.
+     */
+    $itemTypeLocked = $appliance !== null;
+    if ($itemTypeLocked) {
+        $itemType = $appliance->itemType()->value;
+    } else {
+        $truckItemCount = $truck->appliances()->count();
+        $truckMostlyFurniture = $truckItemCount > 0 && $truck->appliances()->furniture()->count() * 2 > $truckItemCount;
+        $itemType = old('item_type') ?: ($selectedCategoryType ?? ($truckMostlyFurniture ? 'furniture' : 'appliance'));
+    }
+    $isFurniture = $itemType === 'furniture';
+    $itemTypeOptions = [
+        'appliance' => ['label' => 'Appliance', 'icon' => 'fa-plug'],
+        'furniture' => ['label' => 'Furniture', 'icon' => 'fa-couch'],
+    ];
     $isReturnsTruck = stripos($truck->name, 'Returns') !== false;
 @endphp
 
@@ -21,7 +37,25 @@
             <div>
                 <label for="{{ $prefix }}-category" class="block text-sm font-semibold text-gray-700 mb-2">Category: <span class="text-red-500">*</span></label>
                 <div class="flex gap-2" data-quick-create-wrapper>
-                    <select id="{{ $prefix }}-category" name="category" required data-legacy-category data-ajax-dropdown="category" data-value-field="name"
+                    <div class="flex h-[42px] shrink-0 items-center gap-0.5 rounded-md border border-gray-300 bg-white p-0.5" role="group" aria-label="Item type">
+                        @foreach($itemTypeOptions as $typeValue => $typeOption)
+                            <button type="button"
+                                    data-item-type-option="{{ $typeValue }}"
+                                    aria-pressed="{{ $itemType === $typeValue ? 'true' : 'false' }}"
+                                    aria-label="{{ $typeOption['label'] }} item"
+                                    @disabled($itemTypeLocked)
+                                    class="ui-flyout-host inline-flex h-full w-9 items-center justify-center rounded text-gray-500 hover:bg-gray-100 aria-pressed:bg-blue-600 aria-pressed:text-white disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:aria-pressed:hover:bg-blue-600">
+                                <i class="fas {{ $typeOption['icon'] }}"></i>
+                                <span class="ui-flyout-tooltip ui-flyout-above" role="tooltip">
+                                    {{ $itemTypeLocked
+                                        ? ucfirst($itemType)
+                                        : $typeOption['label'] }}
+                                </span>
+                            </button>
+                        @endforeach
+                    </div>
+                    <input type="hidden" name="item_type" value="{{ $itemType }}" data-item-type-input>
+                    <select id="{{ $prefix }}-category" name="category" required data-legacy-category data-ajax-dropdown="category" data-value-field="name" data-item-type="{{ $itemType }}"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Search category...</option>
                         @if($selectedCategory)
@@ -60,10 +94,10 @@
                 @enderror
             </div>
 
-            <div class="{{ $isFurniture ? 'hidden' : '' }}" data-appliance-only>
-                <label for="{{ $prefix }}-model-number" class="block text-sm font-semibold text-gray-700 mb-2">Model #: <span class="text-red-500">*</span></label>
+            <div data-model-field>
+                <label for="{{ $prefix }}-model-number" class="block text-sm font-semibold text-gray-700 mb-2">Model #: <span class="text-red-500 {{ $isFurniture ? 'hidden' : '' }}" data-required-marker>*</span><span class="text-xs font-normal text-gray-500 {{ $isFurniture ? '' : 'hidden' }}" data-optional-marker>(optional — groups identical pieces)</span></label>
                 <div class="flex gap-2" data-quick-create-wrapper>
-                    <select id="{{ $prefix }}-model-number" name="model_number" @unless($isFurniture) required @endunless data-ajax-dropdown="model" data-legacy-model-select data-category-source="#{{ $prefix }}-category"
+                    <select id="{{ $prefix }}-model-number" name="model_number" @unless($isFurniture) required @endunless data-ajax-dropdown="model" data-legacy-model-select data-category-source="#{{ $prefix }}-category" data-item-type="{{ $itemType }}"
                             class="w-full caps px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Search model...</option>
                         @if($selectedModel)

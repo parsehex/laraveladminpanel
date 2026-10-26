@@ -156,6 +156,24 @@
         z-index: 60;
     }
 
+    /* Small controls: put a .ui-flyout-tooltip inside a .ui-flyout-host; it shows on hover and keyboard focus. */
+    .ui-flyout-host {
+        position: relative;
+    }
+
+    .ui-flyout-host > .ui-flyout-tooltip.ui-flyout-above {
+        position: absolute;
+        bottom: calc(100% + 0.5rem);
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .ui-flyout-host:hover > .ui-flyout-tooltip,
+    .ui-flyout-host:focus-visible > .ui-flyout-tooltip {
+        opacity: 1;
+        visibility: visible;
+    }
+
     .ui-nav-folder-children .ui-nav-link {
         margin-left: 1.15rem;
         padding-left: 1.1rem;

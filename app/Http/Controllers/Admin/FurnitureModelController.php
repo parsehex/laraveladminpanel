@@ -53,7 +53,7 @@ class FurnitureModelController extends Controller
             'assembledCount' => (clone $allUnits)
                 ->whereHas('furnitureDetails', fn ($details) => $details->whereNotNull('assembled_at'))
                 ->count(),
-            'statusCounts' => $groups->statusCounts(collect([$model->id]))->get($model->id, []),
+            'statusCounts' => $groups->statusCounts([$model->id])->get($model->id, []),
             'truckBreakdown' => $groups->truckStatusCounts($model->id),
             'selectedStatuses' => $selectedStatuses->all(),
             'units' => $units,

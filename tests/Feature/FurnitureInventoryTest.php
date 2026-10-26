@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\ItemType;
 use App\Models\Category;
 use App\Models\FurnitureDetail;
+use App\Models\Model as CatalogModel;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\User;
@@ -360,5 +361,201 @@ class FurnitureInventoryTest extends TestCase
         $response->assertSessionHas('success');
         $this->assertSame('Sold', $item->fresh()->status);
         $this->assertSame('150.00', $item->fresh()->sold_price);
+    }
+
+    private function furnitureModel(User $user, Category $category, string $modelNumber, float $msrp = 100): CatalogModel
+    {
+        return CatalogModel::query()->create([
+            'model_number' => $modelNumber,
+            'product_name' => 'Model '.$modelNumber,
+            'category_id' => $category->id,
+            'brand' => 'Chemika',
+            'msrp' => $msrp,
+            'status' => 1,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function itemForm(Truck $truck, array $overrides = []): array
+    {
+        return [
+            'truck_id' => $truck->id,
+            'category' => 'Sofas',
+            'brand' => 'Chemika',
+            'product_name' => 'Manual Recliner',
+            'receiving_condition' => 'A-Grade',
+            ...$overrides,
+        ];
+    }
+
+    public function test_editing_a_furniture_unit_keeps_its_model(): void
+    {
+        $user = $this->adminUser();
+        $truck = $this->truck($user);
+        $sofas = $this->category($user, 'Sofas', ItemType::Furniture);
+        $model = $this->furnitureModel($user, $sofas, 'REC-40', 749.99);
+        $item = TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'category_id' => $sofas->id,
+            'model_id' => $model->id,
+            'brand' => 'Chemika',
+            'msrp' => 749.99,
+            'receiving_condition' => 'A-Grade',
+            'status' => 'Ready',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('admin.trucks.appliances.update', [$truck, $item]), $this->itemForm($truck, [
+                'model_number' => 'REC-40',
+                'msrp' => 699,
+                'item_type' => 'furniture',
+            ]))
+            ->assertRedirect(route('admin.trucks.show', $truck));
+
+        $this->assertSame($model->id, $item->fresh()->model_id);
+        $this->assertSame(1, CatalogModel::query()->count());
+    }
+
+    public function test_changing_a_furniture_model_number_moves_the_unit_to_that_model(): void
+    {
+        $user = $this->adminUser();
+        $truck = $this->truck($user);
+        $sofas = $this->category($user, 'Sofas', ItemType::Furniture);
+        $current = $this->furnitureModel($user, $sofas, 'REC-40');
+        $other = $this->furnitureModel($user, $sofas, 'REC-50', 300);
+        $item = TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'category_id' => $sofas->id,
+            'model_id' => $current->id,
+            'brand' => 'Chemika',
+            'receiving_condition' => 'A-Grade',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('admin.trucks.appliances.update', [$truck, $item]), $this->itemForm($truck, ['model_number' => 'rec-50', 'msrp' => 100]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($other->id, $item->fresh()->model_id);
+        $this->assertSame(2, CatalogModel::query()->count());
+    }
+
+    public function test_adding_furniture_with_a_model_number_reuses_or_creates_a_furniture_model(): void
+    {
+        $user = $this->adminUser();
+        $truck = $this->truck($user);
+        $sofas = $this->category($user, 'Sofas', ItemType::Furniture);
+        $existing = $this->furnitureModel($user, $sofas, 'REC-40', 749.99);
+
+        $this->actingAs($user)
+            ->post(route('admin.trucks.appliances.store', $truck), $this->itemForm($truck, ['model_number' => 'REC-40', 'msrp' => 500]))
+            ->assertSessionHasNoErrors();
+        $this->actingAs($user)
+            ->post(route('admin.trucks.appliances.store', $truck), $this->itemForm($truck, ['model_number' => 'SOFA-9', 'product_name' => 'Hana Sofa', 'msrp' => 900]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($existing->id, $truck->appliances()->where('product_name', 'Manual Recliner')->value('model_id'));
+
+        $created = CatalogModel::query()->where('model_number', 'SOFA-9')->sole();
+        $this->assertSame($sofas->id, $created->category_id);
+        $this->assertSame($created->id, $truck->appliances()->where('product_name', 'Hana Sofa')->value('model_id'));
+    }
+
+    public function test_new_categories_from_the_item_form_take_the_chosen_item_type(): void
+    {
+        $user = $this->adminUser();
+        $truck = $this->truck($user);
+
+        $this->actingAs($user)
+            ->post(route('admin.trucks.appliances.store', $truck), $this->itemForm($truck, ['category' => 'Recliners', 'item_type' => 'furniture']))
+            ->assertSessionHasNoErrors();
+
+        $recliners = Category::query()->where('name', 'Recliners')->sole();
+        $this->assertSame(ItemType::Furniture, $recliners->type);
+        $this->assertTrue($truck->appliances()->sole()->isFurniture());
+    }
+
+    public function test_adding_an_item_rejects_a_category_of_the_other_type(): void
+    {
+        $user = $this->adminUser();
+        $truck = $this->truck($user);
+        $this->category($user, 'Washers', ItemType::Appliance);
+
+        $this->actingAs($user)
+            ->post(route('admin.trucks.appliances.store', $truck), $this->itemForm($truck, ['category' => 'Washers', 'item_type' => 'furniture']))
+            ->assertInvalid(['category' => '“Washers” is an appliance category. Switch the item type or choose another category.']);
+
+        $this->assertSame(0, TruckAppliance::query()->count());
+    }
+
+    public function test_item_form_type_toggle_defaults_to_the_trucks_items_and_locks_on_edit(): void
+    {
+        $user = $this->adminUser();
+        $truck = $this->truck($user);
+        $sofas = $this->category($user, 'Sofas', ItemType::Furniture);
+        TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'category_id' => $sofas->id,
+            'unit_label' => 'Furniture Truck-001',
+            'brand' => 'Chemika',
+            'receiving_condition' => 'A-Grade',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('admin.trucks.show', $truck));
+
+        $response->assertOk();
+        $response->assertSee('name="item_type" value="furniture"', false);
+        $response->assertDontSee('name="item_type" value="appliance"', false);
+        $response->assertSee('Furniture item — shows furniture categories');
+        $response->assertSee('Furniture item — the type can’t change after it’s added');
+        $response->assertSee('(optional — groups identical pieces)');
+
+        $emptyTruck = Truck::query()->create([
+            'name' => 'Appliance Truck',
+            'units_on_truck' => 0,
+            'cost_of_truck' => 0,
+            'shipping_cost' => 0,
+            'arrival_date' => now()->toDateString(),
+            'status' => 'active',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.trucks.show', $emptyTruck))
+            ->assertOk()
+            ->assertSee('name="item_type" value="appliance"', false);
+    }
+
+    public function test_model_dropdown_can_be_limited_to_furniture_models(): void
+    {
+        $user = $this->adminUser();
+        $sofas = $this->category($user, 'Sofas', ItemType::Furniture);
+        $washers = $this->category($user, 'Washers', ItemType::Appliance);
+        $this->furnitureModel($user, $sofas, 'REC-40');
+        $this->furnitureModel($user, $washers, 'WASH-1');
+
+        $furniture = $this->actingAs($user)->getJson(route('admin.dropdowns.models', ['type' => 'furniture']));
+
+        $furniture->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', 'REC-40')
+            ->assertJsonPath('data.0.text', 'REC-40 — Model REC-40');
+
+        $this->actingAs($user)
+            ->getJson(route('admin.dropdowns.models'))
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.text', 'REC-40');
     }
 }
