@@ -9,9 +9,9 @@
     @vite('resources/css/app.css')
     @include('layouts.partials.theme')
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('vendor/fontawesome-6.4.0/css/all.min.css') }}">
     <!-- Toastr CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="stylesheet" href="{{ asset('vendor/toastr-2.1.3/toastr.min.css') }}">
 </head>
 <body class="min-h-screen flex items-center justify-center px-4 py-10" style="background: radial-gradient(circle at 50% 0%, rgba(247, 200, 20, 0.16), transparent 24rem), linear-gradient(135deg, #172a49 0%, #213a61 48%, #0f203b 100%);">
     <div class="max-w-md w-full space-y-8">
@@ -99,8 +99,8 @@
     </div>
     
     <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="{{ asset('vendor/jquery-3.6.0/jquery.min.js') }}"></script>
+    <script src="{{ asset('vendor/toastr-2.1.3/toastr.min.js') }}"></script>
     
     <script>
         // Configure Toastr

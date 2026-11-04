@@ -55,7 +55,7 @@
 <script type="module">
 const resolveUrl = @json(route('admin.inventory.scan.resolve'));
 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-const ZXING_VERSION = '2.2.1';
+const ZXING_BASE_URL = @js(asset('vendor/zxing-wasm-2.2.1'));
 
 const qrStatusEl = document.getElementById('scan-qr-status');
 const modelStatusEl = document.getElementById('scan-model-status');
@@ -337,8 +337,8 @@ function renderSuggestions(data, options = {}) {
 }
 
 async function createZxingDecoder() {
-    const moduleUrl = `https://cdn.jsdelivr.net/npm/zxing-wasm@${ZXING_VERSION}/dist/es/reader/index.js`;
-    const wasmUrl = `https://cdn.jsdelivr.net/npm/zxing-wasm@${ZXING_VERSION}/dist/reader/zxing_reader.wasm`;
+    const moduleUrl = `${ZXING_BASE_URL}/es/reader/index.js`;
+    const wasmUrl = `${ZXING_BASE_URL}/reader/zxing_reader.wasm`;
 
     const zxing = await import(moduleUrl);
 

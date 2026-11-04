@@ -9,9 +9,9 @@
     @vite('resources/css/app.css')
     @include('layouts.partials.theme')
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('vendor/fontawesome-6.4.0/css/all.min.css') }}">
     <!-- Toastr CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+    <link rel="stylesheet" href="{{ asset('vendor/toastr-2.1.3/toastr.min.css') }}">
     
     @stack('styles')
 </head>
@@ -41,8 +41,8 @@
     @include('layouts.partials.scroll-restore')
 
     <!-- Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="{{ asset('vendor/jquery-3.6.0/jquery.min.js') }}"></script>
+    <script src="{{ asset('vendor/toastr-2.1.3/toastr.min.js') }}"></script>
     
     <script>
         // Configure Toastr

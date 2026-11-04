@@ -408,7 +408,7 @@ $inventoryListRoute = $isFurniture ? 'admin.inventory.furniture' : 'admin.invent
 @endsection
 
 @push('styles')
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="{{ asset('vendor/sweetalert2-11.26.25/sweetalert2.min.css') }}">
 @endpush
 
 @push('styles')
@@ -869,7 +869,7 @@ $inventoryListRoute = $isFurniture ? 'admin.inventory.furniture' : 'admin.invent
 @endpush
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ asset('vendor/sweetalert2-11.26.25/sweetalert2.all.min.js') }}"></script>
 <script>
     $('[data-copy-text]').on('click', function () {
         const $button = $(this);

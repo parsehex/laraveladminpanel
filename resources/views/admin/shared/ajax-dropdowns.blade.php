@@ -1,6 +1,6 @@
 @once
 @push('styles')
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css">
+<link rel="stylesheet" href="{{ asset('vendor/select2-4.0.13/css/select2.min.css') }}">
 <style>
     .select2-container {
         width: 100% !important;
@@ -127,7 +127,7 @@
 </div>
 
 @push('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<script src="{{ asset('vendor/select2-4.0.13/js/select2.min.js') }}"></script>
 <script>
     (function () {
         const endpoints = {
