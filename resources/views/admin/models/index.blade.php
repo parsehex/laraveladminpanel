@@ -59,7 +59,7 @@
             <h2 class="text-xl font-semibold text-white">Models List ({{ $models->total() }} total)</h2>
             <div class="flex flex-wrap gap-2">
                 @canAccess('models.view')
-                <a href="{{ route('admin.models.export', request()->only(['category', 'search'])) }}" class="inline-flex items-center justify-center rounded-md bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600">
+                <a href="{{ route('admin.models.export', request()->only(['type', 'category', 'search'])) }}" class="inline-flex items-center justify-center rounded-md bg-emerald-500 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-600">
                     <i class="fas fa-file-export mr-2"></i>Export All
                 </a>
                 @endcanAccess
@@ -79,13 +79,21 @@
                 form-class="space-y-4"
                 actions-class="flex justify-end gap-2"
             >
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <x-admin.filter-field label="Type:" for="type">
+                        <select id="type" name="type" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="all" @selected($selectedItemType === null)>All types</option>
+                            @foreach($itemTypes as $itemType)
+                                <option value="{{ $itemType->value }}" @selected($selectedItemType === $itemType->value)>{{ $itemType->label() }}</option>
+                            @endforeach
+                        </select>
+                    </x-admin.filter-field>
                     <x-admin.filter-field label="Filter by Category:" for="category">
                         <div class="flex gap-2">
-                            <select id="category" name="category" data-ajax-dropdown="category" data-item-type="appliance" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <select id="category" name="category" data-ajax-dropdown="category" @if($selectedItemType) data-item-type="{{ $selectedItemType }}" @endif class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 <option value="">All Categories</option>
                                 @foreach($categories as $category)
-                                    <option value="{{ $category->id }}" @selected((string) request('category') === (string) $category->id)>
+                                    <option value="{{ $category->id }}" data-type="{{ $category->type?->value ?? 'appliance' }}" @selected((string) request('category') === (string) $category->id)>
                                         {{ $category->name }}
                                     </option>
                                 @endforeach
@@ -283,6 +291,34 @@
         }
     });
 
+    function modelFormCategoryType($select) {
+        const selected = $select.data('select2') ? ($select.select2('data')[0] || {}) : {};
+
+        return selected.type || $select.find('option:selected').attr('data-type') || 'appliance';
+    }
+
+    $(document).on('click', '[data-model-form] [data-item-type-option]', function () {
+        const $button = $(this);
+        const $form = $button.closest('[data-model-form]');
+        const type = $button.data('itemTypeOption');
+
+        if ($form.find('[data-item-type-input]').val() === type) {
+            return;
+        }
+
+        $form.find('[data-item-type-input]').val(type);
+        $form.find('[data-item-type-option]').each(function () {
+            $(this).attr('aria-pressed', $(this).data('itemTypeOption') === type ? 'true' : 'false');
+        });
+
+        const $category = $form.find('select[name="category_id"]');
+        $category.data('itemType', type);
+
+        if ($category.val() && modelFormCategoryType($category) !== type) {
+            $category.val(null).trigger('change');
+        }
+    });
+
     const openModelForm = '{{ old('_form') }}';
     if (openModelForm && openModelForm.startsWith('edit-')) {
         const $row = $('#model-' + openModelForm);
@@ -294,7 +330,7 @@
         }
     }
 
-    @if(request()->hasAny(['search', 'category']))
+    @if(request()->hasAny(['search', 'category', 'type']))
         setTimeout(function () {
             document.getElementById('models-list-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 150);

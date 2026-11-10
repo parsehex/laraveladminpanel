@@ -1,9 +1,19 @@
 @php
     $model = $model ?? null;
     $prefix = $prefix ?? 'model';
+    $selectedCategoryId = old('category_id', $model?->category_id);
+    $selectedCategory = $selectedCategoryId
+        ? ($categories->firstWhere('id', (int) $selectedCategoryId) ?? $model?->category)
+        : null;
+    $itemType = old('item_type')
+        ?: ($selectedCategory?->type?->value ?? \App\Enums\ItemType::Appliance->value);
+    $itemTypeOptions = [
+        'appliance' => ['label' => 'Appliance', 'icon' => 'fa-plug'],
+        'furniture' => ['label' => 'Furniture', 'icon' => 'fa-couch'],
+    ];
 @endphp
 
-<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6" data-model-form>
     <div>
         <label for="{{ $prefix }}-model-number" class="block text-sm font-medium text-gray-700 mb-2">Model # <span class="text-red-500">*</span></label>
         <input type="text" id="{{ $prefix }}-model-number" name="model_number" value="{{ old('model_number', $model?->model_number) }}" required
@@ -58,14 +68,32 @@
     <div>
         <label for="{{ $prefix }}-category" class="block text-sm font-medium text-gray-700 mb-2">Category <span class="text-red-500">*</span></label>
         <div class="flex gap-2">
-            <select id="{{ $prefix }}-category" name="category_id" data-ajax-dropdown="category" data-item-type="appliance" required
+            <div class="flex h-[42px] shrink-0 items-center gap-0.5 rounded-md border border-gray-300 bg-white p-0.5" role="group" aria-label="Item type">
+                @foreach($itemTypeOptions as $typeValue => $typeOption)
+                    <button type="button"
+                            data-item-type-option="{{ $typeValue }}"
+                            aria-pressed="{{ $itemType === $typeValue ? 'true' : 'false' }}"
+                            aria-label="{{ $typeOption['label'] }} item"
+                            class="ui-flyout-host inline-flex h-full w-9 items-center justify-center rounded text-gray-500 hover:bg-gray-100 aria-pressed:bg-blue-600 aria-pressed:text-white">
+                        <i class="fas {{ $typeOption['icon'] }}"></i>
+                        <span class="ui-flyout-tooltip ui-flyout-above" role="tooltip">{{ $typeOption['label'] }}</span>
+                    </button>
+                @endforeach
+            </div>
+            <input type="hidden" name="item_type" value="{{ $itemType }}" data-item-type-input>
+            <select id="{{ $prefix }}-category" name="category_id" data-ajax-dropdown="category" data-item-type="{{ $itemType }}" required
                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 <option value="">-- Select Category --</option>
                 @foreach($categories as $category)
-                    <option value="{{ $category->id }}" {{ (string) old('category_id', $model?->category_id) === (string) $category->id ? 'selected' : '' }}>
+                    <option value="{{ $category->id }}" data-type="{{ $category->type?->value ?? 'appliance' }}" @selected((string) $selectedCategoryId === (string) $category->id)>
                         {{ $category->name }}
                     </option>
                 @endforeach
+                @if($selectedCategory && ! $categories->contains('id', (int) $selectedCategory->id))
+                    <option value="{{ $selectedCategory->id }}" data-type="{{ $selectedCategory->type?->value ?? 'appliance' }}" selected>
+                        {{ $selectedCategory->name }}
+                    </option>
+                @endif
             </select>
             @if(auth()->user()?->can('category.create'))
             <button type="button" class="mt-1 h-8 w-8 flex-shrink-0 rounded-md bg-blue-600 text-xs text-white hover:bg-blue-700" title="Add category" data-open-quick-create="category" data-target="#{{ $prefix }}-category">
@@ -74,6 +102,9 @@
             @endif
         </div>
         @error('category_id')
+            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+        @error('item_type')
             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
         @enderror
     </div>

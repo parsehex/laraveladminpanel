@@ -16,6 +16,7 @@ class StoreModelRequest extends FormRequest
     public function rules(): array
     {
         $msrp = number_format((float) $this->input('msrp', 0), 2, '.', '');
+        $itemType = ItemType::tryFrom((string) $this->input('item_type'))?->value;
 
         return [
             'model_number' => [
@@ -27,7 +28,13 @@ class StoreModelRequest extends FormRequest
             ],
             'product_name' => ['nullable', 'string', 'max:255'],
             'brand' => ['nullable', 'string', 'max:255'],
-            'category_id' => ['required', Rule::exists('categories', 'id')->where('type', ItemType::Appliance->value)],
+            'item_type' => ['required', Rule::enum(ItemType::class)],
+            'category_id' => [
+                'required',
+                Rule::exists('categories', 'id')->where(fn ($query) => $query
+                    ->where('type', $itemType)
+                    ->whereNull('deleted_at')),
+            ],
             'msrp' => ['nullable', 'numeric', 'min:0'],
         ];
     }

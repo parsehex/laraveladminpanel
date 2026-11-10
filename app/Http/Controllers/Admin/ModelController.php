@@ -28,10 +28,16 @@ class ModelController extends Controller
 
     public function index(Request $request)
     {
+        $itemType = $this->selectedItemType($request);
+
         $query = Model::query()
             ->with('category')
             ->withCount('parts as related_parts_count')
             ->latest();
+
+        if ($itemType !== null) {
+            $query->whereHas('category', fn ($category) => $category->where('type', $itemType));
+        }
 
         if ($request->filled('category')) {
             $query->where('category_id', $request->get('category'));
@@ -55,11 +61,15 @@ class ModelController extends Controller
             ->values();
         $categories = Category::query()
             ->whereIn('id', $categoryIds)
-            ->where('type', ItemType::Appliance)
             ->orderBy('name')
             ->get();
 
-        return view('admin.models.index', compact('models', 'categories'));
+        return view('admin.models.index', [
+            'models' => $models,
+            'categories' => $categories,
+            'itemTypes' => ItemType::cases(),
+            'selectedItemType' => $itemType?->value,
+        ]);
     }
 
     public function show(Request $request, Model $model)
@@ -168,7 +178,7 @@ class ModelController extends Controller
 
     public function store(StoreModelRequest $request)
     {
-        $data = $request->validated();
+        $data = $request->safe()->except(['item_type']);
         $data['msrp'] = number_format((float) ($data['msrp'] ?? 0), 2, '.', '');
         $data['status'] = 1;
         $data['created_by'] = $request->user()->id;
@@ -189,6 +199,8 @@ class ModelController extends Controller
 
     public function export(Request $request)
     {
+        $itemType = $this->selectedItemType($request);
+
         $query = Model::query()
             ->with('category')
             ->leftJoin('categories', 'categories.id', '=', 'models.category_id')
@@ -197,13 +209,17 @@ class ModelController extends Controller
             ->orderBy('models.brand')
             ->orderBy('models.model_number');
 
+        if ($itemType !== null) {
+            $query->where('categories.type', $itemType);
+        }
+
         if ($request->filled('category')) {
-            $query->where('category_id', $request->get('category'));
+            $query->where('models.category_id', $request->get('category'));
         }
 
         if ($request->filled('search')) {
             $search = $request->string('search')->trim();
-            $query->whereLike('model_number', '%'.$search.'%');
+            $query->whereLike('models.model_number', '%'.$search.'%');
         }
 
         return response()->streamDownload(function () use ($query) {
@@ -377,7 +393,7 @@ class ModelController extends Controller
 
     public function update(UpdateModelRequest $request, Model $model)
     {
-        $data = $request->validated();
+        $data = $request->safe()->except(['item_type']);
         $data['msrp'] = number_format((float) ($data['msrp'] ?? 0), 2, '.', '');
         $data['updated_by'] = $request->user()->id;
 
@@ -386,6 +402,17 @@ class ModelController extends Controller
         $model->update($data);
 
         return redirect()->route('admin.models.index')->with('success', __('Model updated successfully.'));
+    }
+
+    private function selectedItemType(Request $request): ?ItemType
+    {
+        $value = (string) $request->input('type', 'all');
+
+        if ($value === '' || $value === 'all') {
+            return null;
+        }
+
+        return ItemType::tryFrom($value);
     }
 
     public function destroy(Request $request, Model $model)
