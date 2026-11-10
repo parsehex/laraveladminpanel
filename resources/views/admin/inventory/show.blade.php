@@ -976,13 +976,17 @@ $inventoryListRoute = $isFurniture ? 'admin.inventory.furniture' : 'admin.invent
         $items.removeClass('is-active').eq(locationActiveIndex).addClass('is-active');
     }
 
-    $locationInput.on('focus input', function () {
+    $locationInput.on('focus', function () {
+        renderLocationResults('');
+    });
+
+    $locationInput.on('input', function () {
         renderLocationResults($(this).val());
     });
 
     $('[data-location-toggle]').on('click', function () {
         if ($locationResults.hasClass('hidden')) {
-            renderLocationResults($locationInput.val());
+            renderLocationResults('');
             $locationInput.trigger('focus');
             return;
         }
