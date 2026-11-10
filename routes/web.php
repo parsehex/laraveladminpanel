@@ -254,7 +254,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('inventory-locations', [InventoryLocationController::class, 'index'])
         ->middleware('permission:inventory-locations.manage')
         ->name('inventory-locations.index');
-    Route::post('inventory-locations', [InventoryLocationController::class, 'rename'])
+    Route::post('inventory-locations', [InventoryLocationController::class, 'store'])
+        ->middleware('permission:inventory-locations.manage')
+        ->name('inventory-locations.store');
+    Route::post('inventory-locations/rename', [InventoryLocationController::class, 'rename'])
         ->middleware('permission:inventory-locations.manage')
         ->name('inventory-locations.rename');
 

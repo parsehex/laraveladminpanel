@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\RenameInventoryLocationRequest;
+use App\Http\Requests\Admin\StoreInventoryLocationRequest;
+use App\Models\InventoryLocation;
 use App\Models\TruckAppliance;
+use App\Support\InventoryLocations;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -15,21 +18,23 @@ class InventoryLocationController extends Controller
         $this->middleware('permission:inventory-locations.manage');
     }
 
-    public function index(): View
+    public function index(InventoryLocations $locations): View
     {
-        $locations = TruckAppliance::query()
-            ->onLiveTruck()
-            ->whereNotNull('location')
-            ->where('location', '<>', '')
-            ->select('location')
-            ->selectRaw('COUNT(*) as item_count')
-            ->groupBy('location')
-            ->orderBy('location')
-            ->get();
-
         return view('admin.inventory-locations.index', [
-            'locations' => $locations,
+            'catalog' => $locations->catalogWithCounts(),
+            'uncatalogued' => $locations->uncataloguedInUse(),
         ]);
+    }
+
+    public function store(StoreInventoryLocationRequest $request): RedirectResponse
+    {
+        InventoryLocation::query()->create([
+            'name' => $request->validated('name'),
+        ]);
+
+        return redirect()
+            ->route('admin.inventory-locations.index')
+            ->with('success', __('Location added.'));
     }
 
     public function rename(RenameInventoryLocationRequest $request): RedirectResponse
@@ -43,21 +48,35 @@ class InventoryLocationController extends Controller
                 ->with('error', __('The new location name must be different.'));
         }
 
-        $targetExisted = TruckAppliance::query()->where('location', $to)->exists();
+        $targetExistedOnItems = TruckAppliance::query()->where('location', $to)->exists();
+        $catalogFrom = InventoryLocation::query()->where('name', $from)->first();
+        $catalogTo = InventoryLocation::query()->where('name', $to)->first();
 
         $updated = TruckAppliance::query()
             ->where('location', $from)
             ->update(['location' => $to]);
 
-        if ($updated === 0) {
+        if ($catalogFrom) {
+            if ($catalogTo) {
+                $catalogFrom->delete();
+            } else {
+                $catalogFrom->update(['name' => $to]);
+            }
+        }
+
+        if ($updated === 0 && ! $catalogFrom) {
             return redirect()
                 ->route('admin.inventory-locations.index')
                 ->with('error', __('No items used that location.'));
         }
 
-        $message = $targetExisted
-            ? __(':count item(s) merged into :to.', ['count' => $updated, 'to' => $to])
-            : __(':count item(s) renamed to :to.', ['count' => $updated, 'to' => $to]);
+        if ($catalogFrom && $updated === 0) {
+            $message = __('Location renamed to :to.', ['to' => $to]);
+        } elseif ($targetExistedOnItems || $catalogTo) {
+            $message = __(':count item(s) merged into :to.', ['count' => $updated, 'to' => $to]);
+        } else {
+            $message = __(':count item(s) renamed to :to.', ['count' => $updated, 'to' => $to]);
+        }
 
         return redirect()
             ->route('admin.inventory-locations.index')

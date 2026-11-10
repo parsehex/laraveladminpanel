@@ -16,6 +16,7 @@ use App\Support\AssemblyTimeAverages;
 use App\Support\DataTable;
 use App\Support\FurnitureModelGroups;
 use App\Support\InventoryCostRange;
+use App\Support\InventoryLocations;
 use App\Support\PageSize;
 use App\Support\UserPreferences;
 use App\Testing\RepairResultRepository;
@@ -140,13 +141,7 @@ class InventoryController extends Controller
             ->orderBy('subcategory')
             ->pluck('subcategory');
 
-        $locations = $this->listedItems($type)
-            ->whereNotNull('location')
-            ->where('location', '<>', '')
-            ->selectRaw('MIN(location) as location')
-            ->groupBy(DB::raw('LOWER(TRIM(location))'))
-            ->orderBy('location')
-            ->pluck('location');
+        $locations = collect(app(InventoryLocations::class)->suggestionLabels());
 
         $categories = $this->listedItems($type)
             ->with('category:id,name')
@@ -364,19 +359,7 @@ class InventoryController extends Controller
             'testingResultCount' => count($flows->listResultsForAppliance($appliance->id)),
             'repairResultCount' => count($repairResults->listForAppliance($appliance->id)),
             'trucks' => Truck::query()->whereKeyNot($appliance->truck_id)->orderBy('name')->get(['id', 'name']),
-            'locations' => TruckAppliance::query()
-                ->whereNotNull('location')
-                ->where('location', '<>', '')
-                ->selectRaw('MIN(location) as location')
-                ->selectRaw('COUNT(*) as usage_count')
-                ->groupBy(DB::raw('LOWER(TRIM(location))'))
-                ->orderBy('location')
-                ->get()
-                ->map(fn ($row) => [
-                    'label' => $row->location,
-                    'count' => (int) $row->usage_count,
-                ])
-                ->values(),
+            'locations' => app(InventoryLocations::class)->suggestions(),
         ]);
     }
 
@@ -387,13 +370,7 @@ class InventoryController extends Controller
         return view('admin.inventory.floor', [
             'appliance' => $appliance,
             'statuses' => InventoryStatus::assignableNames($appliance->status),
-            'locations' => TruckAppliance::query()
-                ->whereNotNull('location')
-                ->where('location', '<>', '')
-                ->selectRaw('MIN(location) as location')
-                ->groupBy(DB::raw('LOWER(TRIM(location))'))
-                ->orderBy('location')
-                ->pluck('location'),
+            'locations' => app(InventoryLocations::class)->suggestionLabels(),
         ]);
     }
 

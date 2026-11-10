@@ -5,14 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FurnitureQuickActionRequest;
 use App\Models\Model as CatalogModel;
-use App\Models\TruckAppliance;
 use App\Support\ApplianceStatusFilter;
 use App\Support\FurnitureModelGroups;
 use App\Support\FurnitureQuickActions;
+use App\Support\InventoryLocations;
 use App\Support\PageSize;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class FurnitureModelController extends Controller
@@ -60,13 +59,7 @@ class FurnitureModelController extends Controller
             'shownUnitIds' => $shownUnitIds->all(),
             'targetStatuses' => FurnitureQuickActionRequest::targetStatuses(),
             'actionAvailability' => $actions->availability($model, FurnitureQuickActionRequest::targetStatuses()),
-            'locations' => TruckAppliance::query()
-                ->whereNotNull('location')
-                ->where('location', '<>', '')
-                ->selectRaw('MIN(location) as location')
-                ->groupBy(DB::raw('LOWER(TRIM(location))'))
-                ->orderBy('location')
-                ->pluck('location'),
+            'locations' => app(InventoryLocations::class)->suggestionLabels(),
         ]);
     }
 
