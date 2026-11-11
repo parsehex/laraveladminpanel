@@ -60,15 +60,22 @@
             <div class="p-5 space-y-4">
                 <div id="wizard-root" class="min-h-[10rem]"></div>
                 <div id="wizard-complete" class="hidden space-y-4 rounded-md border border-emerald-200 bg-emerald-50 p-4">
-                    <p class="font-semibold text-emerald-900">
-                        Next status: <span id="wizard-final-status"></span>
-                    </p>
+                    <p class="text-sm font-semibold text-emerald-900">Checklist finished. Choose the next status, then complete testing.</p>
                     <form method="POST" action="{{ route('admin.inventory.testing.store', $appliance) }}" id="testing-submit-form" class="space-y-3">
                         @csrf
-                        <input type="hidden" name="resulting_status" id="resulting-status">
                         <input type="hidden" name="answers_json" id="answers-json">
                         <input type="hidden" name="flow_slug" value="{{ $flow['slug'] }}">
                         <input type="hidden" name="flow_version" value="{{ $flow['version'] }}">
+                        <div>
+                            <label for="resulting-status" class="block text-sm font-semibold text-emerald-900 mb-1">Next status</label>
+                            <select name="resulting_status" id="resulting-status" required
+                                    class="w-full max-w-xs rounded-md border border-emerald-300 bg-white px-3 py-2 text-sm text-gray-900">
+                                @foreach($statuses as $status)
+                                    <option value="{{ $status }}">{{ $status }}</option>
+                                @endforeach
+                            </select>
+                            <p id="resulting-status-hint" class="mt-1 text-xs text-emerald-800 hidden">Suggested: <span id="resulting-status-suggested"></span></p>
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
                             <textarea name="notes" rows="2" class="w-full rounded-md border border-gray-300 px-3 py-2"></textarea>

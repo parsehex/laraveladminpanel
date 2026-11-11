@@ -28,6 +28,7 @@ export function createTestingWizard(options: TestingWizardOptions): TestingWizar
     function restart(): void {
         answers = {};
         completeEl?.classList.add('hidden');
+        root.classList.remove('hidden');
         showStep(String(flow.start || ''));
     }
 
@@ -37,6 +38,7 @@ export function createTestingWizard(options: TestingWizardOptions): TestingWizar
             finalStatusEl.textContent = status;
         }
         root.innerHTML = '';
+        root.classList.add('hidden');
         options.onComplete?.({ status, answers });
     }
 
@@ -50,13 +52,10 @@ export function createTestingWizard(options: TestingWizardOptions): TestingWizar
         let html = `<h3 class="text-base font-semibold text-gray-900 mb-3">${escapeHtml(step.question)}</h3>`;
 
         if (step.type === 'none') {
-            html += `<p class="text-sm text-gray-600 mb-4">Confirm to finish with status <strong>${escapeHtml(step.status || '')}</strong>.</p>`;
-            html += '<button type="button" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700" data-confirm-terminal>Confirm</button>';
-            root.innerHTML = html;
-            root.querySelector('[data-confirm-terminal]')?.addEventListener('click', () => {
-                answers[stepId] = { answer: null, note: '' };
-                finish(step.status || 'Repair');
-            });
+            // Terminal outcomes jump straight to the complete panel so the
+            // operator can pick/confirm Next status there (not a locked Confirm).
+            answers[stepId] = { answer: null, note: '' };
+            finish(step.status || 'Repair');
             return;
         }
 

@@ -36,7 +36,7 @@ class ApplianceTestingController extends Controller
             'appliance' => $appliance,
             'flow' => $flow,
             'flowSlug' => $slug,
-            'statuses' => InventoryStatus::activeNames(),
+            'statuses' => $this->completionStatuses(),
         ]);
     }
 
@@ -47,7 +47,7 @@ class ApplianceTestingController extends Controller
         abort_unless($appliance->status === 'Testing', 403, 'Unit must be in Testing status.');
 
         $data = $request->validate([
-            'resulting_status' => ['required', 'string', Rule::in(InventoryStatus::activeNames())],
+            'resulting_status' => ['required', 'string', Rule::in($this->completionStatuses())],
             'answers_json' => ['required', 'string'],
             'flow_slug' => ['required', 'string', 'max:64'],
             'flow_version' => ['required', 'integer', 'min:1'],
@@ -145,5 +145,18 @@ class ApplianceTestingController extends Controller
             'failedSteps' => $this->presenter->failedSteps($data),
             'testingResultCount' => count($this->flows->listResultsForAppliance($appliance->id)),
         ]);
+    }
+
+    /**
+     * Statuses offered when a testing flow finishes (excludes Testing itself).
+     *
+     * @return list<string>
+     */
+    private function completionStatuses(): array
+    {
+        return collect(InventoryStatus::activeNames())
+            ->reject(fn (string $status) => $status === 'Testing')
+            ->values()
+            ->all();
     }
 }

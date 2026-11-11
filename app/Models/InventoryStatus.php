@@ -37,14 +37,17 @@ class InventoryStatus extends Model
     }
 
     /**
+     * Active status names for pickers, sorted alphabetically.
+     *
+     * Manage → Statuses and status breakdown chips still use sort_order for catalog display order.
+     *
      * @return list<string>
      */
     public static function activeNames(): array
     {
         return static::query()
             ->active()
-            ->orderBy('sort_order')
-            ->orderBy('id')
+            ->orderBy('name')
             ->pluck('name')
             ->all();
     }
@@ -60,6 +63,7 @@ class InventoryStatus extends Model
 
         if ($current !== null && $current !== '' && ! in_array($current, $names, true)) {
             $names[] = $current;
+            sort($names, SORT_STRING);
         }
 
         return $names;
