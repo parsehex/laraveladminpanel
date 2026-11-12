@@ -13,16 +13,30 @@
             'status' => $nextStatuses ?: null,
         ]);
     };
+    $defaultAddStatus = in_array('Testing', $targetStatuses, true)
+        ? 'Testing'
+        : ($targetStatuses[0] ?? null);
     $quickActionConfig = [
         'availability' => $actionAvailability,
+        'trucks' => $trucks,
+        'modelSummary' => [
+            'brand' => $brand,
+            'model_number' => $model->model_number,
+            'product_name' => $productName,
+        ],
         'action' => old('action', \App\Enums\FurnitureQuickAction::ChangeStatus->value),
         'target' => old('status', in_array('Ready', $targetStatuses, true) ? 'Ready' : ($targetStatuses[0] ?? null)),
+        'addStatus' => old('action') === 'add'
+            ? (string) old('status', $defaultAddStatus)
+            : (string) $defaultAddStatus,
+        'truckId' => old('truck_id') !== null ? (string) old('truck_id') : '',
         'count' => max(1, (int) old('count', 1)),
         'price' => (string) old('sold_price', ''),
         'location' => (string) old('location', ''),
         'notes' => (string) old('notes', ''),
         'override' => (bool) old('override', false),
         'selected' => array_values(array_map('strval', (array) old('unit_ids', []))),
+        'reviewing' => false,
     ];
     $facts = [
         ['label' => 'Model #', 'value' => $model->model_number],
@@ -114,7 +128,7 @@
 
     <section class="overflow-hidden rounded-lg bg-white shadow" x-data="furnitureQuickActions(@js($quickActionConfig))">
         @canAccess('appliance.edit')
-        <form method="POST" action="{{ route('admin.inventory.furniture.actions', $model) }}" class="border-b border-gray-200 bg-slate-50 px-6 py-4" x-on:submit="submitting = true">
+        <form method="POST" action="{{ route('admin.inventory.furniture.actions', $model) }}" x-ref="actionForm" class="border-b border-gray-200 bg-slate-50 px-6 py-4" x-on:submit="onSubmit($event)">
             @csrf
             <template x-for="id in selected" :key="id">
                 <input type="hidden" name="unit_ids[]" :value="id">
@@ -125,7 +139,7 @@
                 <span class="mr-1 text-sm font-semibold text-gray-700"><i class="fas fa-bolt mr-1.5 text-amber-500"></i>Quick action</span>
                 @foreach(\App\Enums\FurnitureQuickAction::cases() as $quickAction)
                 <button type="button"
-                        x-on:click="action = @js($quickAction->value)"
+                        x-on:click="setAction(@js($quickAction->value))"
                         :class="action === @js($quickAction->value) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
                         class="rounded-md border px-3 py-1.5 text-sm font-semibold">
                     {{ $quickAction->label() }}
@@ -136,13 +150,34 @@
             <div class="mt-4 flex flex-wrap items-end gap-4">
                 <label class="block">
                     <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">How many</span>
-                    <input type="number" name="count" x-model.number="count" :min="Math.max(1, selected.length)" max="1000" required
+                    <input type="number" name="count" x-model.number="count" :min="action === 'add' ? 1 : Math.max(1, selected.length)" max="1000" required
                            class="w-24 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </label>
+
+                <label class="block" x-show="action === 'add'" x-cloak>
+                    <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Truck</span>
+                    <select name="truck_id" x-model="truckId" :disabled="action !== 'add'" required
+                            class="min-w-48 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select truck…</option>
+                        <template x-for="truck in trucks" :key="truck.id">
+                            <option :value="String(truck.id)" x-text="truck.name"></option>
+                        </template>
+                    </select>
                 </label>
 
                 <label class="block" x-show="action === 'status'" x-cloak>
                     <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">New status</span>
                     <select name="status" x-model="target" :disabled="action !== 'status'"
+                            class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        @foreach($targetStatuses as $targetStatus)
+                        <option value="{{ $targetStatus }}">{{ $targetStatus }}</option>
+                        @endforeach
+                    </select>
+                </label>
+
+                <label class="block" x-show="action === 'add'" x-cloak>
+                    <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Starting status</span>
+                    <select name="status" x-model="addStatus" :disabled="action !== 'add'"
                             class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                         @foreach($targetStatuses as $targetStatus)
                         <option value="{{ $targetStatus }}">{{ $targetStatus }}</option>
@@ -185,26 +220,49 @@
                 </button>
             </div>
 
+            <div x-show="action === 'add' && reviewing" x-cloak class="mt-4 rounded-md border border-blue-200 bg-white px-4 py-3 text-sm text-gray-800">
+                <p class="font-semibold text-gray-900">Confirm add</p>
+                <dl class="mt-2 grid gap-1 sm:grid-cols-2">
+                    <div><dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Model</dt><dd x-text="modelLine"></dd></div>
+                    <div><dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Truck</dt><dd x-text="selectedTruck?.name || '—'"></dd></div>
+                    <div><dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Starting status</dt><dd x-text="addStatus || '—'"></dd></div>
+                    <div><dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Count</dt><dd x-text="count || 0"></dd></div>
+                </dl>
+                <p class="mt-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Unit labels</p>
+                <p class="mt-1 font-medium text-gray-900" x-text="predictedLabelsText"></p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <button type="button" x-on:click="confirmAdd" class="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700">
+                        Confirm add<span class="ml-1" x-text="(count || 0) + ' ' + ((count || 0) === 1 ? 'unit' : 'units')"></span>
+                    </button>
+                    <button type="button" x-on:click="reviewing = false" class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+
             <p class="mt-3 text-sm text-gray-600" x-show="action === 'sell'" x-cloak>
                 Enter what one unit sold for, before tax. Each unit is recorded at this price.
             </p>
-            <p class="mt-2 text-sm text-gray-700">
+            <p class="mt-2 text-sm text-gray-700" x-show="action !== 'add'" x-cloak>
                 <strong x-text="stats.eligible"></strong> eligible <span class="text-gray-500">(units <span x-text="stats.rule"></span>)</span>
                 <template x-if="selected.length">
                     <span>· <span x-text="selected.length"></span> checked units are used first</span>
                 </template>
             </p>
-            <div x-show="needsOverride && ! impossible" x-cloak class="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <p class="mt-2 text-sm text-gray-600" x-show="action === 'add' && ! reviewing" x-cloak>
+                New units are created for this model on the selected truck. Review before confirming.
+            </p>
+            <div x-show="action !== 'add' && needsOverride && ! impossible" x-cloak class="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
                 <p>Only <strong x-text="stats.eligible"></strong> eligible. Lower the count, or override the status rules to also use units <span x-text="stats.override_rule"></span> (<span x-text="stats.override"></span> available).</p>
                 <label class="mt-1.5 inline-flex items-center gap-2 font-semibold">
                     <input type="checkbox" name="override" value="1" x-model="override" class="h-4 w-4 rounded border-amber-400">
                     Override status rules for this action
                 </label>
             </div>
-            <p x-show="impossible" x-cloak class="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            <p x-show="action !== 'add' && impossible" x-cloak class="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
                 Only <strong x-text="stats.override"></strong> units of this model can take this action, even with an override. Lower the count.
             </p>
-            @foreach(['count', 'unit_ids', 'status', 'sold_price', 'location', 'notes', 'action'] as $field)
+            @foreach(['count', 'unit_ids', 'status', 'sold_price', 'location', 'notes', 'action', 'truck_id'] as $field)
             @error($field)
             <p class="mt-2 text-sm font-medium text-red-700">{{ $message }}</p>
             @enderror
@@ -298,10 +356,32 @@
             submitting: false,
             init() {
                 this.$watch('selected', (ids) => {
+                    if (this.action === 'add') {
+                        return;
+                    }
+
                     if ((this.count || 0) < ids.length) {
                         this.count = ids.length;
                     }
                 });
+                this.$watch('action', () => {
+                    this.reviewing = false;
+                });
+                this.$watch('truckId', () => {
+                    this.reviewing = false;
+                });
+                this.$watch('count', () => {
+                    if (this.action === 'add') {
+                        this.reviewing = false;
+                    }
+                });
+                this.$watch('addStatus', () => {
+                    this.reviewing = false;
+                });
+            },
+            setAction(next) {
+                this.action = next;
+                this.reviewing = false;
             },
             get stats() {
                 const key = this.action === 'status' ? 'status:' + this.target : this.action;
@@ -309,13 +389,55 @@
                 return this.availability[key] ?? { eligible: 0, override: 0, rule: '', override_rule: '' };
             },
             get needsOverride() {
-                return (this.count || 0) > this.stats.eligible;
+                return this.action !== 'add' && (this.count || 0) > this.stats.eligible;
             },
             get impossible() {
-                return (this.count || 0) > this.stats.override;
+                return this.action !== 'add' && (this.count || 0) > this.stats.override;
+            },
+            get selectedTruck() {
+                return (this.trucks || []).find((truck) => String(truck.id) === String(this.truckId)) || null;
+            },
+            get modelLine() {
+                const parts = [
+                    this.modelSummary?.brand,
+                    this.modelSummary?.model_number,
+                    this.modelSummary?.product_name,
+                ].filter(Boolean);
+
+                return parts.join(' · ') || 'This model';
+            },
+            get predictedLabels() {
+                const truck = this.selectedTruck;
+                const total = Math.max(0, Number(this.count) || 0);
+                if (! truck || total < 1) {
+                    return [];
+                }
+
+                return Array.from({ length: total }, (_, index) => this.predictedLabel(truck, index));
+            },
+            get predictedLabelsText() {
+                const labels = this.predictedLabels;
+                if (labels.length === 0) {
+                    return '—';
+                }
+
+                if (labels.length <= 8) {
+                    return labels.join(', ');
+                }
+
+                return labels.slice(0, 6).join(', ') + ', …, ' + labels[labels.length - 1]
+                    + ' (' + labels.length + ' total)';
             },
             get canSubmit() {
-                if (this.submitting || (this.count || 0) < Math.max(1, this.selected.length) || this.impossible) {
+                if (this.submitting) {
+                    return false;
+                }
+
+                if (this.action === 'add') {
+                    return (this.count || 0) >= 1 && !! this.truckId && !! this.addStatus;
+                }
+
+                if ((this.count || 0) < Math.max(1, this.selected.length) || this.impossible) {
                     return false;
                 }
 
@@ -328,12 +450,46 @@
             get submitLabel() {
                 const units = (this.count || 0) + ' ' + ((this.count || 0) === 1 ? 'unit' : 'units');
 
+                if (this.action === 'add') {
+                    return this.reviewing ? ('Add ' + units) : ('Review ' + units + '…');
+                }
+
                 return {
                     sell: 'Sell ' + units,
                     status: 'Move ' + units + ' to ' + this.target,
                     assemble: 'Mark ' + units + ' assembled',
                     location: 'Set location on ' + units,
                 }[this.action] ?? 'Apply';
+            },
+            predictedLabel(truck, offset) {
+                const number = Number(truck.next_unit_number || 1) + offset;
+
+                return String(truck.name || '').trim() + '-' + String(number).padStart(3, '0');
+            },
+            onSubmit(event) {
+                if (this.action !== 'add') {
+                    this.submitting = true;
+
+                    return;
+                }
+
+                if (! this.reviewing) {
+                    event.preventDefault();
+                    this.reviewing = true;
+
+                    return;
+                }
+
+                this.submitting = true;
+            },
+            confirmAdd() {
+                if (! this.canSubmit) {
+                    return;
+                }
+
+                this.reviewing = true;
+                this.submitting = true;
+                this.$refs.actionForm.requestSubmit();
             },
             money(value) {
                 return '$' + (Number(value) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });

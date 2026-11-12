@@ -14,6 +14,8 @@ use App\Models\Model as ApplianceModel;
 use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\UserAction;
+use App\Support\TruckPricing;
+use App\Support\TruckUnitLabels;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -45,7 +47,7 @@ class TruckApplianceController extends Controller
 
         $appliance = $truck->appliances()->create([
             ...$data,
-            'unit_label' => $this->nextUnitLabel($truck),
+            'unit_label' => TruckUnitLabels::nextLabels($truck, 1)[0],
             'quantity' => 1,
             'price' => 0,
             'photos' => [],
@@ -54,7 +56,7 @@ class TruckApplianceController extends Controller
         ]);
 
         $appliance->syncFurnitureDetails();
-        $this->recalculatePrices($truck);
+        TruckPricing::recalculate($truck);
 
         UserAction::log('create_appliance', $appliance->id, $data);
 
@@ -73,7 +75,7 @@ class TruckApplianceController extends Controller
 
         $appliance->update($data);
         $appliance->syncFurnitureDetails();
-        $this->recalculatePrices($truck);
+        TruckPricing::recalculate($truck);
 
         UserAction::log('update_appliance', $appliance->id, $data);
 
@@ -91,7 +93,7 @@ class TruckApplianceController extends Controller
         ]);
 
         $appliance->delete();
-        $this->recalculatePrices($truck);
+        TruckPricing::recalculate($truck);
 
         return redirect()->route('admin.trucks.show', $truck)->with('success', __('Appliance removed successfully.'));
     }
@@ -190,7 +192,7 @@ class TruckApplianceController extends Controller
         return response()->streamDownload(function () use ($truck) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Unit Label', 'Category', 'Sub-Category', 'Brand', 'Model #', 'Product Name', 'Quantity', 'Our Cost', 'Serial #', 'Receiving Condition', 'MSRP', 'Fuel Type', 'Status', 'Total Parts Cost', 'Sold Price', 'Sold By', 'Sold Date']);
-            $fallbackUnitNumber = $this->maxUnitNumber($truck) + 1;
+            $fallbackUnitNumber = TruckUnitLabels::maxTrailingNumber($truck) + 1;
 
             $appliances = $truck->appliances->sortBy(function (TruckAppliance $appliance) {
                 preg_match('/(\d+)$/', (string) $appliance->unit_label, $matches);
@@ -201,7 +203,7 @@ class TruckApplianceController extends Controller
             foreach ($appliances as $appliance) {
                 $unitLabel = $appliance->unit_label;
                 if (! $unitLabel) {
-                    $unitLabel = $this->formatUnitLabel($truck, $fallbackUnitNumber);
+                    $unitLabel = TruckUnitLabels::format((string) $truck->name, $fallbackUnitNumber);
                     $fallbackUnitNumber++;
                 }
 
@@ -406,30 +408,6 @@ class TruckApplianceController extends Controller
         ];
     }
 
-    private function recalculatePrices(Truck $truck): void
-    {
-        $items = $truck->appliances()->get(['id', 'msrp']);
-        $totalMsrp = (float) $items->sum('msrp');
-
-        if ($totalMsrp > 0) {
-            $percentage = (float) $truck->cost_of_truck / $totalMsrp;
-
-            foreach ($items as $item) {
-                $item->update(['price' => $percentage * (float) $item->msrp]);
-            }
-
-            return;
-        }
-
-        $count = $items->count();
-        if ($count > 0) {
-            $price = (float) $truck->cost_of_truck / $count;
-            foreach ($items as $item) {
-                $item->update(['price' => $price]);
-            }
-        }
-    }
-
     /**
      * Furniture keeps its current model when the number is unchanged, so editing the MSRP doesn't split it
      * from its group. Otherwise it reuses a furniture model with that number (same MSRP first), or creates one.
@@ -505,28 +483,6 @@ class TruckApplianceController extends Controller
     private function normalizeIdentifier(string $value): string
     {
         return strtoupper(preg_replace('/[^A-Z0-9-]/', '', strtoupper(trim($value))) ?? '');
-    }
-
-    private function nextUnitLabel(Truck $truck): string
-    {
-        return $this->formatUnitLabel($truck, $this->maxUnitNumber($truck) + 1);
-    }
-
-    private function maxUnitNumber(Truck $truck): int
-    {
-        return $truck->appliances()
-            ->pluck('unit_label')
-            ->map(function (?string $label) {
-                preg_match('/(\d+)$/', (string) $label, $matches);
-
-                return isset($matches[1]) ? (int) $matches[1] : 0;
-            })
-            ->max() ?? 0;
-    }
-
-    private function formatUnitLabel(Truck $truck, int $number): string
-    {
-        return trim((string) $truck->name).'-'.sprintf('%03d', $number);
     }
 
     /**

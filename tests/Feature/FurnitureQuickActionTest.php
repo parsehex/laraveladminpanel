@@ -340,11 +340,40 @@ class FurnitureQuickActionTest extends TestCase
         $this->unit('Ready');
         $this->unit('Testing');
 
+        $emptyTruck = Truck::query()->create([
+            'name' => 'AA-Empty',
+            'units_on_truck' => 0,
+            'cost_of_truck' => 100,
+            'shipping_cost' => 0,
+            'arrival_date' => now()->toDateString(),
+            'status' => 'active',
+            'created_by' => $this->user->id,
+            'updated_by' => $this->user->id,
+        ]);
+        Truck::query()->create([
+            'name' => 'ZZ-Also-Empty',
+            'units_on_truck' => 0,
+            'cost_of_truck' => 100,
+            'shipping_cost' => 0,
+            'arrival_date' => now()->toDateString(),
+            'status' => 'active',
+            'created_by' => $this->user->id,
+            'updated_by' => $this->user->id,
+        ]);
+
         $response = $this->actingAs($this->user)->get(route('admin.inventory.furniture.show', $this->coffeeTable));
 
         $response->assertOk();
         $response->assertSee(route('admin.inventory.furniture.actions', $this->coffeeTable));
         $response->assertSee('Sale price per unit');
+        $response->assertSee('Add units');
+        $response->assertViewHas('trucks', function (array $trucks) use ($emptyTruck): bool {
+            return count($trucks) === 3
+                && $trucks[0]['id'] === $this->truck->id
+                && $trucks[0]['next_unit_number'] === 3
+                && $trucks[1]['id'] === $emptyTruck->id
+                && $trucks[1]['name'] === 'AA-Empty';
+        });
         $response->assertViewHas('actionAvailability', function (array $availability): bool {
             return $availability['sell']['eligible'] === 1
                 && $availability['sell']['override'] === 2
@@ -352,6 +381,86 @@ class FurnitureQuickActionTest extends TestCase
                 && $availability['status:Ready']['override'] === 1
                 && $availability['assemble']['eligible'] === 2;
         });
+    }
+
+    public function test_adding_units_creates_sequential_labels_on_the_chosen_truck(): void
+    {
+        $this->unit('Ready');
+
+        $response = $this->act([
+            'action' => 'add',
+            'count' => 2,
+            'truck_id' => $this->truck->id,
+            'status' => 'Testing',
+        ]);
+
+        $response->assertRedirect(route('admin.inventory.furniture.show', $this->coffeeTable));
+        $response->assertSessionHas('success', 'Added 2 units: WF-030-002, WF-030-003.');
+
+        $created = TruckAppliance::query()
+            ->where('model_id', $this->coffeeTable->id)
+            ->whereIn('unit_label', ['WF-030-002', 'WF-030-003'])
+            ->orderBy('unit_label')
+            ->get();
+
+        $this->assertCount(2, $created);
+        foreach ($created as $unit) {
+            $this->assertSame($this->truck->id, $unit->truck_id);
+            $this->assertSame('Testing', $unit->status);
+            $this->assertSame($this->coffeeTable->id, $unit->model_id);
+            $this->assertSame($this->tables->id, $unit->category_id);
+            $this->assertSame('Moog', $unit->brand);
+            $this->assertSame('Oval Coffee Table', $unit->product_name);
+            $this->assertSame('199.00', $unit->msrp);
+            $this->assertNotNull($unit->furnitureDetails);
+            $this->assertNull($unit->furnitureDetails->assembled_at);
+        }
+
+        $log = UserAction::query()->where('action_type', 'furniture_quick_action')->sole();
+        $this->assertSame('add', $log->extra['action']);
+        $this->assertSame($this->truck->id, $log->extra['truck_id']);
+        $this->assertSame('Testing', $log->extra['status']);
+        $this->assertSame(2, $log->extra['count']);
+        $this->assertSame($created->modelKeys(), $log->extra['unit_ids']);
+    }
+
+    public function test_adding_units_rejects_sold_status_and_missing_truck(): void
+    {
+        $this->unit('Ready');
+
+        $this->act([
+            'action' => 'add',
+            'count' => 1,
+            'truck_id' => $this->truck->id,
+            'status' => 'Sold',
+        ])->assertSessionHasErrors('status');
+
+        $this->act([
+            'action' => 'add',
+            'count' => 1,
+            'status' => 'Testing',
+        ])->assertSessionHasErrors('truck_id');
+
+        $this->assertSame(1, TruckAppliance::query()->where('model_id', $this->coffeeTable->id)->count());
+    }
+
+    public function test_adding_units_does_not_require_checked_units(): void
+    {
+        $this->unit('Ready');
+
+        $this->act([
+            'action' => 'add',
+            'count' => 1,
+            'truck_id' => $this->truck->id,
+            'status' => 'Ready',
+            'unit_ids' => [],
+        ])->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('truck_appliances', [
+            'model_id' => $this->coffeeTable->id,
+            'unit_label' => 'WF-030-002',
+            'status' => 'Ready',
+        ]);
     }
 
     public function test_furniture_can_use_any_status_from_the_unit_page(): void

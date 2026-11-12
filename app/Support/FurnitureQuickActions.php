@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\FurnitureQuickAction;
 use App\Models\Model as CatalogModel;
+use App\Models\Truck;
 use App\Models\TruckAppliance;
 use App\Models\User;
 use App\Models\UserAction;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 /**
  * Count-based actions on the units of one furniture model.
@@ -32,6 +34,7 @@ class FurnitureQuickActions
             },
             FurnitureQuickAction::MarkAssembled => new FurnitureUnitRule(exceptStatuses: ['Sold', 'Scrap'], unassembledOnly: true),
             FurnitureQuickAction::SetLocation => new FurnitureUnitRule(exceptStatuses: ['Sold']),
+            FurnitureQuickAction::AddUnits => throw new InvalidArgumentException('Add units does not use eligibility rules.'),
         };
     }
 
@@ -45,6 +48,7 @@ class FurnitureQuickActions
             },
             FurnitureQuickAction::MarkAssembled => new FurnitureUnitRule(exceptStatuses: ['Sold'], unassembledOnly: true),
             FurnitureQuickAction::SetLocation => $this->eligibleRule($action),
+            FurnitureQuickAction::AddUnits => throw new InvalidArgumentException('Add units does not use eligibility rules.'),
         };
     }
 
@@ -98,7 +102,7 @@ class FurnitureQuickActions
 
     /**
      * @param  list<int>  $checkedUnitIds
-     * @param  array{status?: ?string, sold_price?: float|string|null, location?: ?string, notes?: ?string}  $input
+     * @param  array{status?: ?string, sold_price?: float|string|null, location?: ?string, notes?: ?string, truck_id?: int|string|null}  $input
      * @return array{units: Collection<int, TruckAppliance>, overridden_ids: list<int>}
      *
      * @throws ValidationException
@@ -112,6 +116,10 @@ class FurnitureQuickActions
         array $input,
         User $user,
     ): array {
+        if ($action === FurnitureQuickAction::AddUnits) {
+            return $this->addUnits($model, $count, $input, $user);
+        }
+
         $targetStatus = $input['status'] ?? null;
         $eligible = $this->eligibleRule($action, $targetStatus);
         $pool = $override ? $this->overrideRule($action, $targetStatus) : $eligible;
@@ -188,6 +196,7 @@ class FurnitureQuickActions
                         'location' => filled($input['location'] ?? null) ? trim($input['location']) : null,
                         'updated_by' => $user->id,
                     ]),
+                    FurnitureQuickAction::AddUnits => null,
                 };
             }
 
@@ -206,6 +215,87 @@ class FurnitureQuickActions
             'override' => $override,
             'overridden_unit_ids' => $result['overridden_ids'],
         ], fn ($value) => $value !== null && $value !== []), $user);
+
+        return $result;
+    }
+
+    /**
+     * @param  array{status?: ?string, truck_id?: int|string|null}  $input
+     * @return array{units: Collection<int, TruckAppliance>, overridden_ids: list<int>}
+     *
+     * @throws ValidationException
+     */
+    private function addUnits(CatalogModel $model, int $count, array $input, User $user): array
+    {
+        $truckId = (int) ($input['truck_id'] ?? 0);
+        $status = trim((string) ($input['status'] ?? ''));
+
+        $result = DB::transaction(function () use ($model, $count, $truckId, $status, $user) {
+            $truck = Truck::query()
+                ->whereKey($truckId)
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->first();
+
+            if ($truck === null) {
+                throw ValidationException::withMessages([
+                    'truck_id' => __('Choose an active truck to add the units to.'),
+                ]);
+            }
+
+            $model->loadMissing('category');
+            $template = FurnitureModelGroups::liveUnits()
+                ->where('truck_appliances.model_id', $model->id)
+                ->orderBy('truck_appliances.id')
+                ->first();
+
+            $brand = filled($model->brand) ? (string) $model->brand : ($template?->brand ?: null);
+            $productName = filled($model->product_name)
+                ? (string) $model->product_name
+                : ($template?->product_name ?: null);
+            $categoryId = $model->category_id ?: $template?->category_id;
+            $msrp = (float) $model->msrp ?: (float) ($template?->msrp ?? 0);
+
+            if ($categoryId === null) {
+                throw ValidationException::withMessages([
+                    'action' => __('This model needs a category before units can be added.'),
+                ]);
+            }
+
+            $created = new Collection;
+
+            foreach (TruckUnitLabels::nextLabels($truck, $count) as $label) {
+                $unit = $truck->appliances()->create([
+                    'category_id' => $categoryId,
+                    'model_id' => $model->id,
+                    'unit_label' => $label,
+                    'brand' => $brand,
+                    'product_name' => $productName,
+                    'msrp' => $msrp,
+                    'status' => $status,
+                    'quantity' => 1,
+                    'price' => 0,
+                    'photos' => [],
+                    'created_by' => $user->id,
+                    'updated_by' => $user->id,
+                ]);
+                $unit->syncFurnitureDetails();
+                $created->push($unit);
+            }
+
+            TruckPricing::recalculate($truck);
+
+            return ['units' => $created->values(), 'overridden_ids' => []];
+        });
+
+        UserAction::log('furniture_quick_action', null, [
+            'model_id' => $model->id,
+            'action' => FurnitureQuickAction::AddUnits->value,
+            'truck_id' => $truckId,
+            'status' => $status,
+            'count' => $count,
+            'unit_ids' => $result['units']->modelKeys(),
+        ], $user);
 
         return $result;
     }

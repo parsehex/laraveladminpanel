@@ -27,6 +27,35 @@ class TruckUnitLabels
         return trim($truckName).'-'.sprintf('%03d', $number);
     }
 
+    public static function maxTrailingNumber(Truck $truck): int
+    {
+        return (int) $truck->appliances()
+            ->pluck('unit_label')
+            ->map(fn (?string $label): int => self::trailingNumber($label) ?? 0)
+            ->max();
+    }
+
+    /**
+     * Next unused unit labels on the truck: {name}-{max+1} … {name}-{max+count}.
+     *
+     * @return list<string>
+     */
+    public static function nextLabels(Truck $truck, int $count): array
+    {
+        if ($count <= 0) {
+            return [];
+        }
+
+        $next = self::maxTrailingNumber($truck) + 1;
+        $labels = [];
+
+        for ($i = 0; $i < $count; $i++) {
+            $labels[] = self::format((string) $truck->name, $next + $i);
+        }
+
+        return $labels;
+    }
+
     /**
      * @return array{changes: list<array{id: int, from: ?string, to: string, serial_number: ?string}>, unchanged: int}
      */
@@ -96,7 +125,7 @@ class TruckUnitLabels
         $claimed = [];
 
         foreach ($appliances as $appliance) {
-            $number = $this->trailingNumber($appliance->unit_label);
+            $number = self::trailingNumber($appliance->unit_label);
 
             if ($number === null) {
                 continue;
@@ -207,7 +236,7 @@ class TruckUnitLabels
         return strtolower($value);
     }
 
-    private function trailingNumber(?string $label): ?int
+    private static function trailingNumber(?string $label): ?int
     {
         if (preg_match('/(\d+)$/', trim((string) $label), $matches) !== 1) {
             return null;

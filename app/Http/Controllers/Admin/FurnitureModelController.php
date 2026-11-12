@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FurnitureQuickActionRequest;
 use App\Models\Model as CatalogModel;
+use App\Models\Truck;
 use App\Support\ApplianceStatusFilter;
 use App\Support\FurnitureModelGroups;
 use App\Support\FurnitureQuickActions;
 use App\Support\InventoryLocations;
 use App\Support\PageSize;
+use App\Support\TruckUnitLabels;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -60,7 +62,41 @@ class FurnitureModelController extends Controller
             'targetStatuses' => FurnitureQuickActionRequest::targetStatuses(),
             'actionAvailability' => $actions->availability($model, FurnitureQuickActionRequest::targetStatuses()),
             'locations' => app(InventoryLocations::class)->suggestionLabels(),
+            'trucks' => $this->trucksForAddAction($model),
         ]);
+    }
+
+    /**
+     * Active trucks for Add units: ones that already have this model first (A→Z), then the rest (A→Z).
+     *
+     * @return list<array{id: int, name: string, next_unit_number: int}>
+     */
+    private function trucksForAddAction(CatalogModel $model): array
+    {
+        $modelTruckIds = FurnitureModelGroups::liveUnits()
+            ->where('truck_appliances.model_id', $model->id)
+            ->distinct()
+            ->pluck('truck_appliances.truck_id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+        $modelTruckLookup = array_flip($modelTruckIds);
+
+        return Truck::query()
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->sortBy(fn (Truck $truck): string => sprintf(
+                '%d-%s',
+                isset($modelTruckLookup[$truck->id]) ? 0 : 1,
+                mb_strtolower((string) $truck->name),
+            ))
+            ->values()
+            ->map(fn (Truck $truck): array => [
+                'id' => $truck->id,
+                'name' => $truck->name,
+                'next_unit_number' => TruckUnitLabels::maxTrailingNumber($truck) + 1,
+            ])
+            ->all();
     }
 
     public function performAction(FurnitureQuickActionRequest $request, CatalogModel $model, FurnitureQuickActions $actions): RedirectResponse
@@ -73,7 +109,7 @@ class FurnitureModelController extends Controller
             (int) $request->validated('count'),
             $request->checkedUnitIds(),
             $request->boolean('override'),
-            $request->safe()->only(['status', 'sold_price', 'location', 'notes']),
+            $request->safe()->only(['status', 'sold_price', 'location', 'notes', 'truck_id']),
             $request->user(),
         );
 

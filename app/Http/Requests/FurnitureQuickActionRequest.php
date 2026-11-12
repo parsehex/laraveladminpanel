@@ -16,7 +16,7 @@ class FurnitureQuickActionRequest extends FormRequest
     }
 
     /**
-     * Statuses the change-status action can move units to; selling has its own action so a price is captured.
+     * Statuses the change-status / add-units actions can use; selling has its own action so a price is captured.
      *
      * @return list<string>
      */
@@ -30,14 +30,25 @@ class FurnitureQuickActionRequest extends FormRequest
 
     public function rules(): array
     {
+        $needsStatus = fn (): bool => in_array($this->quickAction(), [
+            FurnitureQuickAction::ChangeStatus,
+            FurnitureQuickAction::AddUnits,
+        ], true);
+
         return [
             'action' => ['required', Rule::enum(FurnitureQuickAction::class)],
             'count' => ['required', 'integer', 'min:1', 'max:1000'],
             'unit_ids' => ['nullable', 'array'],
             'unit_ids.*' => ['integer'],
             'override' => ['nullable', 'boolean'],
+            'truck_id' => [
+                Rule::requiredIf(fn (): bool => $this->quickAction() === FurnitureQuickAction::AddUnits),
+                'nullable',
+                'integer',
+                Rule::exists('trucks', 'id')->where(fn ($query) => $query->where('status', 'active')),
+            ],
             'status' => [
-                Rule::requiredIf(fn (): bool => $this->quickAction() === FurnitureQuickAction::ChangeStatus),
+                Rule::requiredIf($needsStatus),
                 'nullable',
                 Rule::in(self::targetStatuses()),
             ],
@@ -56,6 +67,8 @@ class FurnitureQuickActionRequest extends FormRequest
     {
         return [
             'sold_price.required' => __('Enter the sale price for one unit.'),
+            'truck_id.required' => __('Choose a truck to add the units to.'),
+            'status.required' => __('Choose a starting status for the new units.'),
         ];
     }
 
@@ -63,6 +76,10 @@ class FurnitureQuickActionRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
+                if ($this->quickAction() === FurnitureQuickAction::AddUnits) {
+                    return;
+                }
+
                 $checkedCount = count(array_unique($this->input('unit_ids', [])));
 
                 if ($checkedCount > (int) $this->input('count')) {

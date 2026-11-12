@@ -8,6 +8,7 @@ enum FurnitureQuickAction: string
     case ChangeStatus = 'status';
     case MarkAssembled = 'assemble';
     case SetLocation = 'location';
+    case AddUnits = 'add';
 
     public function label(): string
     {
@@ -16,6 +17,7 @@ enum FurnitureQuickAction: string
             self::ChangeStatus => 'Change status',
             self::MarkAssembled => 'Mark assembled',
             self::SetLocation => 'Set location',
+            self::AddUnits => 'Add units',
         };
     }
 
@@ -26,6 +28,7 @@ enum FurnitureQuickAction: string
             self::ChangeStatus => 'Updated status on',
             self::MarkAssembled => 'Marked assembled',
             self::SetLocation => 'Set location on',
+            self::AddUnits => 'Added',
         };
     }
 }

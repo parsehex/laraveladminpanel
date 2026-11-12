@@ -18,6 +18,7 @@ use App\Support\FurnitureModelGroups;
 use App\Support\InventoryCostRange;
 use App\Support\InventoryLocations;
 use App\Support\PageSize;
+use App\Support\TruckPricing;
 use App\Support\UserPreferences;
 use App\Testing\RepairResultRepository;
 use App\Testing\TestingFlowRepository;
@@ -308,7 +309,7 @@ class InventoryController extends Controller
         $appliance->delete();
 
         if ($truck) {
-            $this->recalculateTruckPrices($truck);
+            TruckPricing::recalculate($truck);
         }
 
         return back()->with('success', __('Appliance deleted from inventory.'));
@@ -916,28 +917,6 @@ class InventoryController extends Controller
             defaultSort: ['truck_appliances.id', 'desc'],
             columns: $columns,
         );
-    }
-
-    private function recalculateTruckPrices(Truck $truck): void
-    {
-        $items = $truck->appliances()->get(['id', 'msrp']);
-        $totalMsrp = (float) $items->sum('msrp');
-
-        if ($totalMsrp > 0) {
-            $percentage = (float) $truck->cost_of_truck / $totalMsrp;
-            foreach ($items as $item) {
-                $item->update(['price' => $percentage * (float) $item->msrp]);
-            }
-
-            return;
-        }
-
-        if ($items->count() > 0) {
-            $price = (float) $truck->cost_of_truck / $items->count();
-            foreach ($items as $item) {
-                $item->update(['price' => $price]);
-            }
-        }
     }
 
     private function parseApplianceIdFromQr(?string $payload): ?int
