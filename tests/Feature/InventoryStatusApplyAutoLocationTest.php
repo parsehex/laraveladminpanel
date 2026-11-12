@@ -133,4 +133,44 @@ class InventoryStatusApplyAutoLocationTest extends TestCase
         $response->assertOk();
         $response->assertSee('Apply location to 1', false);
     }
+
+    public function test_apply_location_confirm_lists_units_that_already_have_a_location(): void
+    {
+        $user = $this->adminUser();
+        $status = InventoryStatus::query()->where('name', 'Show Room')->firstOrFail();
+        $status->update(['auto_location' => 'Front Floor']);
+        $truck = $this->createTruck($user);
+
+        $empty = TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'unit_label' => 'LOC-EMPTY-1',
+            'serial_number' => 'EMPTY-LOC-1',
+            'status' => 'Show Room',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        DB::table('truck_appliances')->where('id', $empty->id)->update(['location' => null]);
+
+        $occupied = TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'unit_label' => 'LOC-OCCUPIED-1',
+            'serial_number' => 'OCCUPIED-LOC-1',
+            'status' => 'Show Room',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        DB::table('truck_appliances')->where('id', $occupied->id)->update(['location' => 'Old Bay']);
+
+        $response = $this->actingAs($user)->get(route('admin.inventory-statuses.index'));
+
+        $response->assertOk();
+        $response->assertSee('Apply location to 2', false);
+        // @json must sit in a single-quoted HTML attr or the confirm handler is invalid JS.
+        $response->assertSee("onsubmit='return confirm(", false);
+        $response->assertSee('1 have no location.', false);
+        $response->assertSee('1 already have a location and will be overwritten:', false);
+        $response->assertSee('LOC-OCCUPIED-1: Old Bay', false);
+        $response->assertDontSee('LOC-EMPTY-1:', false);
+        $response->assertDontSee('onsubmit="return confirm(', false);
+    }
 }

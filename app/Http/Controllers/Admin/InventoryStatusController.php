@@ -10,12 +10,16 @@ use App\Http\Requests\Admin\StoreInventoryStatusRequest;
 use App\Models\InventoryStatus;
 use App\Models\TruckAppliance;
 use App\Support\InventoryStatusAppearance;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class InventoryStatusController extends Controller
 {
+    private const APPLY_LOCATION_CONFIRM_LIST_LIMIT = 15;
+
     public function __construct()
     {
         $this->middleware('permission:inventory-statuses.manage');
@@ -32,33 +36,36 @@ class InventoryStatusController extends Controller
             ->groupBy('status')
             ->pluck('aggregate', 'status');
 
-        $itemsNeedingLocation = DB::table('truck_appliances as appliances')
-            ->join('inventory_statuses as statuses', 'statuses.name', '=', 'appliances.status')
-            ->whereNotNull('statuses.auto_location')
-            ->where('statuses.auto_location', '<>', '')
-            ->where(function ($query) {
-                $query->whereNull('appliances.location')
-                    ->orWhere('appliances.location', '')
-                    ->orWhereRaw('LOWER(TRIM(appliances.location)) <> LOWER(TRIM(statuses.auto_location))');
-            })
-            ->whereExists(function ($query) {
-                $query->selectRaw('1')
-                    ->from('trucks')
-                    ->whereColumn('trucks.id', 'appliances.truck_id')
-                    ->whereNull('trucks.deleted_at');
-            })
-            ->groupBy('statuses.name')
-            ->selectRaw('statuses.name as status_name, COUNT(*) as aggregate')
+        $itemsNeedingLocationPreview = $this->itemsNeedingAutoLocation()
+            ->orderBy('appliances.unit_label')
+            ->orderBy('appliances.serial_number')
+            ->orderBy('appliances.id')
+            ->select([
+                'appliances.id',
+                'appliances.status',
+                'appliances.unit_label',
+                'appliances.serial_number',
+                'appliances.location',
+                'statuses.auto_location',
+            ])
             ->get()
-            ->pluck('aggregate', 'status_name');
+            ->groupBy('status');
+
+        $itemsNeedingLocation = $itemsNeedingLocationPreview->map->count();
 
         $statuses = InventoryStatus::query()
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get()
-            ->map(function (InventoryStatus $status) use ($itemCounts, $itemsNeedingLocation) {
+            ->map(function (InventoryStatus $status) use ($itemCounts, $itemsNeedingLocation, $itemsNeedingLocationPreview) {
                 $status->item_count = (int) ($itemCounts[$status->name] ?? 0);
                 $status->items_needing_location = (int) ($itemsNeedingLocation[$status->name] ?? 0);
+                $status->apply_location_confirm = $status->items_needing_location > 0
+                    ? $this->applyLocationConfirmMessage(
+                        $status,
+                        $itemsNeedingLocationPreview->get($status->name, collect()),
+                    )
+                    : null;
 
                 return $status;
             });
@@ -147,5 +154,93 @@ class InventoryStatusController extends Controller
                 'count' => $updated,
                 'location' => $location,
             ]));
+    }
+
+    /**
+     * Live-truck appliances whose location does not already match their status auto-location.
+     */
+    private function itemsNeedingAutoLocation(): Builder
+    {
+        return DB::table('truck_appliances as appliances')
+            ->join('inventory_statuses as statuses', 'statuses.name', '=', 'appliances.status')
+            ->whereNull('appliances.deleted_at')
+            ->whereNotNull('statuses.auto_location')
+            ->where('statuses.auto_location', '<>', '')
+            ->where(function ($query) {
+                $query->whereNull('appliances.location')
+                    ->orWhere('appliances.location', '')
+                    ->orWhereRaw('LOWER(TRIM(appliances.location)) <> LOWER(TRIM(statuses.auto_location))');
+            })
+            ->whereExists(function ($query) {
+                $query->selectRaw('1')
+                    ->from('trucks')
+                    ->whereColumn('trucks.id', 'appliances.truck_id')
+                    ->whereNull('trucks.deleted_at');
+            });
+    }
+
+    /**
+     * @param  Collection<int, object{id: int, unit_label: ?string, serial_number: ?string, location: ?string}>  $items
+     */
+    private function applyLocationConfirmMessage(InventoryStatus $status, Collection $items): string
+    {
+        $target = (string) $status->auto_location;
+        $empty = $items->filter(function (object $item): bool {
+            $location = trim((string) ($item->location ?? ''));
+
+            return $location === '';
+        });
+        $occupied = $items->filter(function (object $item): bool {
+            $location = trim((string) ($item->location ?? ''));
+
+            return $location !== '';
+        });
+
+        $lines = [
+            __('Update :count item(s) currently in :status to location “:location”?', [
+                'count' => $items->count(),
+                'status' => $status->name,
+                'location' => $target,
+            ]),
+        ];
+
+        if ($empty->isNotEmpty()) {
+            $lines[] = '';
+            $lines[] = __(':count have no location.', ['count' => $empty->count()]);
+        }
+
+        if ($occupied->isNotEmpty()) {
+            $lines[] = '';
+            $lines[] = __(':count already have a location and will be overwritten:', [
+                'count' => $occupied->count(),
+            ]);
+
+            $listed = $occupied->take(self::APPLY_LOCATION_CONFIRM_LIST_LIMIT);
+            foreach ($listed as $item) {
+                $lines[] = '- '.$this->applianceConfirmLabel($item).': '.$item->location;
+            }
+
+            $remaining = $occupied->count() - $listed->count();
+            if ($remaining > 0) {
+                $lines[] = __('- ...and :count more', ['count' => $remaining]);
+            }
+        }
+
+        return implode("\n", $lines);
+    }
+
+    private function applianceConfirmLabel(object $item): string
+    {
+        $unitLabel = trim((string) ($item->unit_label ?? ''));
+        if ($unitLabel !== '') {
+            return $unitLabel;
+        }
+
+        $serial = trim((string) ($item->serial_number ?? ''));
+        if ($serial !== '') {
+            return $serial;
+        }
+
+        return '#'.$item->id;
     }
 }
