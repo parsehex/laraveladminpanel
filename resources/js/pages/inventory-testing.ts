@@ -20,6 +20,7 @@ const resultingStatus = document.getElementById('resulting-status') as HTMLSelec
 const answersJson = document.getElementById('answers-json') as HTMLInputElement | null;
 const resultingStatusHint = document.getElementById('resulting-status-hint');
 const resultingStatusSuggested = document.getElementById('resulting-status-suggested');
+const backFromCompleteBtn = document.getElementById('wizard-back-from-complete');
 
 if (pageRoot && wizardRoot && restartBtn && resultingStatus && answersJson) {
     const flow = parseFlow(pageRoot.dataset.flow);
@@ -57,6 +58,10 @@ if (pageRoot && wizardRoot && restartBtn && resultingStatus && answersJson) {
 
         restartBtn.addEventListener('click', () => {
             wizard.restart();
+        });
+
+        backFromCompleteBtn?.addEventListener('click', () => {
+            wizard.backFromComplete();
         });
     }
 }

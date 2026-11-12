@@ -42,6 +42,7 @@ export type TestingWizard = {
     restart: () => void;
     setFlow: (flow: TestingFlow) => void;
     getAnswers: () => WizardAnswers;
+    backFromComplete: () => void;
 };
 
 export type TestingWizardOptions = {

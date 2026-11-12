@@ -60,7 +60,12 @@
             <div class="p-5 space-y-4">
                 <div id="wizard-root" class="min-h-[10rem]"></div>
                 <div id="wizard-complete" class="hidden space-y-4 rounded-md border border-emerald-200 bg-emerald-50 p-4">
-                    <p class="text-sm font-semibold text-emerald-900">Checklist finished. Choose the next status, then complete testing.</p>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <p class="text-sm font-semibold text-emerald-900">Checklist finished. Choose the next status, then complete testing.</p>
+                        <button type="button" id="wizard-back-from-complete" class="rounded-md bg-white border border-emerald-300 px-3 py-1.5 text-sm font-semibold text-emerald-900 hover:bg-emerald-100">
+                            Previous
+                        </button>
+                    </div>
                     <form method="POST" action="{{ route('admin.inventory.testing.store', $appliance) }}" id="testing-submit-form" class="space-y-3">
                         @csrf
                         <input type="hidden" name="answers_json" id="answers-json">
