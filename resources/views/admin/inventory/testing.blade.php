@@ -61,10 +61,10 @@
             </div>
             <div class="p-5 space-y-4">
                 <div id="wizard-root" class="min-h-[10rem]"></div>
-                <div id="wizard-complete" class="hidden space-y-4 rounded-md border border-emerald-200 bg-emerald-50 p-4">
+                <div id="wizard-complete" class="hidden space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4">
                     <div class="flex flex-wrap items-center justify-between gap-2">
-                        <p class="text-sm font-semibold text-emerald-900">Checklist finished. Choose the next status, then complete testing.</p>
-                        <button type="button" id="wizard-back-from-complete" class="rounded-md bg-white border border-emerald-300 px-3 py-1.5 text-sm font-semibold text-emerald-900 hover:bg-emerald-100">
+                        <p class="text-sm font-semibold text-gray-900">Checklist finished. Choose the next status, then complete testing.</p>
+                        <button type="button" id="wizard-back-from-complete" class="rounded-md bg-white border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-800 hover:bg-gray-100">
                             Previous
                         </button>
                     </div>
@@ -74,7 +74,7 @@
                         <input type="hidden" name="flow_slug" value="{{ $flow['slug'] }}">
                         <input type="hidden" name="flow_version" value="{{ $flow['version'] }}">
                         <div>
-                            <label for="resulting-status" class="mb-1 block text-sm font-semibold text-emerald-900">Next status</label>
+                            <label for="resulting-status" class="mb-1 block text-sm font-semibold text-gray-900">Next status</label>
                             <x-admin.status-select
                                 name="resulting_status"
                                 id="resulting-status"
@@ -84,13 +84,13 @@
                                 placeholder="Select status"
                                 class="w-full max-w-xs"
                             />
-                            <p id="resulting-status-hint" class="mt-1 text-xs text-emerald-800 hidden">Suggested: <span id="resulting-status-suggested"></span></p>
+                            <p id="resulting-status-hint" class="mt-1 text-xs text-gray-600 hidden">Suggested: <span id="resulting-status-suggested"></span></p>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
                             <textarea name="notes" rows="2" class="w-full rounded-md border border-gray-300 px-3 py-2"></textarea>
                         </div>
-                        <button type="submit" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                        <button type="submit" class="rounded-md bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
                             Complete testing
                         </button>
                     </form>
