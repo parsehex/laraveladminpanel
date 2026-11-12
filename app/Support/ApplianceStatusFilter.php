@@ -10,9 +10,12 @@ class ApplianceStatusFilter
     /**
      * Apply selected inventory status filters, treating Triage as null/empty/Triage.
      *
+     * Qualify the column by default so joins used for sorting (trucks/categories, which also
+     * have a status column) do not make PostgreSQL reject the filter as ambiguous.
+     *
      * @param  iterable<int, mixed>  $statuses
      */
-    public static function apply(Builder $query, iterable $statuses, string $column = 'status'): void
+    public static function apply(Builder $query, iterable $statuses, string $column = 'truck_appliances.status'): void
     {
         $statuses = self::normalize($statuses);
 

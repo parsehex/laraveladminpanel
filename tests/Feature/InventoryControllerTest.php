@@ -133,6 +133,110 @@ class InventoryControllerTest extends TestCase
         });
     }
 
+    public function test_inventory_status_filter_works_while_sorted_by_truck(): void
+    {
+        $user = $this->adminUser();
+
+        $alphaTruck = Truck::query()->create([
+            'name' => 'Alpha Filter Truck',
+            'units_on_truck' => 1,
+            'cost_of_truck' => 1000,
+            'shipping_cost' => 0,
+            'arrival_date' => now()->toDateString(),
+            'status' => 'active',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $betaTruck = Truck::query()->create([
+            'name' => 'Beta Filter Truck',
+            'units_on_truck' => 1,
+            'cost_of_truck' => 1000,
+            'shipping_cost' => 0,
+            'arrival_date' => now()->toDateString(),
+            'status' => 'active',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $matching = TruckAppliance::query()->create([
+            'truck_id' => $betaTruck->id,
+            'serial_number' => 'STATUS-TRUCK-READY',
+            'status' => 'Ready',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $other = TruckAppliance::query()->create([
+            'truck_id' => $alphaTruck->id,
+            'serial_number' => 'STATUS-TRUCK-TESTING',
+            'status' => 'Testing',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('admin.inventory.index', [
+            'status' => ['Ready'],
+            'sort' => 'truck',
+            'direction' => 'asc',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee($matching->serial_number);
+        $response->assertDontSee($other->serial_number);
+    }
+
+    public function test_inventory_status_filter_works_while_sorted_by_category(): void
+    {
+        $user = $this->adminUser();
+        $truck = Truck::query()->create([
+            'name' => 'Status Category Truck',
+            'units_on_truck' => 2,
+            'cost_of_truck' => 1000,
+            'shipping_cost' => 0,
+            'arrival_date' => now()->toDateString(),
+            'status' => 'active',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $washerCategory = Category::query()->create([
+            'name' => 'Washers',
+            'status' => 1,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $dishwasherCategory = Category::query()->create([
+            'name' => 'Dishwashers',
+            'status' => 1,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $matching = TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'category_id' => $dishwasherCategory->id,
+            'serial_number' => 'STATUS-CAT-READY',
+            'status' => 'Ready',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+        $other = TruckAppliance::query()->create([
+            'truck_id' => $truck->id,
+            'category_id' => $washerCategory->id,
+            'serial_number' => 'STATUS-CAT-TESTING',
+            'status' => 'Testing',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('admin.inventory.index', [
+            'status' => ['Ready'],
+            'sort' => 'category',
+            'direction' => 'asc',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee($matching->serial_number);
+        $response->assertDontSee($other->serial_number);
+    }
+
     #[DataProvider('terminalStatusLocations')]
     public function test_terminal_status_updates_populate_the_location(string $status, string $location): void
     {
