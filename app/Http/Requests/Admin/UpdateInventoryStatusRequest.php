@@ -15,6 +15,7 @@ class UpdateInventoryStatusRequest extends FormRequest
     {
         return [
             'auto_location' => ['nullable', 'string', 'max:255'],
+            'color' => ['required', 'hex_color'],
         ];
     }
 
@@ -22,8 +23,15 @@ class UpdateInventoryStatusRequest extends FormRequest
     {
         $autoLocation = $this->string('auto_location')->trim()->toString();
 
-        $this->merge([
+        $merge = [
             'auto_location' => $autoLocation === '' ? null : $autoLocation,
-        ]);
+        ];
+
+        if ($this->exists('color')) {
+            $color = strtolower(ltrim($this->string('color')->trim()->toString(), '#'));
+            $merge['color'] = $color === '' ? null : '#'.$color;
+        }
+
+        $this->merge($merge);
     }
 }

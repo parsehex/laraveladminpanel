@@ -2,19 +2,31 @@
 
 namespace App\Support;
 
+use App\Models\InventoryStatus;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
+
 class InventoryStatusAppearance
 {
+    public const CACHE_KEY = 'inventory_status_backgrounds';
+
     private const TEXT_LIGHT = '#ffffff';
 
     private const TEXT_DARK = '#111827';
 
+    private const DEFAULT_BACKGROUND = '#ffffff';
+
     /**
-     * Canonical chip backgrounds keyed by lowercased status name.
-     * Text color is derived from WCAG contrast against the background.
+     * How much white to blend into muted/table variants (0 = original, 1 = white).
+     */
+    private const MUTED_WHITE_MIX = 0.72;
+
+    /**
+     * Fallback backgrounds when the DB has no color yet (keyed by lowercased name).
      *
      * @var array<string, string>
      */
-    private const BACKGROUNDS = [
+    private const FALLBACK_BACKGROUNDS = [
         'testing' => '#67d4f1',
         'ready' => '#3b82f6',
         'show room' => '#9333ea',
@@ -28,16 +40,21 @@ class InventoryStatusAppearance
         'quality control qc' => '#16a34a',
         'sold' => '#059669',
         'triage' => '#ffffff',
+        'sent to ebay' => '#6366f1',
+        'video' => '#c026d3',
     ];
 
-    private const DEFAULT_BACKGROUND = '#ffffff';
+    /**
+     * @var array<string, string>|null
+     */
+    private static ?array $backgroundsByName = null;
 
     /**
      * @return array{background: string, text: string}
      */
-    public static function colors(?string $status): array
+    public static function colors(?string $status, bool $muted = false): array
     {
-        $background = self::background($status);
+        $background = self::background($status, $muted);
 
         return [
             'background' => $background,
@@ -45,15 +62,31 @@ class InventoryStatusAppearance
         ];
     }
 
-    public static function background(?string $status): string
+    public static function background(?string $status, bool $muted = false): string
     {
-        $key = strtolower(trim((string) $status));
+        $key = self::normalizeKey($status);
+        $background = self::backgroundsByName()[$key]
+            ?? self::FALLBACK_BACKGROUNDS[$key]
+            ?? self::DEFAULT_BACKGROUND;
 
-        if ($key === '') {
-            $key = 'triage';
-        }
+        return $muted ? self::mute($background) : $background;
+    }
 
-        return self::BACKGROUNDS[$key] ?? self::DEFAULT_BACKGROUND;
+    /**
+     * Soften a status color for dense tables (e.g. trucks index breakdown chips).
+     */
+    public static function mute(string $backgroundHex, float $whiteMix = self::MUTED_WHITE_MIX): string
+    {
+        $whiteMix = max(0.0, min(1.0, $whiteMix));
+        [$red, $green, $blue] = self::hexToRgb($backgroundHex);
+
+        $mixed = [
+            (int) round($red + ((255 - $red) * $whiteMix)),
+            (int) round($green + ((255 - $green) * $whiteMix)),
+            (int) round($blue + ((255 - $blue) * $whiteMix)),
+        ];
+
+        return sprintf('#%02x%02x%02x', $mixed[0], $mixed[1], $mixed[2]);
     }
 
     /**
@@ -67,11 +100,14 @@ class InventoryStatusAppearance
         return $lightRatio >= $darkRatio ? self::TEXT_LIGHT : self::TEXT_DARK;
     }
 
-    public static function tailwindClasses(?string $status): string
+    /**
+     * Inline CSS for chips/buttons/rows.
+     */
+    public static function style(?string $status, bool $muted = false): string
     {
-        $colors = self::colors($status);
+        $colors = self::colors($status, $muted);
 
-        return 'bg-['.$colors['background'].'] text-['.$colors['text'].']';
+        return 'background-color: '.$colors['background'].'; color: '.$colors['text'].';';
     }
 
     /**
@@ -79,24 +115,45 @@ class InventoryStatusAppearance
      *
      * @return array{colors: array<string, array{background: string, text: string}>, default: array{background: string, text: string}}
      */
-    public static function palette(): array
+    public static function palette(bool $muted = false): array
     {
         $colors = [];
 
-        foreach (self::BACKGROUNDS as $name => $background) {
+        foreach (self::backgroundsByName() as $name => $background) {
+            $resolved = $muted ? self::mute($background) : $background;
             $colors[$name] = [
-                'background' => $background,
-                'text' => self::contrastingText($background),
+                'background' => $resolved,
+                'text' => self::contrastingText($resolved),
             ];
         }
+
+        foreach (self::FALLBACK_BACKGROUNDS as $name => $background) {
+            if (isset($colors[$name])) {
+                continue;
+            }
+
+            $resolved = $muted ? self::mute($background) : $background;
+            $colors[$name] = [
+                'background' => $resolved,
+                'text' => self::contrastingText($resolved),
+            ];
+        }
+
+        $defaultBackground = $muted ? self::mute(self::DEFAULT_BACKGROUND) : self::DEFAULT_BACKGROUND;
 
         return [
             'colors' => $colors,
             'default' => [
-                'background' => self::DEFAULT_BACKGROUND,
-                'text' => self::contrastingText(self::DEFAULT_BACKGROUND),
+                'background' => $defaultBackground,
+                'text' => self::contrastingText($defaultBackground),
             ],
         ];
+    }
+
+    public static function flush(): void
+    {
+        self::$backgroundsByName = null;
+        Cache::forget(self::CACHE_KEY);
     }
 
     /**
@@ -110,6 +167,65 @@ class InventoryStatusAppearance
         $darker = min($luminanceA, $luminanceB);
 
         return ($lighter + 0.05) / ($darker + 0.05);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function backgroundsByName(): array
+    {
+        if (self::$backgroundsByName !== null) {
+            return self::$backgroundsByName;
+        }
+
+        if (! Schema::hasTable('inventory_statuses') || ! Schema::hasColumn('inventory_statuses', 'color')) {
+            return self::$backgroundsByName = self::FALLBACK_BACKGROUNDS;
+        }
+
+        self::$backgroundsByName = Cache::remember(self::CACHE_KEY, now()->addHour(), function () {
+            $backgrounds = self::FALLBACK_BACKGROUNDS;
+
+            InventoryStatus::query()
+                ->whereNotNull('color')
+                ->where('color', '<>', '')
+                ->orderBy('id')
+                ->get(['name', 'color'])
+                ->each(function (InventoryStatus $status) use (&$backgrounds): void {
+                    $normalized = self::normalizeHex($status->color);
+
+                    if ($normalized === null) {
+                        return;
+                    }
+
+                    $backgrounds[self::normalizeKey($status->name)] = $normalized;
+                });
+
+            return $backgrounds;
+        });
+
+        return self::$backgroundsByName;
+    }
+
+    private static function normalizeKey(?string $status): string
+    {
+        $key = strtolower(trim((string) $status));
+
+        return $key === '' ? 'triage' : $key;
+    }
+
+    private static function normalizeHex(?string $hex): ?string
+    {
+        $hex = ltrim(trim((string) $hex), '#');
+
+        if (strlen($hex) === 3 && preg_match('/^[0-9a-fA-F]{3}$/', $hex)) {
+            $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+        }
+
+        if (! preg_match('/^[0-9a-fA-F]{6}$/', $hex)) {
+            return null;
+        }
+
+        return '#'.strtolower($hex);
     }
 
     private static function relativeLuminance(string $hex): float
@@ -132,15 +248,8 @@ class InventoryStatusAppearance
      */
     private static function hexToRgb(string $hex): array
     {
-        $hex = ltrim(trim($hex), '#');
-
-        if (strlen($hex) === 3) {
-            $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
-        }
-
-        if (! preg_match('/^[0-9a-fA-F]{6}$/', $hex)) {
-            return [255, 255, 255];
-        }
+        $normalized = self::normalizeHex($hex) ?? self::DEFAULT_BACKGROUND;
+        $hex = ltrim($normalized, '#');
 
         return [
             hexdec(substr($hex, 0, 2)),

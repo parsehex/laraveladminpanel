@@ -20,23 +20,6 @@
         'Demanufacture' => ['label' => 'Open Demanufacture', 'url' => route('admin.inventory.deman.show', $appliance)],
         default => null,
     };
-    $statusTones = [
-        'Triage' => 'border-gray-300 bg-white text-gray-900',
-        'Testing' => 'border-sky-300 bg-sky-100 text-sky-950',
-        'Repair' => 'border-orange-300 bg-orange-100 text-orange-950',
-        'Breakdown' => 'border-stone-300 bg-stone-100 text-stone-950',
-        'Demanufacture' => 'border-red-300 bg-red-100 text-red-950',
-        'Cleaning' => 'border-amber-300 bg-amber-100 text-amber-950',
-        'Ready' => 'border-blue-300 bg-blue-100 text-blue-950',
-        'Scrap' => 'border-gray-800 bg-gray-800 text-white',
-        'Show Room' => 'border-purple-300 bg-purple-100 text-purple-950',
-        'Sent To Ebay' => 'border-indigo-300 bg-indigo-100 text-indigo-950',
-        'Video' => 'border-fuchsia-300 bg-fuchsia-100 text-fuchsia-950',
-        'Quality Control QC' => 'border-green-300 bg-green-100 text-green-950',
-        'Sold' => 'border-emerald-700 bg-emerald-700 text-white',
-        'Holding for parts' => 'border-yellow-300 bg-yellow-100 text-yellow-950',
-        'Holding' => 'border-pink-300 bg-pink-100 text-pink-950',
-    ];
 @endphp
 
 @section('title', $productName ?: $heading)
@@ -58,8 +41,8 @@
         @if($productName)
         <h2 class="text-lg font-semibold text-gray-900">{{ $productName }}</h2>
         @endif
-        <p class="mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold {{ $statusTones[$status] ?? 'border-gray-300 bg-gray-50 text-gray-900' }}">
-            {{ $status }}
+        <p class="mt-2">
+            <x-admin.status-chip :status="$status" />
         </p>
         <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
             @foreach($facts as $fact)
@@ -86,13 +69,17 @@
             <input type="hidden" name="status" :value="status">
             <div class="grid grid-cols-2 gap-2">
                 @foreach($statuses as $option)
-                @php($isCurrent = $option === $status)
+                @php
+                    $isCurrent = $option === $status;
+                    $optionColors = \App\Support\InventoryStatusAppearance::colors($option);
+                @endphp
                 <button type="button"
                         data-status="{{ $option }}"
                         @click="status = $el.dataset.status"
                         @disabled($isCurrent)
                         :class="status === $el.dataset.status ? 'ring-2 ring-gray-900 ring-offset-1' : ''"
-                        class="min-h-12 rounded-md border px-3 py-2 text-left text-sm font-semibold leading-tight disabled:cursor-default disabled:opacity-60 {{ $statusTones[$option] ?? 'border-gray-300 bg-gray-50 text-gray-900' }}">
+                        style="background-color: {{ $optionColors['background'] }}; color: {{ $optionColors['text'] }};"
+                        class="min-h-12 rounded-md border border-slate-900/20 px-3 py-2 text-left text-sm font-semibold leading-tight disabled:cursor-default disabled:opacity-60">
                     {{ $option }}
                     @if($isCurrent)
                     <span class="mt-0.5 block text-[11px] font-medium opacity-80">Current</span>

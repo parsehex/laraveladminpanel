@@ -21,24 +21,6 @@
 @endsection
 
 @section('content')
-@php
-    $rowStatusClasses = [
-        'triage' => 'appliance-status-white',
-        '' => 'appliance-status-white',
-        'testing' => 'appliance-status-light-blue',
-        'repair' => 'appliance-status-orange',
-        'breakdown' => 'appliance-status-red',
-        'demanufacture' => 'appliance-status-red',
-        'cleaning' => 'appliance-status-brown',
-        'ready' => 'appliance-status-blue',
-        'scrap' => 'appliance-status-black',
-        'show room' => 'appliance-status-purple',
-        'sold' => 'appliance-status-sold',
-        'holding for parts' => 'appliance-status-yellow',
-        'holding' => 'appliance-status-pink',
-        'quality control qc' => 'appliance-status-green',
-    ];
-@endphp
 <div class="flex flex-col gap-6">
     <div id="truck-details" class="order-3 bg-white rounded-lg shadow overflow-hidden">
         <dl class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -177,8 +159,11 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($appliances as $appliance)
-                    @php($rowClass = $rowStatusClasses[strtolower($appliance->status ?: 'triage')] ?? 'bg-white')
-                    <tr class="appliance-status-row {{ $rowClass }}">
+                    @php
+                        $applianceStatus = $appliance->status ?: 'Triage';
+                        $rowColors = \App\Support\InventoryStatusAppearance::colors($applianceStatus, muted: true);
+                    @endphp
+                    <tr class="appliance-status-row" style="--status-bg: {{ $rowColors['background'] }}; --status-fg: {{ $rowColors['text'] }};">
                         <td class="truck-check-cell p-0 whitespace-nowrap text-sm text-gray-700">
                             <label class="flex h-full cursor-pointer items-center px-4 py-3">
                                 <input type="checkbox" name="truck_print_ids[]" value="{{ $appliance->id }}" data-truck-appliance-checkbox>
@@ -186,9 +171,7 @@
                         </td>
                         <x-admin.data-table.cell column="category" truncate title="{{ $appliance->category?->name ?? '-' }}">{{ $appliance->category?->name ?? '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="status">
-                            <span class="appliance-status-chip {{ $rowClass }}">
-                                {{ $appliance->status ? ucfirst($appliance->status) : 'Triage' }}
-                            </span>
+                            <x-admin.status-chip :status="$applianceStatus" />
                         </x-admin.data-table.cell>
                         <x-admin.data-table.cell column="subcategory" truncate title="{{ $appliance->subcategory ?: '-' }}">{{ $appliance->subcategory ?: '-' }}</x-admin.data-table.cell>
                         <x-admin.data-table.cell column="unit_label" truncate title="{{ $appliance->unit_label ?: '-' }}">{{ $appliance->unit_label ?: '-' }}</x-admin.data-table.cell>
@@ -416,7 +399,8 @@
     }
 
     .appliance-status-row > td {
-        color: #111827 !important;
+        background: var(--status-bg) !important;
+        color: var(--status-fg) !important;
         font-weight: 600;
         border-color: rgba(15, 23, 42, 0.12) !important;
     }
@@ -424,44 +408,6 @@
     .appliance-status-row:hover > td {
         filter: brightness(0.96);
     }
-
-    .appliance-status-chip {
-        display: inline-flex;
-        align-items: center;
-        border: 1px solid rgba(15, 23, 42, 0.2);
-        border-radius: 999px;
-        padding: 4px 9px;
-        font-size: 11px;
-        font-weight: 800;
-        line-height: 1.1;
-        min-height: 22px;
-    }
-
-    .appliance-status-row.appliance-status-white > td { background: #ffffff !important; }
-    .appliance-status-row.appliance-status-light-blue > td { background: #b8e7f7 !important; }
-    .appliance-status-row.appliance-status-blue > td { background: #93c5fd !important; }
-    .appliance-status-row.appliance-status-purple > td { background: #d8b4fe !important; }
-    .appliance-status-row.appliance-status-pink > td { background: #f9a8d4 !important; }
-    .appliance-status-row.appliance-status-orange > td { background: #fdba74 !important; }
-    .appliance-status-row.appliance-status-yellow > td { background: #fde047 !important; }
-    .appliance-status-row.appliance-status-brown > td { background: #c08457 !important; }
-    .appliance-status-row.appliance-status-red > td { background: #fca5a5 !important; }
-    .appliance-status-row.appliance-status-black > td { background: #374151 !important; color: #ffffff !important; }
-    .appliance-status-row.appliance-status-green > td { background: #86efac !important; }
-    .appliance-status-row.appliance-status-sold > td { background: #6ee7b7 !important; }
-
-    .appliance-status-chip.appliance-status-white { background: #ffffff !important; color: #111827 !important; }
-    .appliance-status-chip.appliance-status-light-blue { background: #67d4f1 !important; color: #083344 !important; }
-    .appliance-status-chip.appliance-status-blue { background: #3b82f6 !important; color: #ffffff !important; }
-    .appliance-status-chip.appliance-status-purple { background: #9333ea !important; color: #ffffff !important; }
-    .appliance-status-chip.appliance-status-pink { background: #ec4899 !important; color: #ffffff !important; }
-    .appliance-status-chip.appliance-status-orange { background: #f97316 !important; color: #111827 !important; }
-    .appliance-status-chip.appliance-status-yellow { background: #eab308 !important; color: #111827 !important; }
-    .appliance-status-chip.appliance-status-brown { background: #7c2d12 !important; color: #ffffff !important; }
-    .appliance-status-chip.appliance-status-red { background: #dc2626 !important; color: #ffffff !important; }
-    .appliance-status-chip.appliance-status-black { background: #111827 !important; color: #ffffff !important; }
-    .appliance-status-chip.appliance-status-green { background: #16a34a !important; color: #052e16 !important; }
-    .appliance-status-chip.appliance-status-sold { background: #059669 !important; color: #ffffff !important; }
 
     .swal-photo-gallery {
         display: grid;

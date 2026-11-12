@@ -22,22 +22,6 @@
 @section('content')
 @php
     $selectedItemStatuses = collect(request('item_status', []))->filter()->values()->all();
-    $applianceStatusClasses = [
-        'triage' => 'status-white',
-        '' => 'status-white',
-        'testing' => 'status-light-blue',
-        'ready' => 'status-blue',
-        'show room' => 'status-purple',
-        'holding' => 'status-pink',
-        'repair' => 'status-orange',
-        'holding for parts' => 'status-yellow',
-        'cleaning' => 'status-brown',
-        'demanufacture' => 'status-red',
-        'scrap' => 'status-black',
-        'quality control qc' => 'status-green',
-        'sold' => 'status-sold',
-        'breakdown' => 'status-red',
-    ];
 @endphp
 <div class="space-y-6">
     @canAccess('trucks.create')
@@ -197,7 +181,6 @@
                                     @php
                                         $status = $item['status'] ?: 'Triage';
                                         $count = $item['count'];
-                                        $classes = $applianceStatusClasses[strtolower($status)] ?? 'status-white';
                                         $isSelected = in_array($status, $selectedItemStatuses, true);
                                         $nextItemStatuses = $isSelected
                                             ? array_values(array_filter($selectedItemStatuses, fn ($selected) => $selected !== $status))
@@ -210,11 +193,14 @@
                                             'item_status' => $nextItemStatuses ?: null,
                                         ], fn ($value) => $value !== null && $value !== '');
                                     @endphp
-                                    <a href="{{ route('admin.trucks.index', $chipQuery) }}"
-                                       class="status-chip status-chip-filter {{ $classes }} {{ $isSelected ? 'is-selected' : '' }}"
-                                       title="{{ $isSelected ? 'Remove '.$status.' filter' : 'Filter by '.$status }}">
-                                        {{ ucfirst($status) }} ({{ $count }})
-                                    </a>
+                                    <x-admin.status-chip
+                                        :status="$status"
+                                        :count="$count"
+                                        :href="route('admin.trucks.index', $chipQuery)"
+                                        :selected="$isSelected"
+                                        muted
+                                        class="status-chip-filter"
+                                    />
                                 @empty
                                     <span class="text-gray-500 text-sm">N/A</span>
                                 @endforelse
@@ -285,33 +271,9 @@
 
 @push('styles')
 <style>
-    .status-chip {
-        display: inline-flex;
-        align-items: center;
-        flex: 0 0 auto;
-        border: 0;
-        border-radius: 999px;
-        padding: 7px 12px;
-        font-size: 12px;
-        font-weight: 800;
-        line-height: 1;
-        min-height: 28px;
-        white-space: nowrap;
-    }
-
     a.status-chip-filter {
         text-decoration: none;
         cursor: pointer;
-        transition: box-shadow 0.15s ease, transform 0.15s ease;
-    }
-
-    a.status-chip-filter:hover {
-        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.45);
-        transform: translateY(-1px);
-    }
-
-    a.status-chip-filter.is-selected {
-        box-shadow: 0 0 0 2px #2563eb;
     }
 
     .truck-status-breakdown-cell {
@@ -327,23 +289,6 @@
         gap: 0.6rem 0.75rem;
         max-width: 100%;
     }
-
-    .truck-status-breakdown .status-chip {
-        justify-content: flex-start;
-    }
-
-    .status-white { background: #e5e7eb !important; color: #111827 !important; }
-    .status-light-blue { background: #d8f3ff !important; color: #111827 !important; }
-    .status-blue { background: #cfe3ff !important; color: #111827 !important; }
-    .status-purple { background: #dcfce7 !important; color: #111827 !important; }
-    .status-pink { background: #fecdd3 !important; color: #111827 !important; }
-    .status-orange { background: #fed7aa !important; color: #111827 !important; }
-    .status-yellow { background: #fef3c7 !important; color: #111827 !important; }
-    .status-brown { background: #fde68a !important; color: #111827 !important; }
-    .status-red { background: #fecdd3 !important; color: #111827 !important; }
-    .status-black { background: #d1d5db !important; color: #111827 !important; }
-    .status-green { background: #dcfce7 !important; color: #111827 !important; }
-    .status-sold { background: #cffafe !important; color: #111827 !important; }
 
     .truck-breakdown-scroll {
         max-height: 72vh;

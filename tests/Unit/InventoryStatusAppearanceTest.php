@@ -21,57 +21,37 @@ class InventoryStatusAppearanceTest extends TestCase
         $this->assertSame('#ffffff', InventoryStatusAppearance::contrastingText('#7c2d12'));
     }
 
-    public function test_quality_control_no_longer_uses_near_matching_green_text(): void
+    public function test_mute_blends_toward_white(): void
     {
-        $colors = InventoryStatusAppearance::colors('Quality Control QC');
+        $muted = InventoryStatusAppearance::mute('#000000', 0.5);
 
-        $this->assertSame('#16a34a', $colors['background']);
-        $this->assertSame('#111827', $colors['text']);
-        $this->assertGreaterThanOrEqual(
-            4.5,
-            InventoryStatusAppearance::contrastRatio($colors['background'], $colors['text']),
-        );
+        $this->assertSame('#808080', $muted);
     }
 
-    #[DataProvider('knownStatuses')]
-    public function test_known_statuses_meet_aa_contrast(string $status): void
+    #[DataProvider('knownFallbackBackgrounds')]
+    public function test_fallback_backgrounds_meet_aa_contrast_with_chosen_text(string $background): void
     {
-        $colors = InventoryStatusAppearance::colors($status);
+        $text = InventoryStatusAppearance::contrastingText($background);
 
         $this->assertGreaterThanOrEqual(
             4.5,
-            InventoryStatusAppearance::contrastRatio($colors['background'], $colors['text']),
-            $status.' chip text should meet WCAG AA for normal text',
-        );
-    }
-
-    public function test_palette_embeds_computed_text_colors(): void
-    {
-        $palette = InventoryStatusAppearance::palette();
-
-        $this->assertSame(
-            InventoryStatusAppearance::colors('Ready'),
-            $palette['colors']['ready'],
-        );
-        $this->assertSame(
-            InventoryStatusAppearance::colors(null),
-            $palette['default'],
+            InventoryStatusAppearance::contrastRatio($background, $text),
         );
     }
 
     /**
      * @return array<string, array{0: string}>
      */
-    public static function knownStatuses(): array
+    public static function knownFallbackBackgrounds(): array
     {
         return [
-            'Ready' => ['Ready'],
-            'Repair' => ['Repair'],
-            'Holding for parts' => ['Holding for parts'],
-            'Quality Control QC' => ['Quality Control QC'],
-            'Sold' => ['Sold'],
-            'Scrap' => ['Scrap'],
-            'Triage' => ['Triage'],
+            'ready' => ['#3b82f6'],
+            'repair' => ['#f97316'],
+            'holding for parts' => ['#eab308'],
+            'quality control' => ['#16a34a'],
+            'sold' => ['#059669'],
+            'scrap' => ['#111827'],
+            'triage' => ['#ffffff'],
         ];
     }
 }

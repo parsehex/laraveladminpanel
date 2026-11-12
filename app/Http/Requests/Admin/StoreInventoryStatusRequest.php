@@ -18,6 +18,7 @@ class StoreInventoryStatusRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255', Rule::unique(InventoryStatus::class, 'name')],
             'auto_location' => ['nullable', 'string', 'max:255'],
+            'color' => ['required', 'hex_color'],
         ];
     }
 
@@ -26,9 +27,16 @@ class StoreInventoryStatusRequest extends FormRequest
         $name = $this->string('name')->trim()->toString();
         $autoLocation = $this->string('auto_location')->trim()->toString();
 
-        $this->merge([
+        $merge = [
             'name' => $name,
             'auto_location' => $autoLocation === '' ? null : $autoLocation,
-        ]);
+        ];
+
+        if ($this->exists('color')) {
+            $color = strtolower(ltrim($this->string('color')->trim()->toString(), '#'));
+            $merge['color'] = $color === '' ? null : '#'.$color;
+        }
+
+        $this->merge($merge);
     }
 }

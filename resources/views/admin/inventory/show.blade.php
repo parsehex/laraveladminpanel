@@ -19,21 +19,7 @@
         ['label' => 'Model #', 'value' => $modelNumber, 'title' => 'Copy model'],
         ['label' => 'Serial', 'value' => $serialNumber, 'title' => 'Copy serial'],
     ];
-    $statusStyles = [
-        'Triage' => ['label' => 'None / White', 'class' => 'status-white'],
-        'Testing' => ['label' => 'Teal / Light Blue', 'class' => 'status-light-blue'],
-        'Ready' => ['label' => 'Blue', 'class' => 'status-blue'],
-        'Show Room' => ['label' => 'Purple', 'class' => 'status-purple'],
-        'Holding' => ['label' => 'Pink', 'class' => 'status-pink'],
-        'Repair' => ['label' => 'Orange', 'class' => 'status-orange'],
-        'Holding for parts' => ['label' => 'Yellow', 'class' => 'status-yellow'],
-        'Cleaning' => ['label' => 'Brown', 'class' => 'status-brown'],
-        'Demanufacture' => ['label' => 'Red', 'class' => 'status-red'],
-        'Scrap' => ['label' => 'Black', 'class' => 'status-black'],
-        'Quality Control QC' => ['label' => 'Green', 'class' => 'status-green'],
-        'Sold' => ['label' => 'Sold', 'class' => 'status-sold'],
-    ];
-    $statusClass = $statusStyles[$status]['class'] ?? 'status-white';
+    $statusRowColors = \App\Support\InventoryStatusAppearance::colors($status, muted: true);
 $isFurniture = $appliance->isFurniture();
 $inventoryListRoute = $isFurniture ? 'admin.inventory.furniture' : 'admin.inventory.index';
 @endphp
@@ -83,7 +69,7 @@ $inventoryListRoute = $isFurniture ? 'admin.inventory.furniture' : 'admin.invent
         </a>
         @endif
         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span class="status-chip {{ $statusClass }}">{{ $status }}</span>
+            <x-admin.status-chip :status="$status" />
             @foreach($identityFields as $index => $field)
                 @if($index > 0)
                 <span class="text-gray-300">·</span>
@@ -234,7 +220,13 @@ $inventoryListRoute = $isFurniture ? 'admin.inventory.furniture' : 'admin.invent
         <div class="legacy-panel-heading bg-blue-600">Actions</div>
         <div class="legacy-panel-body flex flex-wrap gap-1">
             @foreach(['Testing', 'Cleaning', 'Ready', 'Repair', 'Holding', 'Holding for parts', 'Demanufacture', 'Show Room', 'Quality Control QC'] as $action)
-            <button type="button" class="legacy-btn status-action {{ $statusStyles[$action]['class'] ?? 'status-white' }}" data-status-shortcut="{{ $action }}">{{ $action }}</button>
+                @php
+                    $actionColors = \App\Support\InventoryStatusAppearance::colors($action);
+                @endphp
+                <button type="button"
+                        class="legacy-btn status-action"
+                        style="background-color: {{ $actionColors['background'] }}; color: {{ $actionColors['text'] }};"
+                        data-status-shortcut="{{ $action }}">{{ $action }}</button>
             @endforeach
         </div>
     </section>
@@ -324,11 +316,13 @@ $inventoryListRoute = $isFurniture ? 'admin.inventory.furniture' : 'admin.invent
                     </thead>
                     <tbody>
                         @forelse($appliance->statusHistories->sortByDesc('created_at') as $history)
-                        @php($rowClass = $statusStyles[$history->status]['class'] ?? 'status-white')
-                        @php($resultId = $testingResultLinks[$history->id] ?? null)
-                        @php($repairResultId = $repairResultLinks[$history->id] ?? null)
-                        <tr class="status-row {{ $rowClass }}">
-                            <td><span class="status-chip {{ $rowClass }}">{{ $history->status }}</span></td>
+                        @php
+                            $historyColors = \App\Support\InventoryStatusAppearance::colors($history->status, muted: true);
+                            $resultId = $testingResultLinks[$history->id] ?? null;
+                            $repairResultId = $repairResultLinks[$history->id] ?? null;
+                        @endphp
+                        <tr class="status-row" style="--status-bg: {{ $historyColors['background'] }}; --status-fg: {{ $historyColors['text'] }};">
+                            <td><x-admin.status-chip :status="$history->status" /></td>
                             <td>
                                 @if($resultId)
                                 <a href="{{ route('admin.inventory.testing-results.show', [$appliance, $resultId]) }}" class="text-blue-700 underline font-medium" title="View testing result">{{ $history->created_at?->format('Y-m-d H:i:s') }}</a>
@@ -343,8 +337,8 @@ $inventoryListRoute = $isFurniture ? 'admin.inventory.furniture' : 'admin.invent
                             <td>{{ $history->parts_ordered ? 'Yes' : 'No' }}</td>
                         </tr>
                         @empty
-                        <tr class="status-row {{ $statusClass }}">
-                            <td><span class="status-chip {{ $statusClass }}">{{ $status }}</span></td>
+                        <tr class="status-row" style="--status-bg: {{ $statusRowColors['background'] }}; --status-fg: {{ $statusRowColors['text'] }};">
+                            <td><x-admin.status-chip :status="$status" /></td>
                             <td>{{ $appliance->updated_at?->format('Y-m-d H:i:s') }}</td>
                             <td>N/A</td>
                             <td>{{ $appliance->updater?->name ?? '-' }}</td>
@@ -638,51 +632,16 @@ $inventoryListRoute = $isFurniture ? 'admin.inventory.furniture' : 'admin.invent
         background: #f4f9fb;
     }
 
-    .status-chip {
-        display: inline-flex;
-        align-items: center;
-        border: 1px solid rgba(15, 23, 42, 0.18);
-        border-radius: 999px;
-        padding: 3px 8px;
-        font-weight: 800;
-        line-height: 1.1;
-        min-height: 20px;
-    }
-
     .status-action {
         border: 1px solid rgba(15, 23, 42, 0.18);
         box-shadow: none;
     }
 
     .legacy-table tr.status-row td {
+        background: var(--status-bg) !important;
+        color: var(--status-fg) !important;
         font-weight: 600;
     }
-
-    .legacy-table tr.status-row.status-white td { background: #ffffff; color: #111827; }
-    .legacy-table tr.status-row.status-light-blue td { background: #d8f3ff; color: #075985; }
-    .legacy-table tr.status-row.status-blue td { background: #bfdbfe; color: #1e3a8a; }
-    .legacy-table tr.status-row.status-purple td { background: #e9d5ff; color: #581c87; }
-    .legacy-table tr.status-row.status-pink td { background: #fbcfe8; color: #831843; }
-    .legacy-table tr.status-row.status-orange td { background: #fed7aa; color: #7c2d12; }
-    .legacy-table tr.status-row.status-yellow td { background: #fef08a; color: #713f12; }
-    .legacy-table tr.status-row.status-brown td { background: #d7b899; color: #422006; }
-    .legacy-table tr.status-row.status-red td { background: #fecaca; color: #7f1d1d; }
-    .legacy-table tr.status-row.status-black td { background: #111827; color: #ffffff; }
-    .legacy-table tr.status-row.status-green td { background: #bbf7d0; color: #14532d; }
-    .legacy-table tr.status-row.status-sold td { background: #dcfce7; color: #166534; }
-
-    .status-white { background: #ffffff !important; color: #111827 !important; }
-    .status-light-blue { background: #d8f3ff !important; color: #075985 !important; }
-    .status-blue { background: #60a5fa !important; color: #ffffff !important; }
-    .status-purple { background: #a855f7 !important; color: #ffffff !important; }
-    .status-pink { background: #f472b6 !important; color: #ffffff !important; }
-    .status-orange { background: #fb923c !important; color: #111827 !important; }
-    .status-yellow { background: #fde047 !important; color: #111827 !important; }
-    .status-brown { background: #92400e !important; color: #ffffff !important; }
-    .status-red { background: #ef4444 !important; color: #ffffff !important; }
-    .status-black { background: #111827 !important; color: #ffffff !important; }
-    .status-green { background: #22c55e !important; color: #052e16 !important; }
-    .status-sold { background: #16a34a !important; color: #ffffff !important; }
 
     .photo-panel-body {
         background: #f8fafc;

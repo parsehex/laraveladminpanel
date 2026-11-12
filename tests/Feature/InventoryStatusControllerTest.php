@@ -108,6 +108,7 @@ class InventoryStatusControllerTest extends TestCase
         $response = $this->actingAs($user)->post(route('admin.inventory-statuses.store'), [
             'name' => 'Awaiting Pickup',
             'auto_location' => 'Loading Dock',
+            'color' => '#4b5563',
         ]);
 
         $response->assertRedirectToRoute('admin.inventory-statuses.index');
@@ -115,6 +116,7 @@ class InventoryStatusControllerTest extends TestCase
         $this->assertDatabaseHas('inventory_statuses', [
             'name' => 'Awaiting Pickup',
             'auto_location' => 'Loading Dock',
+            'color' => '#4b5563',
             'is_system' => false,
         ]);
     }
@@ -140,6 +142,7 @@ class InventoryStatusControllerTest extends TestCase
 
         $response = $this->actingAs($user)->patch(route('admin.inventory-statuses.update', $status), [
             'auto_location' => 'Front Floor',
+            'color' => $status->color,
         ]);
 
         $response->assertRedirectToRoute('admin.inventory-statuses.index');

@@ -18,6 +18,7 @@ class InventoryStatusFactory extends Factory
         return [
             'name' => 'Custom '.fake()->unique()->bothify('Status-####'),
             'auto_location' => null,
+            'color' => fake()->hexColor(),
             'is_system' => false,
             'sort_order' => fake()->numberBetween(100, 999),
             'archived_at' => null,

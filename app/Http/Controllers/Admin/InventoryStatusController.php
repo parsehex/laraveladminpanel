@@ -72,6 +72,7 @@ class InventoryStatusController extends Controller
         InventoryStatus::query()->create([
             'name' => $request->validated('name'),
             'auto_location' => $request->validated('auto_location'),
+            'color' => $request->validated('color'),
             'is_system' => false,
             'sort_order' => InventoryStatus::nextSortOrder(),
         ]);
@@ -85,6 +86,7 @@ class InventoryStatusController extends Controller
     {
         $inventoryStatus->update([
             'auto_location' => $request->validated('auto_location'),
+            'color' => $request->validated('color'),
         ]);
 
         return redirect()

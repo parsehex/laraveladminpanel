@@ -11,7 +11,7 @@
         </div>
         <form method="POST" action="{{ route('admin.inventory-statuses.store') }}" class="p-6 space-y-4">
             @csrf
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label for="status-name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
                     <input type="text" id="status-name" name="name" value="{{ old('name') }}" required maxlength="255"
@@ -29,8 +29,16 @@
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
+                <div>
+                    <label for="status-color" class="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                    <input type="color" id="status-color" name="color" value="{{ old('color', '#6b7280') }}"
+                           class="h-[42px] w-full cursor-pointer rounded-md border border-gray-300 bg-white px-1 py-1">
+                    @error('color')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
             </div>
-            <p class="text-sm text-gray-500">This location is applied the next time an item is set to this status. Existing items are not moved.</p>
+            <p class="text-sm text-gray-500">This location is applied the next time an item is set to this status. Existing items are not moved. Chip text color is chosen automatically for contrast.</p>
             <div class="flex justify-end">
                 <button type="submit" class="px-4 py-2 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700">Create status</button>
             </div>
@@ -47,6 +55,7 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Color</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Items</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Auto-set location</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -56,12 +65,28 @@
                     @forelse($statuses as $status)
                     <tr class="{{ $status->archived_at ? 'bg-slate-50 text-slate-500' : '' }}">
                         <td class="px-4 py-3 font-medium text-gray-900">
-                            {{ $status->name }}
-                            @if($status->is_system)
-                                <span class="ml-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">System</span>
-                            @endif
+                            <div class="flex items-center gap-2">
+                                <x-admin.status-chip :status="$status->name" />
+                                @if($status->is_system)
+                                    <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">System</span>
+                                @endif
+                                @if($status->archived_at)
+                                    <span class="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Archived</span>
+                                @endif
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
                             @if($status->archived_at)
-                                <span class="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Archived</span>
+                                <span class="text-sm text-gray-500">{{ $status->color }}</span>
+                            @else
+                                <form method="POST" action="{{ route('admin.inventory-statuses.update', $status) }}" class="flex items-center gap-2">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="auto_location" value="{{ $status->auto_location }}">
+                                    <input type="color" name="color" value="{{ old('color', $status->color) }}"
+                                           class="h-[42px] w-16 cursor-pointer rounded-md border border-gray-300 bg-white px-1 py-1"
+                                           onchange="this.form.requestSubmit()">
+                                </form>
                             @endif
                         </td>
                         <td class="px-4 py-3 text-right text-gray-700">{{ $status->item_count }}</td>
@@ -72,6 +97,7 @@
                                 <form method="POST" action="{{ route('admin.inventory-statuses.update', $status) }}" class="flex flex-col gap-2 sm:flex-row sm:items-center">
                                     @csrf
                                     @method('PATCH')
+                                    <input type="hidden" name="color" value="{{ $status->color }}">
                                     <input type="text" name="auto_location" value="{{ old('auto_location', $status->auto_location) }}" maxlength="255"
                                            placeholder="None"
                                            class="w-full px-3 py-2 border border-gray-300 rounded-md">
@@ -111,13 +137,16 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="4" class="px-4 py-8 text-center text-gray-500">No statuses found.</td>
+                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">No statuses found.</td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
         @error('status')
+            <p class="px-4 py-3 text-sm text-red-600">{{ $message }}</p>
+        @enderror
+        @error('color')
             <p class="px-4 py-3 text-sm text-red-600">{{ $message }}</p>
         @enderror
     </div>

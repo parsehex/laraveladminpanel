@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\InventoryStatusAppearance;
 use Database\Factories\InventoryStatusFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,10 +17,21 @@ class InventoryStatus extends Model
     protected $fillable = [
         'name',
         'auto_location',
+        'color',
         'is_system',
         'sort_order',
         'archived_at',
     ];
+
+    protected $attributes = [
+        'color' => '#6b7280',
+    ];
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => InventoryStatusAppearance::flush());
+        static::deleted(fn () => InventoryStatusAppearance::flush());
+    }
 
     protected function casts(): array
     {
