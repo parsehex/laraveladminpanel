@@ -13,6 +13,21 @@ function parseFlow(raw: string | undefined): TestingFlow | null {
     }
 }
 
+function parseStatusList(raw: string | undefined): string[] {
+    if (!raw) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+        return [];
+    }
+}
+
+const FAIL_OUTCOME_STATUSES = new Set(['Repair', 'Demanufacture']);
+
 const pageRoot = document.getElementById('appliance-testing');
 const wizardRoot = document.getElementById('wizard-root');
 const restartBtn = document.getElementById('wizard-restart');
@@ -24,27 +39,30 @@ const backFromCompleteBtn = document.getElementById('wizard-back-from-complete')
 
 if (pageRoot && wizardRoot && restartBtn && resultingStatus && answersJson) {
     const flow = parseFlow(pageRoot.dataset.flow);
+    const passStatuses = parseStatusList(pageRoot.dataset.passStatuses);
+    const failStatuses = parseStatusList(pageRoot.dataset.failStatuses);
+
     if (flow) {
         const wizard = createTestingWizard({
             root: wizardRoot,
             completeEl: document.getElementById('wizard-complete'),
             flow,
             onComplete: (result) => {
-                const option = Array.from(resultingStatus.options).find(
-                    (entry) => entry.value === result.status,
-                );
+                const choices = FAIL_OUTCOME_STATUSES.has(result.status) ? failStatuses : passStatuses;
+                const suggested = choices[0] ?? '';
 
-                if (option) {
-                    resultingStatus.value = result.status;
-                } else if (result.status) {
-                    const fallback = new Option(result.status, result.status, true, true);
-                    resultingStatus.add(fallback);
-                    resultingStatus.value = result.status;
+                resultingStatus.innerHTML = '';
+                for (const status of choices) {
+                    resultingStatus.add(new Option(status, status));
+                }
+
+                if (suggested) {
+                    resultingStatus.value = suggested;
                 }
 
                 if (resultingStatusHint && resultingStatusSuggested) {
-                    if (result.status) {
-                        resultingStatusSuggested.textContent = result.status;
+                    if (suggested) {
+                        resultingStatusSuggested.textContent = suggested;
                         resultingStatusHint.classList.remove('hidden');
                     } else {
                         resultingStatusSuggested.textContent = '';

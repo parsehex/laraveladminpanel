@@ -15,6 +15,12 @@ use Illuminate\Validation\Rule;
 
 class ApplianceTestingController extends Controller
 {
+    /** @var list<string> */
+    public const PASS_COMPLETION_STATUSES = ['Ready', 'Cleaning', 'Show Room'];
+
+    /** @var list<string> */
+    public const FAIL_COMPLETION_STATUSES = ['Repair', 'Demanufacture'];
+
     public function __construct(
         private readonly TestingFlowRepository $flows,
         private readonly TestingResultPresenter $presenter,
@@ -36,7 +42,8 @@ class ApplianceTestingController extends Controller
             'appliance' => $appliance,
             'flow' => $flow,
             'flowSlug' => $slug,
-            'statuses' => $this->completionStatuses(),
+            'passStatuses' => $this->passCompletionStatuses(),
+            'failStatuses' => $this->failCompletionStatuses(),
         ]);
     }
 
@@ -148,15 +155,49 @@ class ApplianceTestingController extends Controller
     }
 
     /**
-     * Statuses offered when a testing flow finishes (excludes Testing itself).
+     * Pass outcomes: Ready, Cleaning, Show Room (first is the suggested default).
+     *
+     * @return list<string>
+     */
+    private function passCompletionStatuses(): array
+    {
+        return $this->availableCompletionStatuses(self::PASS_COMPLETION_STATUSES);
+    }
+
+    /**
+     * Fail outcomes: Repair, Demanufacture (first is the suggested default).
+     *
+     * @return list<string>
+     */
+    private function failCompletionStatuses(): array
+    {
+        return $this->availableCompletionStatuses(self::FAIL_COMPLETION_STATUSES);
+    }
+
+    /**
+     * All statuses that may be chosen when completing a testing flow.
      *
      * @return list<string>
      */
     private function completionStatuses(): array
     {
-        return collect(InventoryStatus::activeNames())
-            ->reject(fn (string $status) => $status === 'Testing')
-            ->values()
-            ->all();
+        return array_values(array_unique([
+            ...$this->passCompletionStatuses(),
+            ...$this->failCompletionStatuses(),
+        ]));
+    }
+
+    /**
+     * @param  list<string>  $preferred
+     * @return list<string>
+     */
+    private function availableCompletionStatuses(array $preferred): array
+    {
+        $active = array_flip(InventoryStatus::activeNames());
+
+        return array_values(array_filter(
+            $preferred,
+            fn (string $status) => isset($active[$status]),
+        ));
     }
 }

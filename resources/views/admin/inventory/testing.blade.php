@@ -49,7 +49,9 @@
     @else
         <div class="bg-white rounded-lg shadow overflow-hidden"
              id="appliance-testing"
-             data-flow='@json($flow)'>
+             data-flow='@json($flow)'
+             data-pass-statuses='@json($passStatuses)'
+             data-fail-statuses='@json($failStatuses)'>
             <div class="bg-blue-600 px-5 py-4 flex items-center justify-between">
                 <div>
                     <h2 class="text-lg font-semibold text-white">{{ $flow['name'] }} checklist</h2>
@@ -75,9 +77,6 @@
                             <label for="resulting-status" class="block text-sm font-semibold text-emerald-900 mb-1">Next status</label>
                             <select name="resulting_status" id="resulting-status" required
                                     class="w-full max-w-xs rounded-md border border-emerald-300 bg-white px-3 py-2 text-sm text-gray-900">
-                                @foreach($statuses as $status)
-                                    <option value="{{ $status }}">{{ $status }}</option>
-                                @endforeach
                             </select>
                             <p id="resulting-status-hint" class="mt-1 text-xs text-emerald-800 hidden">Suggested: <span id="resulting-status-suggested"></span></p>
                         </div>
