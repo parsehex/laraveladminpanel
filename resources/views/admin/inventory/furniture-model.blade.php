@@ -165,25 +165,35 @@
                     </select>
                 </label>
 
-                <label class="block" x-show="action === 'status'" x-cloak>
-                    <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">New status</span>
-                    <select name="status" x-model="target" :disabled="action !== 'status'"
-                            class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        @foreach($targetStatuses as $targetStatus)
-                        <option value="{{ $targetStatus }}">{{ $targetStatus }}</option>
-                        @endforeach
-                    </select>
-                </label>
+                <template x-if="action === 'status'">
+                    <label class="block">
+                        <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">New status</span>
+                        <x-admin.status-select
+                            name="status"
+                            id="furniture-quick-status"
+                            :options="$targetStatuses"
+                            :allow-empty="false"
+                            placeholder="Select status"
+                            x-model="target"
+                            class="rounded-md text-sm"
+                        />
+                    </label>
+                </template>
 
-                <label class="block" x-show="action === 'add'" x-cloak>
-                    <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Starting status</span>
-                    <select name="status" x-model="addStatus" :disabled="action !== 'add'"
-                            class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        @foreach($targetStatuses as $targetStatus)
-                        <option value="{{ $targetStatus }}">{{ $targetStatus }}</option>
-                        @endforeach
-                    </select>
-                </label>
+                <template x-if="action === 'add'">
+                    <label class="block">
+                        <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Starting status</span>
+                        <x-admin.status-select
+                            name="status"
+                            id="furniture-quick-add-status"
+                            :options="$targetStatuses"
+                            :allow-empty="false"
+                            placeholder="Select status"
+                            x-model="addStatus"
+                            class="rounded-md text-sm"
+                        />
+                    </label>
+                </template>
 
                 <label class="block" x-show="action === 'sell'" x-cloak>
                     <span class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Sale price per unit</span>

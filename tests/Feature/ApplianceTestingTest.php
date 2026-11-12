@@ -102,6 +102,8 @@ class ApplianceTestingTest extends TestCase
         $response->assertOk();
         $response->assertSee('name="resulting_status"', false);
         $response->assertSee('id="resulting-status"', false);
+        $response->assertSee('data-status-select="resulting-status"', false);
+        $response->assertSee('#3b82f6', false);
         $response->assertSee('data-pass-statuses', false);
         $response->assertSee('data-fail-statuses', false);
         $response->assertViewHas('passStatuses', ['Ready', 'Cleaning', 'Show Room']);

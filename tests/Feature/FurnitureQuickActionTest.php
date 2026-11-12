@@ -367,6 +367,8 @@ class FurnitureQuickActionTest extends TestCase
         $response->assertSee(route('admin.inventory.furniture.actions', $this->coffeeTable));
         $response->assertSee('Sale price per unit');
         $response->assertSee('Add units');
+        $response->assertSee('data-status-select="furniture-quick-status"', false);
+        $response->assertSee('#3b82f6', false);
         $response->assertViewHas('trucks', function (array $trucks) use ($emptyTruck): bool {
             return count($trucks) === 3
                 && $trucks[0]['id'] === $this->truck->id

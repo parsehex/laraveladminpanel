@@ -245,12 +245,14 @@ $inventoryListRoute = $isFurniture ? 'admin.inventory.furniture' : 'admin.invent
             <form method="POST" action="{{ route('admin.inventory.status.update', $appliance) }}" class="space-y-2" id="status-form">
                 @csrf
                 @method('PATCH')
-                <select name="status" id="status-select" class="legacy-input max-w-xs">
-                    <option value="">Select New Status</option>
-                    @foreach($statuses as $option)
-                    <option value="{{ $option }}" @selected(old('status') === $option)>{{ $option }}</option>
-                    @endforeach
-                </select>
+                <x-admin.status-select
+                    name="status"
+                    id="status-select"
+                    class="legacy-input max-w-xs"
+                    :options="$statuses"
+                    :value="old('status', '')"
+                    placeholder="Select New Status"
+                />
                 <textarea name="notes" placeholder="Notes" class="legacy-input min-h-12">{{ old('notes') }}</textarea>
                 <div id="sold-price-row" class="hidden">
                     <label class="block mb-1">Sold Price <span class="text-gray-500"></span></label>
@@ -901,7 +903,15 @@ $inventoryListRoute = $isFurniture ? 'admin.inventory.furniture' : 'admin.invent
     syncStatusFields();
 
     $('[data-status-shortcut]').on('click', function () {
-        $('#status-select').val($(this).data('status-shortcut')).trigger('change');
+        const nextStatus = String($(this).data('status-shortcut') || '');
+        const root = document.querySelector('[data-status-select="status-select"]');
+
+        if (root && window.Alpine) {
+            window.Alpine.$data(root).setValue(nextStatus);
+        } else {
+            $('#status-select').val(nextStatus).trigger('change');
+        }
+
         document.getElementById('status-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
 

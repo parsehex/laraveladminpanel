@@ -31,13 +31,36 @@ const FAIL_OUTCOME_STATUSES = new Set(['Repair', 'Demanufacture']);
 const pageRoot = document.getElementById('appliance-testing');
 const wizardRoot = document.getElementById('wizard-root');
 const restartBtn = document.getElementById('wizard-restart');
-const resultingStatus = document.getElementById('resulting-status') as HTMLSelectElement | null;
+const resultingStatusRoot = document.querySelector(
+    '[data-status-select="resulting-status"]',
+) as HTMLElement | null;
 const answersJson = document.getElementById('answers-json') as HTMLInputElement | null;
 const resultingStatusHint = document.getElementById('resulting-status-hint');
 const resultingStatusSuggested = document.getElementById('resulting-status-suggested');
 const backFromCompleteBtn = document.getElementById('wizard-back-from-complete');
 
-if (pageRoot && wizardRoot && restartBtn && resultingStatus && answersJson) {
+function setResultingStatusOptions(choices: string[], suggested: string): void {
+    const alpine = (window as Window & { Alpine?: { $data: (el: HTMLElement) => { setOptions: (list: string[], selected?: string | null) => void } } }).Alpine;
+
+    if (resultingStatusRoot && alpine) {
+        alpine.$data(resultingStatusRoot).setOptions(choices, suggested || null);
+
+        return;
+    }
+
+    resultingStatusRoot?.dispatchEvent(
+        new CustomEvent('status-select-set', {
+            bubbles: true,
+            detail: {
+                id: 'resulting-status',
+                options: choices,
+                value: suggested || '',
+            },
+        }),
+    );
+}
+
+if (pageRoot && wizardRoot && restartBtn && resultingStatusRoot && answersJson) {
     const flow = parseFlow(pageRoot.dataset.flow);
     const passStatuses = parseStatusList(pageRoot.dataset.passStatuses);
     const failStatuses = parseStatusList(pageRoot.dataset.failStatuses);
@@ -51,14 +74,7 @@ if (pageRoot && wizardRoot && restartBtn && resultingStatus && answersJson) {
                 const choices = FAIL_OUTCOME_STATUSES.has(result.status) ? failStatuses : passStatuses;
                 const suggested = choices[0] ?? '';
 
-                resultingStatus.innerHTML = '';
-                for (const status of choices) {
-                    resultingStatus.add(new Option(status, status));
-                }
-
-                if (suggested) {
-                    resultingStatus.value = suggested;
-                }
+                setResultingStatusOptions(choices, suggested);
 
                 if (resultingStatusHint && resultingStatusSuggested) {
                     if (suggested) {

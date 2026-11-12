@@ -63,6 +63,8 @@ class InventoryStatusOrderingTest extends TestCase
         $response = $this->actingAs($user)->get(route('admin.inventory.show', $appliance));
 
         $response->assertOk();
+        $response->assertSee('data-status-select="status-select"', false);
+        $response->assertSee('#3b82f6', false);
         $response->assertViewHas('statuses', function ($statuses) {
             $sorted = $statuses;
             sort($sorted, SORT_STRING);

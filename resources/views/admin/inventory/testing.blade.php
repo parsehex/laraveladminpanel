@@ -74,10 +74,16 @@
                         <input type="hidden" name="flow_slug" value="{{ $flow['slug'] }}">
                         <input type="hidden" name="flow_version" value="{{ $flow['version'] }}">
                         <div>
-                            <label for="resulting-status" class="block text-sm font-semibold text-emerald-900 mb-1">Next status</label>
-                            <select name="resulting_status" id="resulting-status" required
-                                    class="w-full max-w-xs rounded-md border border-emerald-300 bg-white px-3 py-2 text-sm text-gray-900">
-                            </select>
+                            <label for="resulting-status" class="mb-1 block text-sm font-semibold text-emerald-900">Next status</label>
+                            <x-admin.status-select
+                                name="resulting_status"
+                                id="resulting-status"
+                                :options="[]"
+                                :allow-empty="false"
+                                :required="true"
+                                placeholder="Select status"
+                                class="w-full max-w-xs"
+                            />
                             <p id="resulting-status-hint" class="mt-1 text-xs text-emerald-800 hidden">Suggested: <span id="resulting-status-suggested"></span></p>
                         </div>
                         <div>
