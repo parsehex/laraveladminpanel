@@ -5,10 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ApplyInventoryStatusAutoLocationRequest;
 use App\Http\Requests\Admin\ArchiveInventoryStatusRequest;
+use App\Http\Requests\Admin\BulkUpdateInventoryStatusesRequest;
 use App\Http\Requests\Admin\StoreInventoryStatusRequest;
-use App\Http\Requests\Admin\UpdateInventoryStatusRequest;
 use App\Models\InventoryStatus;
 use App\Models\TruckAppliance;
+use App\Support\InventoryStatusAppearance;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -82,16 +83,28 @@ class InventoryStatusController extends Controller
             ->with('success', __('Status created successfully.'));
     }
 
-    public function update(UpdateInventoryStatusRequest $request, InventoryStatus $inventoryStatus): RedirectResponse
+    public function update(BulkUpdateInventoryStatusesRequest $request): RedirectResponse
     {
-        $inventoryStatus->update([
-            'auto_location' => $request->validated('auto_location'),
-            'color' => $request->validated('color'),
-        ]);
+        /** @var array<string, array{auto_location: ?string, color: string}> $statuses */
+        $statuses = $request->validated('statuses');
+
+        DB::transaction(function () use ($statuses): void {
+            foreach ($statuses as $id => $payload) {
+                InventoryStatus::query()
+                    ->active()
+                    ->whereKey((int) $id)
+                    ->update([
+                        'auto_location' => $payload['auto_location'],
+                        'color' => $payload['color'],
+                    ]);
+            }
+        });
+
+        InventoryStatusAppearance::flush();
 
         return redirect()
             ->route('admin.inventory-statuses.index')
-            ->with('success', __('Status updated successfully.'));
+            ->with('success', __('Statuses updated successfully.'));
     }
 
     public function archive(ArchiveInventoryStatusRequest $request, InventoryStatus $inventoryStatus): RedirectResponse

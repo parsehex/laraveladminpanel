@@ -73,9 +73,13 @@ class InventoryStatusColorTest extends TestCase
         $user = $this->adminUser();
         $status = InventoryStatus::query()->where('name', 'Ready')->firstOrFail();
 
-        $response = $this->actingAs($user)->patch(route('admin.inventory-statuses.update', $status), [
-            'auto_location' => $status->auto_location,
-            'color' => '#abcdef',
+        $response = $this->actingAs($user)->patch(route('admin.inventory-statuses.update'), [
+            'statuses' => [
+                $status->id => [
+                    'auto_location' => $status->auto_location,
+                    'color' => '#abcdef',
+                ],
+            ],
         ]);
 
         $response->assertRedirectToRoute('admin.inventory-statuses.index');

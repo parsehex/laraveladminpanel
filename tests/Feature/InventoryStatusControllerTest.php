@@ -99,6 +99,8 @@ class InventoryStatusControllerTest extends TestCase
         $response->assertSee('Show Room');
         $response->assertSee('Showroom');
         $response->assertSee('System');
+        $response->assertSee('id="statuses-bulk-form"', false);
+        $response->assertDontSee('requestSubmit', false);
     }
 
     public function test_authorized_user_can_create_a_custom_status(): void
@@ -140,9 +142,13 @@ class InventoryStatusControllerTest extends TestCase
         $user = $this->adminUser();
         $status = InventoryStatus::query()->where('name', 'Show Room')->firstOrFail();
 
-        $response = $this->actingAs($user)->patch(route('admin.inventory-statuses.update', $status), [
-            'auto_location' => 'Front Floor',
-            'color' => $status->color,
+        $response = $this->actingAs($user)->patch(route('admin.inventory-statuses.update'), [
+            'statuses' => [
+                $status->id => [
+                    'auto_location' => 'Front Floor',
+                    'color' => $status->color,
+                ],
+            ],
         ]);
 
         $response->assertRedirectToRoute('admin.inventory-statuses.index');
@@ -151,6 +157,58 @@ class InventoryStatusControllerTest extends TestCase
             'name' => 'Show Room',
             'auto_location' => 'Front Floor',
         ]);
+    }
+
+    public function test_authorized_user_can_bulk_update_status_colors_and_locations(): void
+    {
+        $user = $this->adminUser();
+        $ready = InventoryStatus::query()->where('name', 'Ready')->firstOrFail();
+        $showRoom = InventoryStatus::query()->where('name', 'Show Room')->firstOrFail();
+
+        $response = $this->actingAs($user)->patch(route('admin.inventory-statuses.update'), [
+            'statuses' => [
+                $ready->id => [
+                    'auto_location' => 'Staging',
+                    'color' => '#112233',
+                ],
+                $showRoom->id => [
+                    'auto_location' => 'Front Floor',
+                    'color' => '#aabbcc',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirectToRoute('admin.inventory-statuses.index');
+        $this->assertDatabaseHas('inventory_statuses', [
+            'id' => $ready->id,
+            'auto_location' => 'Staging',
+            'color' => '#112233',
+        ]);
+        $this->assertDatabaseHas('inventory_statuses', [
+            'id' => $showRoom->id,
+            'auto_location' => 'Front Floor',
+            'color' => '#aabbcc',
+        ]);
+    }
+
+    public function test_bulk_update_rejects_invalid_color(): void
+    {
+        $user = $this->adminUser();
+        $status = InventoryStatus::query()->where('name', 'Ready')->firstOrFail();
+
+        $response = $this->actingAs($user)
+            ->from(route('admin.inventory-statuses.index'))
+            ->patch(route('admin.inventory-statuses.update'), [
+                'statuses' => [
+                    $status->id => [
+                        'auto_location' => $status->auto_location,
+                        'color' => 'not-a-color',
+                    ],
+                ],
+            ]);
+
+        $response->assertRedirectToRoute('admin.inventory-statuses.index');
+        $response->assertInvalid(['statuses.'.$status->id.'.color']);
     }
 
     public function test_system_status_cannot_be_archived(): void

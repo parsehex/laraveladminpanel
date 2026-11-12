@@ -45,110 +45,145 @@
         </form>
     </div>
 
+    @php
+        $editableStatuses = $statuses->whereNull('archived_at');
+    @endphp
     <div class="bg-white rounded-lg shadow overflow-hidden">
-        <div class="bg-slate-700 px-6 py-4 flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-white">Statuses</h2>
-            <span class="text-sm text-slate-200">{{ $statuses->count() }} statuses</span>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Color</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Items</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Auto-set location</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                    @forelse($statuses as $status)
-                    <tr class="{{ $status->archived_at ? 'bg-slate-50 text-slate-500' : '' }}">
-                        <td class="px-4 py-3 font-medium text-gray-900">
-                            <div class="flex items-center gap-2">
-                                <x-admin.status-chip :status="$status->name" />
-                                @if($status->is_system)
-                                    <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">System</span>
-                                @endif
+        <form method="POST" action="{{ route('admin.inventory-statuses.update') }}" id="statuses-bulk-form">
+            @csrf
+            @method('PATCH')
+            <div class="bg-slate-700 px-6 py-4 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <h2 class="text-xl font-semibold text-white">Statuses</h2>
+                    <span class="text-sm text-slate-200">{{ $statuses->count() }} statuses</span>
+                </div>
+                @if($editableStatuses->isNotEmpty())
+                    <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 hover:bg-slate-100">
+                        <i class="fas fa-save"></i>
+                        Save
+                    </button>
+                @endif
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Color</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Items</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Auto-set location</th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        @forelse($statuses as $status)
+                        <tr class="{{ $status->archived_at ? 'bg-slate-50 text-slate-500' : '' }}">
+                            <td class="px-4 py-3 font-medium text-gray-900">
+                                <div class="flex items-center gap-2">
+                                    <x-admin.status-chip :status="$status->name" />
+                                    @if($status->is_system)
+                                        <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">System</span>
+                                    @endif
+                                    @if($status->archived_at)
+                                        <span class="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Archived</span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
                                 @if($status->archived_at)
-                                    <span class="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Archived</span>
-                                @endif
-                            </div>
-                        </td>
-                        <td class="px-4 py-3">
-                            @if($status->archived_at)
-                                <span class="text-sm text-gray-500">{{ $status->color }}</span>
-                            @else
-                                <form method="POST" action="{{ route('admin.inventory-statuses.update', $status) }}" class="flex items-center gap-2">
-                                    @csrf
-                                    @method('PATCH')
-                                    <input type="hidden" name="auto_location" value="{{ $status->auto_location }}">
-                                    <input type="color" name="color" value="{{ old('color', $status->color) }}"
+                                    <span class="text-sm text-gray-500">{{ $status->color }}</span>
+                                @else
+                                    <input type="color"
+                                           name="statuses[{{ $status->id }}][color]"
+                                           value="{{ old('statuses.'.$status->id.'.color', $status->color) }}"
                                            class="h-[42px] w-16 cursor-pointer rounded-md border border-gray-300 bg-white px-1 py-1"
-                                           onchange="this.form.requestSubmit()">
-                                </form>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-right text-gray-700">{{ $status->item_count }}</td>
-                        <td class="px-4 py-3">
-                            @if($status->archived_at)
-                                {{ $status->auto_location ?: '—' }}
-                            @else
-                                <form method="POST" action="{{ route('admin.inventory-statuses.update', $status) }}" class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                    @csrf
-                                    @method('PATCH')
-                                    <input type="hidden" name="color" value="{{ $status->color }}">
-                                    <input type="text" name="auto_location" value="{{ old('auto_location', $status->auto_location) }}" maxlength="255"
+                                           aria-label="Color for {{ $status->name }}">
+                                    @error('statuses.'.$status->id.'.color')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-right text-gray-700">{{ $status->item_count }}</td>
+                            <td class="px-4 py-3">
+                                @if($status->archived_at)
+                                    {{ $status->auto_location ?: '—' }}
+                                @else
+                                    <input type="text"
+                                           name="statuses[{{ $status->id }}][auto_location]"
+                                           value="{{ old('statuses.'.$status->id.'.auto_location', $status->auto_location) }}"
+                                           maxlength="255"
                                            placeholder="None"
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                                    <button type="submit" class="inline-flex h-[42px] w-[42px] flex-shrink-0 items-center justify-center rounded-md bg-slate-700 text-white hover:bg-slate-800" aria-label="Save" title="Save">
-                                        <i class="fas fa-save"></i>
-                                    </button>
-                                </form>
-                            @endif
-                        </td>
-                        <td class="px-4 py-3 text-right">
-                            <div class="flex flex-col items-end gap-2">
-                                @if($status->auto_location && $status->items_needing_location > 0 && ! $status->archived_at)
-                                    <form method="POST" action="{{ route('admin.inventory-statuses.apply-auto-location', $status) }}"
-                                          onsubmit="return confirm(@json('Update '.$status->items_needing_location.' item(s) currently in '.$status->name.' to location “'.$status->auto_location.'”?'));">
-                                        @csrf
-                                        <button type="submit" class="inline-flex items-center rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                           aria-label="Auto-set location for {{ $status->name }}">
+                                    @error('statuses.'.$status->id.'.auto_location')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <div class="flex flex-col items-end gap-2">
+                                    @if($status->auto_location && $status->items_needing_location > 0 && ! $status->archived_at)
+                                        <button type="submit"
+                                                form="apply-location-{{ $status->id }}"
+                                                class="inline-flex items-center rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+                                                onclick="return confirm(@json('Update '.$status->items_needing_location.' item(s) currently in '.$status->name.' to location “'.$status->auto_location.'”?'));">
                                             Apply location to {{ $status->items_needing_location }}
                                         </button>
-                                    </form>
-                                @elseif($status->auto_location && $status->item_count > 0 && ! $status->archived_at)
-                                    <span class="text-xs text-emerald-700">Locations current</span>
-                                @endif
+                                    @elseif($status->auto_location && $status->item_count > 0 && ! $status->archived_at)
+                                        <span class="text-xs text-emerald-700">Locations current</span>
+                                    @endif
 
-                                @if(! $status->is_system && $status->archived_at === null && $status->item_count === 0)
-                                    <form method="POST" action="{{ route('admin.inventory-statuses.archive', $status) }}"
-                                          onsubmit="return confirm(@json('Archive '.$status->name.'? It will no longer appear in status dropdowns.'));">
-                                        @csrf
-                                        <button type="submit" class="text-amber-700 hover:text-amber-900 font-medium">Archive</button>
-                                    </form>
-                                @elseif($status->archived_at)
-                                    <span class="text-xs text-gray-400">Archived</span>
-                                @elseif(! $status->auto_location || $status->item_count === 0)
-                                    <span class="text-xs text-gray-400">{{ $status->is_system ? 'Locked' : 'In use' }}</span>
-                                @endif
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">No statuses found.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        @error('status')
-            <p class="px-4 py-3 text-sm text-red-600">{{ $message }}</p>
-        @enderror
-        @error('color')
-            <p class="px-4 py-3 text-sm text-red-600">{{ $message }}</p>
-        @enderror
+                                    @if(! $status->is_system && $status->archived_at === null && $status->item_count === 0)
+                                        <button type="submit"
+                                                form="archive-status-{{ $status->id }}"
+                                                class="text-amber-700 hover:text-amber-900 font-medium"
+                                                onclick="return confirm(@json('Archive '.$status->name.'? It will no longer appear in status dropdowns.'));">
+                                            Archive
+                                        </button>
+                                    @elseif($status->archived_at)
+                                        <span class="text-xs text-gray-400">Archived</span>
+                                    @elseif(! $status->auto_location || $status->item_count === 0)
+                                        <span class="text-xs text-gray-400">{{ $status->is_system ? 'Locked' : 'In use' }}</span>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-gray-500">No statuses found.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            @error('statuses')
+                <p class="px-4 py-3 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+            @error('status')
+                <p class="px-4 py-3 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+            @if($editableStatuses->isNotEmpty())
+                <div class="flex justify-end border-t border-gray-200 px-6 py-4">
+                    <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+                        <i class="fas fa-save"></i>
+                        Save
+                    </button>
+                </div>
+            @endif
+        </form>
     </div>
 </div>
+
+@foreach($statuses as $status)
+    @if(! $status->archived_at && $status->auto_location && $status->items_needing_location > 0)
+        <form id="apply-location-{{ $status->id }}" method="POST" action="{{ route('admin.inventory-statuses.apply-auto-location', $status) }}" class="hidden">
+            @csrf
+        </form>
+    @endif
+    @if(! $status->is_system && $status->archived_at === null && $status->item_count === 0)
+        <form id="archive-status-{{ $status->id }}" method="POST" action="{{ route('admin.inventory-statuses.archive', $status) }}" class="hidden">
+            @csrf
+        </form>
+    @endif
+@endforeach
 @endsection

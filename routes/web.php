@@ -241,7 +241,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('inventory-statuses', [InventoryStatusController::class, 'store'])
         ->middleware('permission:inventory-statuses.manage')
         ->name('inventory-statuses.store');
-    Route::patch('inventory-statuses/{inventoryStatus}', [InventoryStatusController::class, 'update'])
+    Route::patch('inventory-statuses', [InventoryStatusController::class, 'update'])
         ->middleware('permission:inventory-statuses.manage')
         ->name('inventory-statuses.update');
     Route::post('inventory-statuses/{inventoryStatus}/archive', [InventoryStatusController::class, 'archive'])
