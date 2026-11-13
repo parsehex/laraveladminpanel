@@ -77,6 +77,7 @@ if (! function_exists('isApplianceInventoryNavActive')) {
     {
         return request()->routeIs('admin.inventory.*')
             && ! request()->routeIs('admin.inventory.scan*')
+            && ! request()->routeIs('admin.inventory.check-in*')
             && ! request()->routeIs('admin.inventory.testing*')
             && ! isFurnitureInventoryNavActive();
     }
@@ -87,6 +88,7 @@ if (! function_exists('isInventoryNavFolderActive')) {
     {
         return isApplianceInventoryNavActive()
             || request()->routeIs('admin.inventory.scan*')
+            || request()->routeIs('admin.inventory.check-in*')
             || isFurnitureInventoryNavActive();
     }
 }

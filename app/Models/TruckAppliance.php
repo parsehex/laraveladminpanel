@@ -42,6 +42,8 @@ class TruckAppliance extends EloquentModel
         'sold_by',
         'sold_at',
         'photos',
+        'checked_in_at',
+        'checked_in_by',
         'original_order_number',
         'return_reason',
         'return_problems',
@@ -76,12 +78,19 @@ class TruckAppliance extends EloquentModel
             'sold_price' => 'decimal:2',
             'sold_at' => 'datetime',
             'photos' => 'array',
+            'checked_in_at' => 'datetime',
+            'checked_in_by' => 'integer',
         ];
     }
 
     public function truck(): BelongsTo
     {
         return $this->belongsTo(Truck::class);
+    }
+
+    public function checkedInBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'checked_in_by');
     }
 
     public function category(): BelongsTo

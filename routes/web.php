@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\FurnitureModelController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\InventoryLocationController;
 use App\Http\Controllers\Admin\InventoryStatusController;
+use App\Http\Controllers\Admin\ItemCheckInController;
 use App\Http\Controllers\Admin\KitCatalogPartController;
 use App\Http\Controllers\Admin\KitController;
 use App\Http\Controllers\Admin\ModelController;
@@ -303,6 +304,21 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('inventory/scan/resolve', [InventoryController::class, 'resolveScan'])
         ->middleware('permission:inventory.view')
         ->name('inventory.scan.resolve');
+    Route::get('inventory/check-in', [ItemCheckInController::class, 'create'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.check-in.create');
+    Route::post('inventory/check-in', [ItemCheckInController::class, 'store'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.check-in.store');
+    Route::get('inventory/check-in/{checkIn}/photo', [ItemCheckInController::class, 'photo'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.check-in.photo');
+    Route::get('inventory/check-in/{checkIn}', [ItemCheckInController::class, 'show'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.check-in.show');
+    Route::post('inventory/check-in/{checkIn}/confirm', [ItemCheckInController::class, 'confirm'])
+        ->middleware('permission:inventory.view')
+        ->name('inventory.check-in.confirm');
     Route::get('inventory/parts/search', [InventoryController::class, 'searchParts'])
         ->middleware('permission:parts.view|appliance.edit')
         ->name('inventory.parts.search');

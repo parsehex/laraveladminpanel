@@ -28,6 +28,7 @@ class AdminSidebarTest extends TestCase
             'Appliances',
             'Furniture',
             'Scan',
+            'Check in',
             'Trucks',
             'Models',
             'Parts',

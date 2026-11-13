@@ -32,6 +32,9 @@
         <a href="{{ route('admin.inventory.scan') }}" class="inline-flex flex-1 items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50">
             Scan again
         </a>
+        <a href="{{ route('admin.inventory.check-in.create') }}" class="inline-flex flex-1 items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50">
+            Check in
+        </a>
         <a href="{{ route('admin.inventory.show', $appliance) }}" class="inline-flex flex-1 items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50">
             Full record
         </a>

@@ -79,7 +79,7 @@
 
         @canAccess('inventory.view')
         <a href="{{ route('admin.inventory.index') }}" @click="sidebarOpen = false"
-           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.*') && ! request()->routeIs('admin.inventory.scan*') ? 'is-active' : '' }}">
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.*') && ! request()->routeIs('admin.inventory.scan*', 'admin.inventory.check-in*') ? 'is-active' : '' }}">
             <i class="fas fa-boxes-stacked mr-3 w-5 text-center"></i>
             <span>Inventory</span>
         </a>
@@ -87,6 +87,11 @@
            class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.scan*') ? 'is-active' : '' }}">
             <i class="fas fa-qrcode mr-3 w-5 text-center"></i>
             <span>Scan</span>
+        </a>
+        <a href="{{ route('admin.inventory.check-in.create') }}" @click="sidebarOpen = false"
+           class="ui-nav-link flex items-center px-4 py-3 text-sm font-semibold {{ request()->routeIs('admin.inventory.check-in*') ? 'is-active' : '' }}">
+            <i class="fas fa-camera mr-3 w-5 text-center"></i>
+            <span>Check in</span>
         </a>
         @endcanAccess
 
