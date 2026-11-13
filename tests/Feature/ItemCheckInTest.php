@@ -25,6 +25,19 @@ class ItemCheckInTest extends TestCase
             ->assertRedirect(route('login'));
     }
 
+    public function test_check_in_page_offers_the_camera_and_the_photo_library(): void
+    {
+        $admin = $this->userWithRole('admin');
+
+        $this->actingAs($admin)
+            ->get(route('admin.inventory.check-in.create'))
+            ->assertOk()
+            ->assertSee('Take photo')
+            ->assertSee('Choose photos')
+            ->assertSee('id="check-in-video"', false)
+            ->assertSee('Capture');
+    }
+
     public function test_serial_match_checks_in_the_units_truck_without_a_truck_being_submitted(): void
     {
         $this->freezeTime();
